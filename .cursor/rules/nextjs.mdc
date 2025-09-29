@@ -1,0 +1,18 @@
+---
+description:
+globs: *.tsx,*.ts,*.jsx,*.js
+alwaysApply: false
+---
+### Guidelines for Next.js
+
+- Use App Router for new features and pages
+- Leverage Server Actions for form handling and mutations
+- Use API Routes in `/pages/api` for external API endpoints
+- Use POST, GET - uppercase format for API route handlers
+- Use zod for input validation in API routes and Server Actions
+- Extract logic into services in `src/lib/services`
+- Implement middleware in `middleware.ts` for request/response modification
+- Use Next.js Image component for automatic image optimization
+- Leverage Server Components by default, use Client Components when needed
+- Use cookies() from 'next/headers' for server-side cookie management
+- Use process.env for environment variables

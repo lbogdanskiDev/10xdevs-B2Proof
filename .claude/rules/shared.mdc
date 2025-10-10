@@ -3,7 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
-# AI Rules for {app-name}
+# AI Rules for B2Proof
 
 {project-description}
 
@@ -21,17 +21,18 @@ alwaysApply: true
 When introducing changes to the project, always follow the directory structure below:
 
 - `./src` - source code
-- `./src/app` - Next.js App Router pages and layouts
-- `./src/layouts` - Layout components
-- `./src/pages` - Next.js Pages Router (legacy)
-- `./src/pages/api` - API endpoints
-- `./src/db` - Supabase clients and types
+- `./src/app` - Next.js App Router pages, layouts, and API routes
+- `./src/app/api` - API endpoints (Route Handlers in `route.ts` files)
+- `./src/db` - Supabase clients and database types
 - `./src/types.ts` - Shared types for backend and frontend (Entities, DTOs)
 - `./src/components` - React components
-- `./src/components/ui` - Client-side components from Shadcn/ui
-- `./src/lib` - Services and helpers
+- `./src/components/ui` - Client-side UI components from Shadcn/ui
+- `./src/components/hooks` - Custom React hooks
+- `./src/lib` - Services and utility helpers
+- `./src/lib/services` - Business logic services
 - `./src/styles` - Global styles
-- `./public` - public assets
+- `./public` - public static assets
+- `./supabase` - Supabase configuration and migrations
 
 When modifying the directory structure, always update this section.
 

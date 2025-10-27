@@ -350,3 +350,189 @@ DELETE FROM briefs WHERE header LIKE '%Test%' OR header LIKE '%Sample%';
 -- 5. Environment variable for easy toggle:
 --    - Set SEED_DATA=true in .env.local for development
 --    - Use conditional seeding in application code
+
+-- ============================================================================
+-- TEST DATA FOR GET /api/briefs ENDPOINT
+-- ============================================================================
+-- This section adds test data for the mock user from DEFAULT_USER_PROFILE
+-- Mock user ID: 00000000-0000-0000-0000-000000000000
+
+-- Insert mock users into auth.users (required for foreign key constraints)
+-- Note: In production, users are created via Supabase Auth API
+INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at, aud, role)
+VALUES
+  (
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'mock.user@example.com',
+    crypt('TestPassword123', gen_salt('bf')),
+    NOW(),
+    NOW(),
+    NOW(),
+    'authenticated',
+    'authenticated'
+  ),
+  (
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    'other.user@example.com',
+    crypt('TestPassword123', gen_salt('bf')),
+    NOW(),
+    NOW(),
+    NOW(),
+    'authenticated',
+    'authenticated'
+  ),
+  (
+    '22222222-2222-2222-2222-222222222222'::uuid,
+    'shared.user@example.com',
+    crypt('TestPassword123', gen_salt('bf')),
+    NOW(),
+    NOW(),
+    NOW(),
+    'authenticated',
+    'authenticated'
+  )
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert profiles for test users (triggered automatically in production)
+INSERT INTO profiles (id, role)
+VALUES
+  ('00000000-0000-0000-0000-000000000000'::uuid, 'creator'),
+  ('11111111-1111-1111-1111-111111111111'::uuid, 'creator'),
+  ('22222222-2222-2222-2222-222222222222'::uuid, 'creator')
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert test briefs OWNED by mock user (5 briefs with different statuses)
+INSERT INTO briefs (id, owner_id, header, content, footer, status, comment_count, created_at, updated_at)
+VALUES
+  (
+    'aaaaaaaa-0001-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'Draft Brief - Owned by Mock User',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"This is a draft brief content"}]}]}'::jsonb,
+    'Draft footer',
+    'draft',
+    0,
+    NOW() - INTERVAL '5 days',
+    NOW() - INTERVAL '5 days'
+  ),
+  (
+    'aaaaaaaa-0002-0000-0000-000000000002'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'Sent Brief - Owned by Mock User',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"This brief was sent to client"}]}]}'::jsonb,
+    'Sent footer',
+    'sent',
+    2,
+    NOW() - INTERVAL '4 days',
+    NOW() - INTERVAL '3 days'
+  ),
+  (
+    'aaaaaaaa-0003-0000-0000-000000000003'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'Accepted Brief - Owned by Mock User',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"This brief was accepted by client"}]}]}'::jsonb,
+    'Accepted footer',
+    'accepted',
+    5,
+    NOW() - INTERVAL '10 days',
+    NOW() - INTERVAL '2 days'
+  ),
+  (
+    'aaaaaaaa-0004-0000-0000-000000000004'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'Rejected Brief - Owned by Mock User',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"This brief was rejected"}]}]}'::jsonb,
+    NULL,
+    'rejected',
+    3,
+    NOW() - INTERVAL '7 days',
+    NOW() - INTERVAL '6 days'
+  ),
+  (
+    'aaaaaaaa-0005-0000-0000-000000000005'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    'Needs Modification Brief - Owned by Mock User',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Client requested modifications"}]}]}'::jsonb,
+    'Needs work',
+    'needs_modification',
+    8,
+    NOW() - INTERVAL '3 days',
+    NOW() - INTERVAL '1 day'
+  ),
+  -- Briefs owned by OTHER users (to be shared with mock user)
+  (
+    'bbbbbbbb-0001-0000-0000-000000000001'::uuid,
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    'Shared Brief from Other User - Sent',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"This brief is shared with mock user"}]}]}'::jsonb,
+    'Shared footer',
+    'sent',
+    1,
+    NOW() - INTERVAL '6 days',
+    NOW() - INTERVAL '4 days'
+  ),
+  (
+    'bbbbbbbb-0002-0000-0000-000000000002'::uuid,
+    '22222222-2222-2222-2222-222222222222'::uuid,
+    'Shared Brief from Another User - Draft',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Another shared brief"}]}]}'::jsonb,
+    NULL,
+    'draft',
+    0,
+    NOW() - INTERVAL '2 days',
+    NOW() - INTERVAL '1 day'
+  ),
+  (
+    'bbbbbbbb-0003-0000-0000-000000000003'::uuid,
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    'Shared Brief - Accepted',
+    '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Shared and accepted brief"}]}]}'::jsonb,
+    'Success!',
+    'accepted',
+    4,
+    NOW() - INTERVAL '15 days',
+    NOW() - INTERVAL '14 days'
+  )
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert brief_recipients to establish sharing relationships
+-- These make briefs owned by other users accessible to mock user
+INSERT INTO brief_recipients (id, brief_id, recipient_id, shared_by, shared_at)
+VALUES
+  (
+    'cccccccc-0001-0000-0000-000000000001'::uuid,
+    'bbbbbbbb-0001-0000-0000-000000000001'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    NOW() - INTERVAL '5 days'
+  ),
+  (
+    'cccccccc-0002-0000-0000-000000000002'::uuid,
+    'bbbbbbbb-0002-0000-0000-000000000002'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    '22222222-2222-2222-2222-222222222222'::uuid,
+    NOW() - INTERVAL '1 day'
+  ),
+  (
+    'cccccccc-0003-0000-0000-000000000003'::uuid,
+    'bbbbbbbb-0003-0000-0000-000000000003'::uuid,
+    '00000000-0000-0000-0000-000000000000'::uuid,
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    NOW() - INTERVAL '14 days'
+  )
+ON CONFLICT (id) DO NOTHING;
+
+-- Test data summary for mock user (00000000-0000-0000-0000-000000000000):
+-- - 5 owned briefs: draft(1), sent(1), accepted(1), rejected(1), needs_modification(1)
+-- - 3 shared briefs: sent(1), draft(1), accepted(1)
+-- Total: 8 briefs accessible
+--
+-- Expected API results:
+-- GET /api/briefs                     -> 8 briefs (all)
+-- GET /api/briefs?filter=owned        -> 5 briefs (owned only)
+-- GET /api/briefs?filter=shared       -> 3 briefs (shared only)
+-- GET /api/briefs?status=draft        -> 2 briefs (1 owned + 1 shared)
+-- GET /api/briefs?status=sent         -> 2 briefs (1 owned + 1 shared)
+-- GET /api/briefs?status=accepted     -> 2 briefs (1 owned + 1 shared)
+-- GET /api/briefs?status=rejected     -> 1 brief (owned)
+-- GET /api/briefs?status=needs_modification -> 1 brief (owned)

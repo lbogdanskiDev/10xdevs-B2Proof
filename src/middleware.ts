@@ -11,6 +11,8 @@ export async function middleware(request: NextRequest) {
 
   // Guard: Check if env vars are available
   if (!supabaseUrl || !supabaseAnonKey) {
+    // TODO: Replace with proper logging service (e.g., Sentry, Winston)
+    // eslint-disable-next-line no-console
     console.error("[middleware] Missing Supabase environment variables");
     return supabaseResponse;
   }
@@ -21,7 +23,7 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => {
+        cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
         supabaseResponse = NextResponse.next({

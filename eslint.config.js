@@ -16,6 +16,11 @@ const gitignorePath = path.resolve(__dirname, ".gitignore");
 
 const baseConfig = tseslint.config({
   extends: [eslint.configs.recommended, tseslint.configs.strict, tseslint.configs.stylistic],
+  languageOptions: {
+    globals: {
+      process: "readonly",
+    },
+  },
   rules: {
     "no-console": "warn",
     "no-unused-vars": "off",
@@ -57,6 +62,9 @@ const reactConfig = tseslint.config({
 
 export default tseslint.config(
   includeIgnoreFile(gitignorePath),
+  {
+    ignores: ["next-env.d.ts"],
+  },
   baseConfig,
   jsxA11yConfig,
   reactConfig,

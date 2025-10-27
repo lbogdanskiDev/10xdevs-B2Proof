@@ -27,11 +27,15 @@ export async function GET() {
   } catch (error) {
     // Handle ApiError instances with proper status codes
     if (error instanceof ApiError) {
+      // TODO: Replace with proper logging service (e.g., Sentry, Winston)
+      // eslint-disable-next-line no-console
       console.error(`[GET /api/users/me] ${error.name}:`, error.message);
       return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
+    // TODO: Replace with proper logging service (e.g., Sentry, Winston)
+    // eslint-disable-next-line no-console
     console.error("[GET /api/users/me] Unexpected error:", error);
     return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
   }

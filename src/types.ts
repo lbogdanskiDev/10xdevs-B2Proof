@@ -6,7 +6,25 @@
  * database schema defined in src/db/database.types.ts
  */
 
-import type { Tables, TablesInsert, TablesUpdate, Enums } from '@/db/database.types'
+import type { Tables, TablesInsert, TablesUpdate, Enums } from "@/db/database.types";
+import type { createSupabaseServerClient } from "@/db/supabase.server";
+
+// ============================================================================
+// Supabase Client Type
+// ============================================================================
+
+/**
+ * Supabase client type inferred from createSupabaseServerClient helper
+ * Use this type instead of importing SupabaseClient from @supabase/supabase-js
+ *
+ * @example
+ * import type { SupabaseClient } from '@/types'
+ *
+ * async function getUserProfile(supabase: SupabaseClient, userId: string) {
+ *   // ...
+ * }
+ */
+export type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
 // ============================================================================
 // Database Entity Aliases
@@ -18,34 +36,34 @@ import type { Tables, TablesInsert, TablesUpdate, Enums } from '@/db/database.ty
  */
 
 // Profiles
-export type ProfileEntity = Tables<'profiles'>
-export type ProfileInsert = TablesInsert<'profiles'>
-export type ProfileUpdate = TablesUpdate<'profiles'>
+export type ProfileEntity = Tables<"profiles">;
+export type ProfileInsert = TablesInsert<"profiles">;
+export type ProfileUpdate = TablesUpdate<"profiles">;
 
 // Briefs
-export type BriefEntity = Tables<'briefs'>
-export type BriefInsert = TablesInsert<'briefs'>
-export type BriefUpdate = TablesUpdate<'briefs'>
+export type BriefEntity = Tables<"briefs">;
+export type BriefInsert = TablesInsert<"briefs">;
+export type BriefUpdate = TablesUpdate<"briefs">;
 
 // Brief Recipients
-export type BriefRecipientEntity = Tables<'brief_recipients'>
-export type BriefRecipientInsert = TablesInsert<'brief_recipients'>
-export type BriefRecipientUpdate = TablesUpdate<'brief_recipients'>
+export type BriefRecipientEntity = Tables<"brief_recipients">;
+export type BriefRecipientInsert = TablesInsert<"brief_recipients">;
+export type BriefRecipientUpdate = TablesUpdate<"brief_recipients">;
 
 // Comments
-export type CommentEntity = Tables<'comments'>
-export type CommentInsert = TablesInsert<'comments'>
-export type CommentUpdate = TablesUpdate<'comments'>
+export type CommentEntity = Tables<"comments">;
+export type CommentInsert = TablesInsert<"comments">;
+export type CommentUpdate = TablesUpdate<"comments">;
 
 // Audit Log
-export type AuditLogEntity = Tables<'audit_log'>
-export type AuditLogInsert = TablesInsert<'audit_log'>
-export type AuditLogUpdate = TablesUpdate<'audit_log'>
+export type AuditLogEntity = Tables<"audit_log">;
+export type AuditLogInsert = TablesInsert<"audit_log">;
+export type AuditLogUpdate = TablesUpdate<"audit_log">;
 
 // Enums
-export type UserRole = Enums<'user_role'>
-export type BriefStatus = Enums<'brief_status'>
-export type AuditAction = Enums<'audit_action'>
+export type UserRole = Enums<"user_role">;
+export type BriefStatus = Enums<"brief_status">;
+export type AuditAction = Enums<"audit_action">;
 
 // ============================================================================
 // Helper Types
@@ -56,16 +74,14 @@ export type AuditAction = Enums<'audit_action'>
  */
 type CamelCase<S extends string> = S extends `${infer P1}_${infer P2}${infer P3}`
   ? `${Lowercase<P1>}${Uppercase<P2>}${CamelCase<P3>}`
-  : Lowercase<S>
+  : Lowercase<S>;
 
 /**
  * Helper type to convert object keys from snake_case to camelCase
  */
 type KeysToCamelCase<T> = {
-  [K in keyof T as CamelCase<string & K>]: T[K] extends object
-    ? KeysToCamelCase<T[K]>
-    : T[K]
-}
+  [K in keyof T as CamelCase<string & K>]: T[K] extends object ? KeysToCamelCase<T[K]> : T[K];
+};
 
 // ============================================================================
 // Pagination Types
@@ -75,18 +91,18 @@ type KeysToCamelCase<T> = {
  * Metadata for paginated responses
  */
 export interface PaginationMetadata {
-  page: number
-  limit: number
-  total: number
-  totalPages: number
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 /**
  * Generic paginated response wrapper
  */
 export interface PaginatedResponse<T> {
-  data: T[]
-  pagination: PaginationMetadata
+  data: T[];
+  pagination: PaginationMetadata;
 }
 
 // ============================================================================
@@ -99,11 +115,11 @@ export interface PaginatedResponse<T> {
  * Source: profiles table + auth.users (email)
  */
 export interface UserProfileDto {
-  id: string
-  email: string
-  role: UserRole
-  createdAt: string
-  updatedAt: string
+  id: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ============================================================================
@@ -116,16 +132,16 @@ export interface UserProfileDto {
  * Source: briefs table
  */
 export interface BriefListItemDto {
-  id: string
-  ownerId: string
-  header: string
-  footer: string | null
-  status: BriefStatus
-  commentCount: number
+  id: string;
+  ownerId: string;
+  header: string;
+  footer: string | null;
+  status: BriefStatus;
+  commentCount: number;
   /** Whether the current user is the owner of this brief */
-  isOwned: boolean
-  createdAt: string
-  updatedAt: string
+  isOwned: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -135,9 +151,9 @@ export interface BriefListItemDto {
  */
 export interface BriefDetailDto extends BriefListItemDto {
   /** TipTap JSON content structure */
-  content: BriefEntity['content']
-  statusChangedAt: string | null
-  statusChangedBy: string | null
+  content: BriefEntity["content"];
+  statusChangedAt: string | null;
+  statusChangedBy: string | null;
 }
 
 /**
@@ -145,10 +161,10 @@ export interface BriefDetailDto extends BriefListItemDto {
  * Used in: GET /api/briefs (query string)
  */
 export interface BriefQueryParams {
-  page?: number
-  limit?: number
-  filter?: 'owned' | 'shared'
-  status?: BriefStatus
+  page?: number;
+  limit?: number;
+  filter?: "owned" | "shared";
+  status?: BriefStatus;
 }
 
 /**
@@ -157,9 +173,9 @@ export interface BriefQueryParams {
  * Source: briefs table insert type
  */
 export interface CreateBriefCommand {
-  header: string
-  content: BriefInsert['content']
-  footer?: string | null
+  header: string;
+  content: BriefInsert["content"];
+  footer?: string | null;
 }
 
 /**
@@ -168,9 +184,9 @@ export interface CreateBriefCommand {
  * Source: briefs table update type
  */
 export interface UpdateBriefCommand {
-  header?: string
-  content?: BriefUpdate['content']
-  footer?: string | null
+  header?: string;
+  content?: BriefUpdate["content"];
+  footer?: string | null;
 }
 
 /**
@@ -179,10 +195,10 @@ export interface UpdateBriefCommand {
  * Source: briefs table (status fields only)
  */
 export interface BriefStatusResponseDto {
-  id: string
-  status: BriefStatus
-  statusChangedAt: string | null
-  statusChangedBy: string | null
+  id: string;
+  status: BriefStatus;
+  statusChangedAt: string | null;
+  statusChangedBy: string | null;
 }
 
 /**
@@ -190,7 +206,7 @@ export interface BriefStatusResponseDto {
  * Used in: POST /api/briefs/:id/request-modification
  */
 export interface RequestModificationCommand {
-  comment: string
+  comment: string;
 }
 
 /**
@@ -199,7 +215,7 @@ export interface RequestModificationCommand {
  * Includes the status change and the created comment
  */
 export interface RequestModificationResponseDto extends BriefStatusResponseDto {
-  comment: CommentDto
+  comment: CommentDto;
 }
 
 // ============================================================================
@@ -212,11 +228,11 @@ export interface RequestModificationResponseDto extends BriefStatusResponseDto {
  * Source: brief_recipients table + auth.users (email via join)
  */
 export interface BriefRecipientDto {
-  id: string
-  recipientId: string
-  recipientEmail: string
-  sharedBy: string
-  sharedAt: string
+  id: string;
+  recipientId: string;
+  recipientEmail: string;
+  sharedBy: string;
+  sharedAt: string;
 }
 
 /**
@@ -224,7 +240,7 @@ export interface BriefRecipientDto {
  * Used in: POST /api/briefs/:id/recipients
  */
 export interface ShareBriefCommand {
-  email: string
+  email: string;
 }
 
 /**
@@ -233,7 +249,7 @@ export interface ShareBriefCommand {
  * Source: brief_recipients table + recipient email
  */
 export interface ShareBriefResponseDto extends BriefRecipientDto {
-  briefId: string
+  briefId: string;
 }
 
 // ============================================================================
@@ -246,15 +262,15 @@ export interface ShareBriefResponseDto extends BriefRecipientDto {
  * Source: comments table + auth.users (email) + profiles (role)
  */
 export interface CommentDto {
-  id: string
-  briefId: string
-  authorId: string
-  authorEmail: string
-  authorRole: UserRole
-  content: string
+  id: string;
+  briefId: string;
+  authorId: string;
+  authorEmail: string;
+  authorRole: UserRole;
+  content: string;
   /** Whether the current user is the author of this comment */
-  isOwn: boolean
-  createdAt: string
+  isOwn: boolean;
+  createdAt: string;
 }
 
 /**
@@ -263,7 +279,7 @@ export interface CommentDto {
  * Source: comments table insert type
  */
 export interface CreateCommentCommand {
-  content: string
+  content: string;
 }
 
 // ============================================================================
@@ -274,17 +290,17 @@ export interface CreateCommentCommand {
  * Validation error detail
  */
 export interface ValidationErrorDetail {
-  field: string
-  message: string
+  field: string;
+  message: string;
 }
 
 /**
  * Generic error response
  */
 export interface ErrorResponse {
-  error: string
-  details?: ValidationErrorDetail[]
-  retryAfter?: number
+  error: string;
+  details?: ValidationErrorDetail[];
+  retryAfter?: number;
 }
 
 // ============================================================================
@@ -296,24 +312,22 @@ export interface ErrorResponse {
  */
 export function isErrorResponse(response: unknown): response is ErrorResponse {
   return (
-    typeof response === 'object' &&
+    typeof response === "object" &&
     response !== null &&
-    'error' in response &&
-    typeof (response as ErrorResponse).error === 'string'
-  )
+    "error" in response &&
+    typeof (response as ErrorResponse).error === "string"
+  );
 }
 
 /**
  * Type guard to check if a response is paginated
  */
-export function isPaginatedResponse<T>(
-  response: unknown
-): response is PaginatedResponse<T> {
+export function isPaginatedResponse<T>(response: unknown): response is PaginatedResponse<T> {
   return (
-    typeof response === 'object' &&
+    typeof response === "object" &&
     response !== null &&
-    'data' in response &&
-    'pagination' in response &&
+    "data" in response &&
+    "pagination" in response &&
     Array.isArray((response as PaginatedResponse<T>).data)
-  )
+  );
 }

@@ -74,17 +74,14 @@ export default function HomePage() {
                   <span className="font-mono bg-blue-900/50 px-3 py-1.5 rounded-lg text-blue-200 shadow-sm">
                     Husky i Lint-staged
                   </span>
-                  <span className="text-blue-100/90">
-                    - Automatyczna analiza kodu przed commitowaniem
-                  </span>
+                  <span className="text-blue-100/90">- Automatyczna analiza kodu przed commitowaniem</span>
                 </li>
               </ul>
             </div>
           </div>
 
           <p className="text-lg text-center text-blue-100/90 mt-8 leading-relaxed">
-            Starter zawiera wszystko, czego potrzebujesz do rozpoczęcia tworzenia{' '}
-            <br className="hidden sm:block" />
+            Starter zawiera wszystko, czego potrzebujesz do rozpoczęcia tworzenia <br className="hidden sm:block" />
             <span className="font-semibold bg-gradient-to-r from-blue-200 to-purple-200 text-transparent bg-clip-text">
               nowoczesnych aplikacji webowych!
             </span>

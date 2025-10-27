@@ -13,3 +13,7 @@ alwaysApply: false
 - In Client Components: use `createSupabaseBrowserClient()` from `src/db/supabase.client.ts` (sync function)
 - Import `Database` type from `src/db/database.types.ts` for type-safe database queries
 - Never import `SupabaseClient` or `createClient` directly from `@supabase/supabase-js` - always use the helper functions above
+- For type annotations in services: import `SupabaseClient` type from `@/types` (centralized type definition)
+- Use request headers or cookies to pass data between middleware and route handlers
+- In middleware, use `request.cookies` and `response.cookies` to manage cookies; in Route Handlers use `cookies()` from `next/headers`
+- Supabase session is automatically managed via cookies through `@supabase/ssr` - no need to manually store user data in context

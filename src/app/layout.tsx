@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import '@/styles/global.css';
+import type { Metadata } from "next";
+import "@/styles/global.css";
 
 export const metadata: Metadata = {
-  title: '10x Next.js Starter',
-  description: 'Next.js 15 with App Router, React 19, TypeScript, and Tailwind CSS',
+  title: "10x Next.js Starter",
+  description: "Next.js 15 with App Router, React 19, TypeScript, and Tailwind CSS",
 };
 
 export default function RootLayout({

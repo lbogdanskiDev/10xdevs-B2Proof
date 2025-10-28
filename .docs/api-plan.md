@@ -347,7 +347,7 @@ Create a new brief (creators only).
 
 **PATCH** `/api/briefs/:id`
 
-Update brief content (owner only, resets status to 'draft').
+Update brief content (owner) or status (client with access).
 
 **Headers:**
 - `Authorization: Bearer {token}`
@@ -355,7 +355,7 @@ Update brief content (owner only, resets status to 'draft').
 **Path Parameters:**
 - `id`: UUID - Brief identifier
 
-**Request Body:**
+**Request Body (Owner - Content Update):**
 ```json
 {
   "header": "Updated Title",
@@ -364,12 +364,39 @@ Update brief content (owner only, resets status to 'draft').
 }
 ```
 
-**Validation:**
-- `header`: Optional, string, 1-200 characters (if provided)
-- `content`: Optional, valid TipTap JSON structure (if provided)
-- `footer`: Optional, string, max 200 characters or null (if provided)
+**Request Body (Client - Status Update):**
+```json
+{
+  "status": "accepted"
+}
+```
 
-**Success Response (200 OK):**
+```json
+{
+  "status": "needs_modification",
+  "comment": "Please add more details about the timeline"
+}
+```
+
+**Validation:**
+
+**For owners (creators):**
+- `header`: Optional, string, 1-200 characters
+- `content`: Optional, valid TipTap JSON structure
+- `footer`: Optional, string, max 200 characters or null
+- Cannot update `status` directly (resets to `draft` automatically via database trigger when content is modified)
+
+**For recipients (clients):**
+- `status`: Optional, enum: `accepted` | `rejected` | `needs_modification`
+- `comment`: Required if `status` is `needs_modification`, string, 1-1000 characters
+- Cannot update `header`, `content`, or `footer`
+
+**Business Logic:**
+- **Owner updates:** Changing `header`/`content`/`footer` triggers automatic status reset to `draft` (database trigger)
+- **Client status updates:** Must have brief access, current brief status must be `sent`
+- **Status `needs_modification`:** Automatically creates comment with provided content
+
+**Success Response (200 OK) - Content Update:**
 ```json
 {
   "id": "uuid",
@@ -387,10 +414,61 @@ Update brief content (owner only, resets status to 'draft').
 }
 ```
 
+**Success Response (200 OK) - Status Update:**
+```json
+{
+  "id": "uuid",
+  "status": "accepted",
+  "statusChangedAt": "2025-01-15T11:00:00Z",
+  "statusChangedBy": "uuid",
+  "commentCount": 3,
+  "updatedAt": "2025-01-15T11:00:00Z"
+}
+```
+
+**Success Response (200 OK) - Status Update with Comment:**
+```json
+{
+  "id": "uuid",
+  "status": "needs_modification",
+  "statusChangedAt": "2025-01-15T11:00:00Z",
+  "statusChangedBy": "uuid",
+  "commentCount": 4,
+  "updatedAt": "2025-01-15T11:00:00Z",
+  "comment": {
+    "id": "uuid",
+    "briefId": "uuid",
+    "authorId": "uuid",
+    "content": "Please add more details about the timeline",
+    "createdAt": "2025-01-15T11:00:00Z"
+  }
+}
+```
+
 **Error Responses:**
 - `400 Bad Request`: Validation errors
+  ```json
+  {
+    "error": "Validation failed",
+    "details": [
+      {
+        "field": "comment",
+        "message": "Comment is required when status is 'needs_modification'"
+      }
+    ]
+  }
+  ```
 - `401 Unauthorized`: Invalid or expired token
-- `403 Forbidden`: User is not the owner
+- `403 Forbidden`:
+  - Client trying to update content fields
+  - Owner trying to update status directly
+  - Client trying to update status when brief is not in `sent` state
+  - User without brief access
+  ```json
+  {
+    "error": "Only clients with access can change brief status when it's in 'sent' state"
+  }
+  ```
 - `404 Not Found`: Brief does not exist
 
 ---
@@ -416,126 +494,9 @@ Permanently delete a brief (owner only).
 
 ---
 
-## 6. Brief Status Endpoints
+## 6. Brief Recipient Endpoints
 
-### 6.1 Accept Brief
-
-**POST** `/api/briefs/:id/accept`
-
-Change brief status to 'accepted' (clients with access only).
-
-**Headers:**
-- `Authorization: Bearer {token}`
-
-**Path Parameters:**
-- `id`: UUID - Brief identifier
-
-**Success Response (200 OK):**
-```json
-{
-  "id": "uuid",
-  "status": "accepted",
-  "statusChangedAt": "2025-01-15T11:00:00Z",
-  "statusChangedBy": "uuid"
-}
-```
-
-**Error Responses:**
-- `401 Unauthorized`: Invalid or expired token
-- `403 Forbidden`: User is not a client, does not have access, or brief is not in 'sent' status
-  ```json
-  {
-    "error": "Only clients with access can accept briefs in 'sent' status"
-  }
-  ```
-- `404 Not Found`: Brief does not exist
-
----
-
-### 6.2 Reject Brief
-
-**POST** `/api/briefs/:id/reject`
-
-Change brief status to 'rejected' (clients with access only).
-
-**Headers:**
-- `Authorization: Bearer {token}`
-
-**Path Parameters:**
-- `id`: UUID - Brief identifier
-
-**Success Response (200 OK):**
-```json
-{
-  "id": "uuid",
-  "status": "rejected",
-  "statusChangedAt": "2025-01-15T11:00:00Z",
-  "statusChangedBy": "uuid"
-}
-```
-
-**Error Responses:**
-- `401 Unauthorized`: Invalid or expired token
-- `403 Forbidden`: User is not a client, does not have access, or brief is not in 'sent' status
-- `404 Not Found`: Brief does not exist
-
----
-
-### 6.3 Request Brief Modification
-
-**POST** `/api/briefs/:id/request-modification`
-
-Change brief status to 'needs_modification' (clients with access only, requires comment).
-
-**Headers:**
-- `Authorization: Bearer {token}`
-
-**Path Parameters:**
-- `id`: UUID - Brief identifier
-
-**Request Body:**
-```json
-{
-  "comment": "Please add more details about the timeline"
-}
-```
-
-**Validation:**
-- `comment`: Required, string, 1-1000 characters
-
-**Success Response (200 OK):**
-```json
-{
-  "id": "uuid",
-  "status": "needs_modification",
-  "statusChangedAt": "2025-01-15T11:00:00Z",
-  "statusChangedBy": "uuid",
-  "comment": {
-    "id": "uuid",
-    "briefId": "uuid",
-    "authorId": "uuid",
-    "content": "Please add more details about the timeline",
-    "createdAt": "2025-01-15T11:00:00Z"
-  }
-}
-```
-
-**Error Responses:**
-- `400 Bad Request`: Missing or invalid comment
-  ```json
-  {
-    "error": "Comment is required when requesting modifications"
-  }
-  ```
-- `401 Unauthorized`: Invalid or expired token
-- `403 Forbidden`: User is not a client, does not have access, or brief is not in 'sent' status
-- `404 Not Found`: Brief does not exist
-
----
-
-## 7. Brief Recipient Endpoints
-
-### 7.1 List Brief Recipients
+### 6.1 List Brief Recipients
 
 **GET** `/api/briefs/:id/recipients`
 
@@ -569,7 +530,7 @@ Retrieve list of users with access to the brief (owner only).
 
 ---
 
-### 7.2 Share Brief with Recipient
+### 6.2 Share Brief with Recipient
 
 **POST** `/api/briefs/:id/recipients`
 
@@ -627,7 +588,7 @@ Share brief with a user by email (owner only, max 10 recipients, changes status 
 
 ---
 
-### 7.3 Revoke Recipient Access
+### 6.3 Revoke Recipient Access
 
 **DELETE** `/api/briefs/:id/recipients/:recipientId`
 
@@ -649,9 +610,9 @@ Remove user's access to brief (owner only, resets status to 'draft' if last reci
 
 ---
 
-## 8. Comment Endpoints
+## 7. Comment Endpoints
 
-### 8.1 List Comments
+### 7.1 List Comments
 
 **GET** `/api/briefs/:id/comments`
 
@@ -688,7 +649,7 @@ Retrieve all comments for a brief (users with access only).
 
 ---
 
-### 8.2 Create Comment
+### 7.2 Create Comment
 
 **POST** `/api/briefs/:id/comments`
 
@@ -743,7 +704,7 @@ Add a comment to a brief (users with access only).
 
 ---
 
-### 8.3 Delete Comment
+### 7.3 Delete Comment
 
 **DELETE** `/api/comments/:id`
 
@@ -764,9 +725,9 @@ Delete own comment.
 
 ---
 
-## 9. Authentication and Authorization
+## 8. Authentication and Authorization
 
-### 9.1 Authentication Mechanism
+### 8.1 Authentication Mechanism
 
 **Implementation**: Supabase Auth with JWT tokens
 
@@ -825,7 +786,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-### 9.2 Authorization Rules
+### 8.2 Authorization Rules
 
 **Role-Based Access:**
 - **Creators**: Can create briefs, share briefs, manage recipients, edit/delete own briefs
@@ -842,7 +803,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - API endpoints trust RLS and use authenticated user context (`auth.uid()`) for all queries
 - Helper function `user_has_brief_access(brief_id)` checks ownership or recipient status
 
-### 9.3 Session Management
+### 8.3 Session Management
 
 **Managed by Supabase Auth:**
 - Configurable session lifetime (default: 1 hour for access token)
@@ -854,9 +815,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-## 10. Validation and Business Logic
+## 9. Validation and Business Logic
 
-### 10.1 Field Validation Rules
+### 9.1 Field Validation Rules
 
 **User Registration:**
 - Email: Valid email format, unique in system
@@ -875,7 +836,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - Current password: Required, must match existing
 - New password: Min 8 characters, at least one digit, different from current
 
-### 10.2 Business Logic Rules
+### 9.2 Business Logic Rules
 
 **Brief Limits:**
 - Creators can have max 20 active briefs (enforced by database trigger)
@@ -906,7 +867,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 - Only creators can create briefs
 - Only clients can accept/reject/request modification
 
-### 10.3 Error Handling Strategy
+### 9.3 Error Handling Strategy
 
 **Validation Errors (400 Bad Request):**
 ```json
@@ -962,9 +923,9 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ---
 
-## 11. Performance Considerations
+## 10. Performance Considerations
 
-### 11.1 Pagination
+### 10.1 Pagination
 
 All list endpoints support pagination:
 - Default page size: 10 items
@@ -972,7 +933,7 @@ All list endpoints support pagination:
 - Query parameters: `page` (1-based), `limit`
 - Response includes pagination metadata
 
-### 11.2 Database Optimization
+### 10.2 Database Optimization
 
 - Composite indexes on `(owner_id, updated_at DESC)` for brief lists
 - Index on `recipient_id` for shared brief queries
@@ -980,7 +941,7 @@ All list endpoints support pagination:
 - Denormalized `comment_count` eliminates COUNT() queries
 - RLS policies use indexed columns for performance
 
-### 11.3 Caching Strategy
+### 10.3 Caching Strategy
 
 - Brief lists can be cached with short TTL (30-60 seconds)
 - Brief details can be cached until updated
@@ -989,15 +950,15 @@ All list endpoints support pagination:
 
 ---
 
-## 12. GDPR Compliance
+## 11. GDPR Compliance
 
-### 12.1 Right to Access
+### 11.1 Right to Access
 
 - `GET /api/users/me` - User can access their profile data
 - `GET /api/briefs` - User can access all their briefs
 - Audit log tracks all operations on user data (database-level)
 
-### 12.2 Right to Deletion
+### 11.2 Right to Deletion
 
 - `DELETE /api/users/me` - Hard delete account and all associated data
 - Cascading delete: briefs, comments, recipient relationships
@@ -1005,7 +966,7 @@ All list endpoints support pagination:
 - Email becomes available for re-registration
 - All sessions invalidated
 
-### 12.3 Data Minimization
+### 11.3 Data Minimization
 
 - Profile stores only essential fields: id, role, timestamps
 - No unnecessary personal data collection
@@ -1013,16 +974,16 @@ All list endpoints support pagination:
 
 ---
 
-## 13. Rate Limiting
+## 12. Rate Limiting
 
-### 13.1 Limits (Recommended for Production)
+### 12.1 Limits (Recommended for Production)
 
 - Authentication endpoints: 5 requests/minute per IP
 - Brief creation: 10 requests/minute per user
 - Comment creation: 20 requests/minute per user
 - General API: 100 requests/minute per user
 
-### 13.2 Response Headers
+### 12.2 Response Headers
 
 ```
 X-RateLimit-Limit: 100
@@ -1030,7 +991,7 @@ X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1642248600
 ```
 
-### 13.3 Rate Limit Exceeded (429 Too Many Requests)
+### 12.3 Rate Limit Exceeded (429 Too Many Requests)
 
 ```json
 {
@@ -1041,16 +1002,16 @@ X-RateLimit-Reset: 1642248600
 
 ---
 
-## 14. API Versioning
+## 13. API Versioning
 
-### 14.1 Strategy
+### 13.1 Strategy
 
 - URL-based versioning (future): `/api/v2/briefs`
 - Current version (MVP): No version prefix (implicit v1)
 - Breaking changes require new version
 - Non-breaking changes can be added to existing version
 
-### 14.2 Deprecation Policy
+### 13.2 Deprecation Policy
 
 - 6-month notice for deprecated endpoints
 - Documentation includes deprecation warnings
@@ -1058,7 +1019,7 @@ X-RateLimit-Reset: 1642248600
 
 ---
 
-## 15. Summary of Endpoints
+## 14. Summary of Endpoints
 
 ### Authentication (Handled by Supabase)
 Authentication is **entirely managed by Supabase Auth** using the client-side SDK. No custom API endpoints needed for:
@@ -1077,11 +1038,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 | GET | `/api/briefs` | List briefs (paginated) | Yes | Any |
 | GET | `/api/briefs/:id` | Get brief details | Yes | Any* |
 | POST | `/api/briefs` | Create brief | Yes | Creator |
-| PATCH | `/api/briefs/:id` | Update brief | Yes | Creator** |
+| PATCH | `/api/briefs/:id` | Update brief content or status | Yes | Creator** / Client* |
 | DELETE | `/api/briefs/:id` | Delete brief | Yes | Creator** |
-| POST | `/api/briefs/:id/accept` | Accept brief | Yes | Client* |
-| POST | `/api/briefs/:id/reject` | Reject brief | Yes | Client* |
-| POST | `/api/briefs/:id/request-modification` | Request modification | Yes | Client* |
 | GET | `/api/briefs/:id/recipients` | List recipients | Yes | Creator** |
 | POST | `/api/briefs/:id/recipients` | Share brief | Yes | Creator** |
 | DELETE | `/api/briefs/:id/recipients/:recipientId` | Revoke access | Yes | Creator** |
@@ -1089,7 +1047,11 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 | POST | `/api/briefs/:id/comments` | Create comment | Yes | Any* |
 | DELETE | `/api/comments/:id` | Delete comment | Yes | Any*** |
 
-**Total: 17 custom API endpoints** (authentication + profile creation handled by Supabase)
+**Total: 14 custom API endpoints** (authentication + profile creation handled by Supabase)
+
+**Note:** The `PATCH /api/briefs/:id` endpoint serves dual purpose:
+- **Creators** can update brief content (`header`, `content`, `footer`)
+- **Clients** can update brief status (`accepted`, `rejected`, `needs_modification`)
 
 **Legend:**
 - `*` = Must have access to the brief (owner or recipient)
@@ -1098,7 +1060,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 
 ---
 
-## 16. Next Steps for Implementation
+## 15. Next Steps for Implementation
 
 ### Phase 1: Setup & Configuration
 1. **Configure Supabase project**
@@ -1152,10 +1114,9 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 
 8. **Build API Route Handlers** in `src/app/api/` ✅ IN PROGRESS
    - ✅ User endpoints: `users/me/route.ts` (GET implemented)
-   - ⏳ Brief endpoints: `briefs/route.ts`, `briefs/[id]/route.ts`
-   - ⏳ Status endpoints: `briefs/[id]/accept/route.ts`, etc.
+   - ⏳ Brief endpoints: `briefs/route.ts`, `briefs/[id]/route.ts` (PATCH handles both content and status updates)
    - ⏳ Recipient endpoints: `briefs/[id]/recipients/route.ts`
-   - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`
+   - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`, `comments/[id]/route.ts`
 
 ### Phase 4: Error Handling & Testing
 9. **Add consistent error handling**

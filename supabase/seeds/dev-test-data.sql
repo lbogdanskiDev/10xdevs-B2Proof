@@ -1,3 +1,12 @@
+-- ============================================================================
+-- Development Test Data Seed
+-- ============================================================================
+-- Description: Seed database with test data for development and testing
+-- Usage: npx supabase db seed --file seeds/dev-test-data.sql
+--
+-- WARNING: This file is for DEVELOPMENT/TESTING only - DO NOT run in production!
+-- ============================================================================
+
 -- Test data seed script for GET /api/briefs endpoint
 -- This script creates test briefs for the mock user and additional users
 
@@ -145,12 +154,14 @@ VALUES
   )
 ON CONFLICT (id) DO NOTHING;
 
--- Summary of test data:
+-- ============================================================================
+-- Test Data Summary
+-- ============================================================================
 -- Mock user (00000000-0000-0000-0000-000000000000) has:
 -- - 5 owned briefs (draft, sent, accepted, rejected, needs_modification)
 -- - 3 shared briefs (sent, draft, accepted)
 -- Total: 8 briefs accessible
-
+--
 -- Expected results for different filters:
 -- filter=owned: 5 briefs
 -- filter=shared: 3 briefs

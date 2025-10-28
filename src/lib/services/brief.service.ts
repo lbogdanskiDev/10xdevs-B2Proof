@@ -1,4 +1,4 @@
-import type { SupabaseClient, BriefListItemDto, PaginatedResponse, BriefQueryParams } from "@/types";
+import type { SupabaseClient, BriefListItemDto, BriefDetailDto, PaginatedResponse, BriefQueryParams } from "@/types";
 
 /**
  * Retrieves paginated list of briefs for a user
@@ -132,4 +132,63 @@ export async function getBriefs(
     console.error("[brief.service] Unexpected error:", err);
     throw err;
   }
+}
+
+/**
+ * Retrieves a single brief by ID with full content
+ * Enforces authorization: user must be owner or recipient
+ *
+ * @param supabase - Supabase client instance
+ * @param briefId - UUID of the brief to retrieve
+ * @param userId - Current user's UUID from auth
+ * @returns Brief detail DTO with full content, or null if not found
+ * @throws Error with message 'FORBIDDEN' if user is not authorized
+ * @throws Error if database query fails
+ */
+export async function getBriefById(
+  supabase: SupabaseClient,
+  briefId: string,
+  userId: string
+): Promise<BriefDetailDto | null> {
+  // Fetch brief by ID
+  const { data: brief, error } = await supabase.from("briefs").select("*").eq("id", briefId).single();
+
+  // Handle not found or query error
+  if (error || !brief) {
+    return null;
+  }
+
+  // Check authorization: user must be owner OR recipient
+  const isOwner = brief.owner_id === userId;
+
+  if (!isOwner) {
+    // Check if user is a recipient
+    const { data: recipient } = await supabase
+      .from("brief_recipients")
+      .select("id")
+      .eq("brief_id", briefId)
+      .eq("recipient_id", userId)
+      .single();
+
+    if (!recipient) {
+      // User is neither owner nor recipient
+      throw new Error("FORBIDDEN");
+    }
+  }
+
+  // Transform database entity to DTO (snake_case to camelCase)
+  return {
+    id: brief.id,
+    ownerId: brief.owner_id,
+    header: brief.header,
+    content: brief.content,
+    footer: brief.footer,
+    status: brief.status,
+    statusChangedAt: brief.status_changed_at,
+    statusChangedBy: brief.status_changed_by,
+    commentCount: brief.comment_count,
+    isOwned: brief.owner_id === userId,
+    createdAt: brief.created_at,
+    updatedAt: brief.updated_at,
+  };
 }

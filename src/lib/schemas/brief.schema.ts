@@ -25,3 +25,16 @@ export const BriefQuerySchema = z.object({
  * TypeScript type inferred from schema
  */
 export type BriefQueryInput = z.infer<typeof BriefQuerySchema>;
+
+/**
+ * Validation schema for brief ID parameter
+ * Used in GET /api/briefs/:id
+ */
+export const BriefIdSchema = z.object({
+  id: z.string().uuid({ message: "Invalid UUID format" }),
+});
+
+/**
+ * TypeScript type inferred from BriefIdSchema
+ */
+export type BriefIdInput = z.infer<typeof BriefIdSchema>;

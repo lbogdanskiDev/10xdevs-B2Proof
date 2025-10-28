@@ -1,5 +1,30 @@
 # REST API Plan - B2Proof
 
+## Implementation Status Overview
+
+**Last Updated**: 2025-10-28
+
+### Completed Endpoints (3/14)
+
+| Endpoint | Method | Status | Commit |
+|----------|--------|--------|--------|
+| `/api/users/me` | GET | ✅ Implemented | [ac762fe](https://github.com/user/repo/commit/ac762fe) |
+| `/api/briefs` | GET | ✅ Implemented | [41747d7](https://github.com/user/repo/commit/41747d7) |
+| `/api/briefs/:id` | GET | ✅ Implemented | [fef2bc6](https://github.com/user/repo/commit/fef2bc6) |
+
+### Pending Endpoints (11/14)
+- `/api/users/me` - DELETE (account deletion)
+- `/api/briefs` - POST (create brief)
+- `/api/briefs/:id` - PATCH (update content/status)
+- `/api/briefs/:id` - DELETE (delete brief)
+- `/api/briefs/:id/recipients` - GET, POST, DELETE (recipient management)
+- `/api/briefs/:id/comments` - GET, POST (comments)
+- `/api/comments/:id` - DELETE (delete comment)
+
+**Progress**: 21% (3/14 endpoints complete)
+
+---
+
 ## 1. Overview
 
 This API follows REST principles and uses JSON for request/response payloads. Authentication is handled via Supabase Auth with JWT tokens. All endpoints require HTTPS in production.
@@ -170,14 +195,20 @@ Delete authenticated user's account and all associated data (briefs, comments).
 
 ## 5. Brief Endpoints
 
-### 5.1 List Briefs
+### 5.1 List Briefs ✅ IMPLEMENTED
 
 **GET** `/api/briefs`
 
 Retrieve paginated list of briefs (owned and shared with user).
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/route.ts](../src/app/api/briefs/route.ts)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefs`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefQuerySchema`)
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Query Parameters:**
 - `page`: Number (default: 1) - Page number
@@ -212,18 +243,25 @@ Retrieve paginated list of briefs (owned and shared with user).
 
 **Error Responses:**
 - `400 Bad Request`: Invalid query parameters
-- `401 Unauthorized`: Invalid or expired token
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 
 ---
 
-### 5.2 Get Brief Details
+### 5.2 Get Brief Details ✅ IMPLEMENTED
 
 **GET** `/api/briefs/:id`
 
 Retrieve full details of a specific brief.
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/route.ts](../src/app/api/briefs/[id]/route.ts)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefById`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
+- ✅ Authorization: Enforces owner or recipient access
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -260,7 +298,8 @@ Retrieve full details of a specific brief.
 ```
 
 **Error Responses:**
-- `401 Unauthorized`: Invalid or expired token
+- `400 Bad Request`: Invalid brief ID format
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User does not have access to this brief
 - `404 Not Found`: Brief does not exist
 
@@ -1092,10 +1131,13 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - Handle unauthorized access
 
 ### Phase 3: API Development
-6. **Implement Zod validation schemas**
-   - Create schemas for all request/response types in `src/types.ts`
-   - Validate brief content (TipTap structure)
-   - Validate character limits and enums
+6. **Implement Zod validation schemas** ✅ IN PROGRESS
+   - ✅ Brief validation schemas created in [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts)
+     - `BriefQuerySchema` - Validates GET /api/briefs query parameters (page, limit, filter, status)
+     - `BriefIdSchema` - Validates UUID format for brief ID parameters
+   - ⏳ TODO: Schemas for create/update brief operations
+   - ⏳ TODO: Comment validation schemas
+   - ⏳ TODO: Recipient validation schemas
 
 7. **Create service layer** in `src/lib/services/` ✅ IN PROGRESS
    - ✅ Error handling system with custom ApiError classes ([src/lib/errors/](../src/lib/errors/))
@@ -1107,16 +1149,21 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
      - `DatabaseError` (500) - Database operations
      - `ConflictError` (409) - Resource conflicts
    - ✅ `userService.ts` - User profile operations (development mode with DEFAULT_USER_PROFILE)
-   - ⏳ `briefService.ts` - Brief CRUD operations
-   - ⏳ `recipientService.ts` - Sharing logic
-   - ⏳ `commentService.ts` - Comment operations
+   - ✅ `briefService.ts` - Brief read operations (`getBriefs`, `getBriefById`) implemented
+   - ⏳ `briefService.ts` - Brief write operations (create, update, delete) - TODO
+   - ⏳ `recipientService.ts` - Sharing logic - TODO
+   - ⏳ `commentService.ts` - Comment operations - TODO
    - All services use authenticated Supabase client with RLS
 
 8. **Build API Route Handlers** in `src/app/api/` ✅ IN PROGRESS
    - ✅ User endpoints: `users/me/route.ts` (GET implemented)
-   - ⏳ Brief endpoints: `briefs/route.ts`, `briefs/[id]/route.ts` (PATCH handles both content and status updates)
-   - ⏳ Recipient endpoints: `briefs/[id]/recipients/route.ts`
-   - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`, `comments/[id]/route.ts`
+   - ✅ Brief endpoints: `briefs/route.ts` (GET implemented with pagination & filters)
+   - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET implemented with authorization)
+   - ⏳ Brief endpoints: `briefs/route.ts` (POST for create) - TODO
+   - ⏳ Brief endpoints: `briefs/[id]/route.ts` (PATCH handles both content and status updates) - TODO
+   - ⏳ Brief endpoints: `briefs/[id]/route.ts` (DELETE) - TODO
+   - ⏳ Recipient endpoints: `briefs/[id]/recipients/route.ts` - TODO
+   - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`, `comments/[id]/route.ts` - TODO
 
 ### Phase 4: Error Handling & Testing
 9. **Add consistent error handling**

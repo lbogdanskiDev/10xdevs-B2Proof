@@ -18,10 +18,13 @@ import type { BriefDetailDto, ErrorResponse } from "@/types";
  * @param params - Route parameters containing brief ID
  * @returns Brief detail DTO or error response
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Step 1: Validate UUID format
-    const validationResult = BriefIdSchema.safeParse({ id: params.id });
+    // Step 1: Await params (Next.js 15 breaking change)
+    const { id } = await params;
+
+    // Step 2: Validate UUID format
+    const validationResult = BriefIdSchema.safeParse({ id });
 
     // Guard: Check validation
     if (!validationResult.success) {
@@ -35,7 +38,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
-    // Step 2: Get Supabase admin client and mock user
+    // Step 3: Get Supabase admin client and mock user
     // TEMPORARY: Using admin client for development with mock authentication
     // TODO: Replace with createSupabaseServerClient() and real auth
     const supabase = createSupabaseAdminClient();
@@ -44,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // TODO: Replace with real authentication: await supabase.auth.getUser()
     const userId = DEFAULT_USER_PROFILE.id;
 
-    // Step 3: Fetch brief from service
+    // Step 4: Fetch brief from service
     const brief = await getBriefById(supabase, validationResult.data.id, userId);
 
     // Guard: Check if brief exists

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/db/supabase.server";
 import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
-import { getBriefs } from "@/lib/services/brief.service";
-import { BriefQuerySchema } from "@/lib/schemas/brief.schema";
-import type { BriefListItemDto, PaginatedResponse, ErrorResponse } from "@/types";
+import { getBriefs, createBrief } from "@/lib/services/brief.service";
+import { BriefQuerySchema, CreateBriefSchema } from "@/lib/schemas/brief.schema";
+import { ApiError } from "@/lib/errors/api-errors";
+import type { BriefListItemDto, PaginatedResponse, ErrorResponse, BriefDetailDto, CreateBriefCommand } from "@/types";
 
 /**
  * GET /api/briefs
@@ -55,6 +56,66 @@ export async function GET(request: NextRequest) {
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[GET /api/briefs] Unexpected error:", error);
+    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/briefs
+ * Creates a new brief for the authenticated creator user
+ * Enforces role-based access (creators only) and business rules (20 brief limit)
+ *
+ * NOTE: Currently using mock authentication with DEFAULT_USER_PROFILE
+ * Uses admin client to bypass RLS during development
+ * TODO: Replace with real Supabase Auth and regular client when authentication is implemented
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Step 1: Parse request body
+    const body = await request.json();
+
+    // Step 2: Validate input
+    const validationResult = CreateBriefSchema.safeParse(body);
+
+    // Guard: Check validation
+    if (!validationResult.success) {
+      const details = validationResult.error.errors.map((err) => ({
+        field: err.path.join("."),
+        message: err.message,
+      }));
+
+      // eslint-disable-next-line no-console -- API error logging for debugging
+      console.error("[POST /api/briefs] Validation error:", details);
+      return NextResponse.json<ErrorResponse>({ error: "Validation failed", details }, { status: 400 });
+    }
+
+    const data: CreateBriefCommand = validationResult.data;
+
+    // Step 3: Get Supabase admin client (bypasses RLS) and mock user
+    // TEMPORARY: Using admin client for development with mock authentication
+    // TODO: Replace with createSupabaseServerClient() and real auth
+    const supabase = createSupabaseAdminClient();
+
+    // TEMPORARY: Using mock user profile for development
+    // TODO: Replace with real authentication: await supabase.auth.getUser()
+    const userId = DEFAULT_USER_PROFILE.id;
+
+    // Step 4: Create brief via service
+    const brief = await createBrief(supabase, userId, data);
+
+    // Happy path: Return created brief with 201 status
+    return NextResponse.json<BriefDetailDto>(brief, { status: 201 });
+  } catch (error) {
+    // Handle known API errors
+    if (error instanceof ApiError) {
+      // eslint-disable-next-line no-console -- API error logging for debugging
+      console.error(`[POST /api/briefs] API error (${error.statusCode}):`, error.message);
+      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+    }
+
+    // Handle unexpected errors
+    // eslint-disable-next-line no-console -- API error logging for debugging
+    console.error("[POST /api/briefs] Unexpected error:", error);
     return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
   }
 }

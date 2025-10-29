@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Json } from "@/db/database.types";
 
 /**
  * Validation schema for GET /api/briefs query parameters
@@ -38,3 +39,25 @@ export const BriefIdSchema = z.object({
  * TypeScript type inferred from BriefIdSchema
  */
 export type BriefIdInput = z.infer<typeof BriefIdSchema>;
+
+/**
+ * Validation schema for POST /api/briefs request body
+ * Validates brief creation data with TipTap content structure
+ */
+export const CreateBriefSchema = z.object({
+  header: z.string().trim().min(1, "Header is required").max(200, "Header must be 200 characters or less"),
+
+  content: z
+    .record(z.unknown())
+    .refine((val) => typeof val === "object" && val !== null, {
+      message: "Content must be a valid TipTap JSON object",
+    })
+    .transform((val) => val as Json),
+
+  footer: z.string().max(200, "Footer must be 200 characters or less").optional().nullable(),
+});
+
+/**
+ * TypeScript type inferred from CreateBriefSchema
+ */
+export type CreateBriefInput = z.infer<typeof CreateBriefSchema>;

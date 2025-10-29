@@ -1,4 +1,12 @@
-import type { SupabaseClient, BriefListItemDto, BriefDetailDto, PaginatedResponse, BriefQueryParams } from "@/types";
+import type {
+  SupabaseClient,
+  BriefListItemDto,
+  BriefDetailDto,
+  PaginatedResponse,
+  BriefQueryParams,
+  CreateBriefCommand,
+} from "@/types";
+import { ApiError, ForbiddenError, UnauthorizedError } from "@/lib/errors/api-errors";
 
 /**
  * Retrieves paginated list of briefs for a user
@@ -188,6 +196,114 @@ export async function getBriefById(
     statusChangedBy: brief.status_changed_by,
     commentCount: brief.comment_count,
     isOwned: brief.owner_id === userId,
+    createdAt: brief.created_at,
+    updatedAt: brief.updated_at,
+  };
+}
+
+/**
+ * Creates a new brief for a creator user
+ *
+ * Business rules enforced:
+ * - User must be authenticated (checked by caller)
+ * - User role must be 'creator' (checked here)
+ * - User can have maximum 20 briefs (checked here)
+ * - Brief starts with 'draft' status
+ * - Audit trail is logged
+ *
+ * @param supabase - Supabase client instance
+ * @param userId - Current user's UUID from auth
+ * @param data - Brief creation data (header, content, footer)
+ * @returns Created brief with full details
+ * @throws {UnauthorizedError} If user profile not found
+ * @throws {ForbiddenError} If user is not a creator or has reached 20 brief limit
+ * @throws {ApiError} If database operation fails
+ */
+export async function createBrief(
+  supabase: SupabaseClient,
+  userId: string,
+  data: CreateBriefCommand
+): Promise<BriefDetailDto> {
+  // 1. Verify user role is 'creator'
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (profileError || !profile) {
+    throw new UnauthorizedError("User profile not found");
+  }
+
+  if (profile.role !== "creator") {
+    throw new ForbiddenError("Only creators can create briefs");
+  }
+
+  // 2. Check brief count limit (max 20)
+  const { count, error: countError } = await supabase
+    .from("briefs")
+    .select("*", { count: "exact", head: true })
+    .eq("owner_id", userId);
+
+  if (countError) {
+    throw new ApiError("DATABASE_ERROR", "Failed to check brief limit", 500);
+  }
+
+  if (count !== null && count >= 20) {
+    throw new ForbiddenError("Brief limit of 20 reached. Please delete old briefs to create new ones.");
+  }
+
+  // 3. Insert brief
+  const { data: brief, error: insertError } = await supabase
+    .from("briefs")
+    .insert({
+      owner_id: userId,
+      header: data.header,
+      content: data.content,
+      footer: data.footer ?? null,
+      status: "draft",
+      comment_count: 0,
+    })
+    .select()
+    .single();
+
+  if (insertError || !brief) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Brief insert error:", insertError);
+    throw new ApiError("DATABASE_ERROR", "Failed to create brief", 500);
+  }
+
+  // 4. Log audit trail (non-blocking - don't throw on failure)
+  const { error: auditError } = await supabase.from("audit_log").insert({
+    user_id: userId,
+    action: "brief_created",
+    entity_type: "brief",
+    entity_id: brief.id,
+    new_data: {
+      header: brief.header,
+      content: brief.content,
+      footer: brief.footer,
+      status: brief.status,
+    },
+  });
+
+  if (auditError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to log audit trail:", auditError);
+    // Don't throw - audit log failure shouldn't break the operation
+  }
+
+  return {
+    id: brief.id,
+    ownerId: brief.owner_id,
+    header: brief.header,
+    content: brief.content,
+    footer: brief.footer,
+    status: brief.status,
+    statusChangedAt: brief.status_changed_at,
+    statusChangedBy: brief.status_changed_by,
+    commentCount: brief.comment_count,
+    isOwned: true,
     createdAt: brief.created_at,
     updatedAt: brief.updated_at,
   };

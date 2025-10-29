@@ -4,24 +4,24 @@
 
 **Last Updated**: 2025-10-28
 
-### Completed Endpoints (3/14)
+### Completed Endpoints (4/14)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
 | `/api/users/me` | GET | ✅ Implemented | [ac762fe](https://github.com/user/repo/commit/ac762fe) |
 | `/api/briefs` | GET | ✅ Implemented | [41747d7](https://github.com/user/repo/commit/41747d7) |
 | `/api/briefs/:id` | GET | ✅ Implemented | [fef2bc6](https://github.com/user/repo/commit/fef2bc6) |
+| `/api/briefs` | POST | ✅ Implemented | Pending commit |
 
-### Pending Endpoints (11/14)
+### Pending Endpoints (10/14)
 - `/api/users/me` - DELETE (account deletion)
-- `/api/briefs` - POST (create brief)
 - `/api/briefs/:id` - PATCH (update content/status)
 - `/api/briefs/:id` - DELETE (delete brief)
 - `/api/briefs/:id/recipients` - GET, POST, DELETE (recipient management)
 - `/api/briefs/:id/comments` - GET, POST (comments)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 21% (3/14 endpoints complete)
+**Progress**: 29% (4/14 endpoints complete)
 
 ---
 
@@ -305,14 +305,23 @@ Retrieve full details of a specific brief.
 
 ---
 
-### 5.3 Create Brief
+### 5.3 Create Brief ✅ IMPLEMENTED
 
 **POST** `/api/briefs`
 
 Create a new brief (creators only).
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/route.ts](../src/app/api/briefs/route.ts) (POST method)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`createBrief`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`CreateBriefSchema`)
+- ✅ Error Handling: Custom ApiError classes with proper status codes
+- ✅ Business Rules: Role verification (creators only), 20 brief limit enforcement
+- ✅ Audit Trail: Logs `brief_created` action to audit_log table
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Request Body:**
 ```json
@@ -1135,7 +1144,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ Brief validation schemas created in [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts)
      - `BriefQuerySchema` - Validates GET /api/briefs query parameters (page, limit, filter, status)
      - `BriefIdSchema` - Validates UUID format for brief ID parameters
-   - ⏳ TODO: Schemas for create/update brief operations
+     - `CreateBriefSchema` - Validates POST /api/briefs request body (header, content, footer)
+   - ⏳ TODO: Schemas for update brief operations
    - ⏳ TODO: Comment validation schemas
    - ⏳ TODO: Recipient validation schemas
 
@@ -1150,7 +1160,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
      - `ConflictError` (409) - Resource conflicts
    - ✅ `userService.ts` - User profile operations (development mode with DEFAULT_USER_PROFILE)
    - ✅ `briefService.ts` - Brief read operations (`getBriefs`, `getBriefById`) implemented
-   - ⏳ `briefService.ts` - Brief write operations (create, update, delete) - TODO
+   - ✅ `briefService.ts` - Brief create operation (`createBrief`) implemented with role check and limit enforcement
+   - ⏳ `briefService.ts` - Brief update and delete operations - TODO
    - ⏳ `recipientService.ts` - Sharing logic - TODO
    - ⏳ `commentService.ts` - Comment operations - TODO
    - All services use authenticated Supabase client with RLS
@@ -1159,7 +1170,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ User endpoints: `users/me/route.ts` (GET implemented)
    - ✅ Brief endpoints: `briefs/route.ts` (GET implemented with pagination & filters)
    - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET implemented with authorization)
-   - ⏳ Brief endpoints: `briefs/route.ts` (POST for create) - TODO
+   - ✅ Brief endpoints: `briefs/route.ts` (POST implemented with role check and validation)
    - ⏳ Brief endpoints: `briefs/[id]/route.ts` (PATCH handles both content and status updates) - TODO
    - ⏳ Brief endpoints: `briefs/[id]/route.ts` (DELETE) - TODO
    - ⏳ Recipient endpoints: `briefs/[id]/recipients/route.ts` - TODO

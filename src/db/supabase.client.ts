@@ -18,7 +18,7 @@ export function createSupabaseBrowserClient() {
 export const DEFAULT_USER_PROFILE = {
   id: "00000000-0000-0000-0000-000000000000",
   email: "",
-  role: "user",
+  role: "creator",
   createdAt: new Date(),
   updatedAt: new Date(),
 };

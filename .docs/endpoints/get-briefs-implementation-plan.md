@@ -96,6 +96,10 @@ The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the aut
 - User can see briefs shared with them (`brief_recipients.recipient_id = userId`)
 - No risk of horizontal privilege escalation (user ID from session)
 
+**Implementation:**
+- Authorization logic in service layer via query filtering
+- No explicit 403 responses (empty result set if no access)
+
 ## 6. Security Considerations
 
 ### Authentication & Authorization
@@ -118,8 +122,25 @@ The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the aut
 - Use Zod for query parameter validation
 - Coerce strings to numbers for page/limit
 - Validate enums for filter/status
+- Validate before database query
 
-## 7. Implementation Steps
+## 7. Error Handling
+
+**Error Handling Strategy:**
+- Use guard clauses for early returns on validation and authentication failures
+- Throw descriptive errors from service layer for database failures
+- Return appropriate HTTP status codes and error details via NextResponse
+- Use Zod error formatting for validation errors
+
+**Logging Strategy:**
+- Development: `console.error()` with full error context (user ID, query params, error stack)
+- Production: structured logging to error tracking service (Sentry)
+- Log levels:
+  - ERROR: 500 errors, database failures, unexpected exceptions
+  - WARN: 400 errors (invalid params), 401 errors (expired tokens)
+  - INFO: successful requests with query stats (optional for analytics)
+
+## 8. Implementation Steps
 
 ### Step 1: Create Zod Validation Schema
 
@@ -258,12 +279,10 @@ git push origin main
 - Alert on error rates > 1%
 - Alert on response times > 1s
 
-## 8. Performance Notes
+## 9. Performance
 
 **Expected Performance:**
-- Database query: < 100ms (with count)
-- Total server time: < 120ms
-- User-perceived time: < 300ms
+- Target response time: < 300ms (p95)
 
 **Indexes:**
 - `briefs(owner_id, updated_at DESC)` - Owned briefs with ordering
@@ -272,11 +291,12 @@ git push origin main
 - `brief_recipients(brief_id, recipient_id)` UNIQUE - Prevents duplicates
 
 **Optimization:**
-- Exclude `content` field from list view
+- Exclude `content` field from list view (reduces payload size by ~95%)
 - Use denormalized `comment_count` (no JOIN needed)
-- Single query for count and data
+- Single query for count and data (combined in Supabase)
+- Consider adding composite index: `briefs(owner_id, status, updated_at DESC)` for filtered queries
 
-## 9. Example Implementation
+## 10. Example Implementation
 
 ### Service
 

@@ -96,6 +96,10 @@ export interface UserProfileDto {
 | XSS attacks | Next.js auto-escaping, CSP headers |
 | Horizontal privilege escalation | User ID from session only |
 
+### Input Validation
+- No input parameters to validate (GET request, no query params)
+- User ID extracted from authenticated session only
+
 ### Row Level Security
 Ensure RLS policies are enabled on `profiles` table:
 ```sql
@@ -104,7 +108,22 @@ ON profiles FOR SELECT
 USING (auth.uid() = id);
 ```
 
-## 7. Implementation Steps
+## 7. Error Handling
+
+**Error Handling Strategy:**
+- Use guard clauses for early returns on authentication failures
+- Throw descriptive errors from service layer for database failures
+- Return appropriate HTTP status codes via NextResponse
+
+**Logging Strategy:**
+- Development: `console.error()` with full error context (user ID, error stack)
+- Production: structured logging to error tracking service (Sentry)
+- Log levels:
+  - ERROR: 500 errors, database failures, unexpected exceptions
+  - WARN: 401 errors (expired tokens), 404 errors (missing profiles)
+  - INFO: successful requests (optional for analytics)
+
+## 8. Implementation Steps
 
 ### Step 1: Create User Service
 
@@ -226,13 +245,10 @@ git push origin main
 - Set up performance monitoring
 - Alert on error rates > 1%
 
-## 8. Performance Notes
+## 9. Performance
 
 **Expected Performance:**
-- Database query: < 10ms (primary key lookup)
-- Auth validation: < 5ms
-- Total server time: < 20ms
-- User-perceived time: < 100ms
+- Target response time: < 100ms (p95)
 
 **Indexes:**
 - `profiles(id)` - Primary key (auto-created)
@@ -240,9 +256,9 @@ git push origin main
 **Optimization:**
 - Single database round-trip
 - Minimal payload size (~200-300 bytes)
-- Consider caching profile data (30-60 seconds)
+- Consider caching profile data (30-60 seconds) if frequently accessed
 
-## 9. Example Implementation
+## 10. Example Implementation
 
 ### Service
 

@@ -107,8 +107,25 @@ The `GET /api/briefs/:id` endpoint retrieves the complete details of a specific 
 ### Input Validation
 - Use Zod for UUID validation: `z.string().uuid()`
 - Validate before database query
+- Return 400 for invalid UUID format
 
-## 7. Implementation Steps
+## 7. Error Handling
+
+**Error Handling Strategy:**
+- Use guard clauses for early returns on validation and authentication failures
+- Throw custom error 'FORBIDDEN' from service layer for authorization failures
+- Return appropriate HTTP status codes via NextResponse
+- Handle database errors gracefully with proper logging
+
+**Logging Strategy:**
+- Development: `console.error()` with full error context (user ID, brief ID, error stack)
+- Production: structured logging to error tracking service (Sentry)
+- Log levels:
+  - ERROR: 500 errors, database failures, unexpected exceptions
+  - WARN: 400 errors (invalid UUID), 401 errors (expired tokens), 403 errors (unauthorized access)
+  - INFO: 404 errors (brief not found), successful requests (optional)
+
+## 8. Implementation Steps
 
 ### Step 1: Create Zod Validation Schema
 
@@ -240,18 +257,21 @@ git push origin main
 - Alert on error rates > 1%
 - Alert on response times > 1s
 
-## 8. Performance Notes
+## 9. Performance
 
 **Expected Performance:**
-- Database query: < 20ms (primary key + unique index)
-- Total server time: < 50ms
-- User-perceived time: < 250ms
+- Target response time: < 250ms (p95)
 
 **Indexes:**
 - `briefs(id)` - Primary key (auto-created)
-- `brief_recipients(brief_id, recipient_id)` - UNIQUE index
+- `brief_recipients(brief_id, recipient_id)` - UNIQUE index for authorization check
 
-## 9. Example Implementation
+**Optimization:**
+- Primary key lookup (fastest query possible)
+- Single authorization query using composite index
+- Full content included (necessary for detail view)
+
+## 10. Example Implementation
 
 ### Service
 

@@ -35,8 +35,8 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - Editing existing brief (resets status to "Draft")
 - Deleting brief with confirmation modal (hard delete)
 - Limit of 20 briefs per user (hard limit, no archiving option)
-- Brief list with pagination (10 per page) displaying: creation/modification date, status, number of comments
-- Chronological sorting of briefs by modification date
+- Brief list with pagination (10 per page) displaying: creation date (created_at), last update date (updated_at), status, number of comments
+- Chronological sorting of briefs by last update date (updated_at)
 - Visual distinction between own and shared briefs via label
 
 ### 3.3 Status System
@@ -111,6 +111,22 @@ Acceptance Criteria:
 - After successful registration user is automatically logged in
 - System displays error messages for invalid data
 
+**UI Components:**
+- Email input field (type="email")
+- Password input field (type="password", show/hide toggle)
+- Password confirmation field (type="password", client-side validation)
+- Role selection: Radio buttons ("I'm a Creator" / "I'm a Client")
+- Submit button: "Create Account"
+- Link to login page: "Already have an account? Sign in"
+
+**Client-Side Validation:**
+- Email format validation
+- Password confirmation must match password
+- Password requirements shown below input (checklist: min 8 characters, at least one digit)
+- Role must be selected
+
+**Note:** Password confirmation is validated client-side only, not sent to backend
+
 ### US-002
 Title: Existing User Login
 Description: As a registered user I want to be able to log into the system using my email and password to access my briefs
@@ -129,17 +145,25 @@ Acceptance Criteria:
 - Header and content fields are required
 - System does not allow saving incomplete brief
 - After saving brief receives "Draft" status
-- System displays limit exceeded message at 10 active briefs
+- System displays limit exceeded message at 20 active briefs
 - Content field shows character counter
 
 ### US-004
 Title: Editing Existing Brief
 Description: As a creator I want to be able to edit my brief to make corrections before or after sending
 Acceptance Criteria:
-- Ability to edit all brief fields in "Draft" status
-- Editing brief in any status resets it to "Draft"
-- System displays warning about status reset before saving changes
+- Ability to edit all brief fields in ANY status (draft, sent, accepted, rejected, needs_modification)
+- Editing brief automatically resets status to "Draft" via database trigger
+- System displays warning about status reset before saving changes to non-draft briefs
 - Preservation of all form data during editing
+- All recipients retain access after edit (no need to re-share)
+
+**Clarification:**
+- Creators can edit briefs in ANY status (draft, sent, accepted, rejected, needs_modification)
+- Editing automatically resets status to 'draft' via database trigger
+- Warning modal is shown before saving changes to non-draft briefs
+- If brief was "accepted", editing invalidates client acceptance (status resets to draft)
+- Brief must be shared again (status changes to "sent") for client to re-accept
 
 ### US-005
 Title: Deleting Brief
@@ -155,9 +179,9 @@ Acceptance Criteria:
 Title: Viewing Brief List
 Description: As a user I want to see a list of all my briefs and those shared with me to have an overview of active projects
 Acceptance Criteria:
-- List displays: title, modification date, status, number of comments
+- List displays: title, last update date (updated_at), status, number of comments
 - Pagination of 10 briefs per page
-- Briefs sorted chronologically by modification date (newest first)
+- Briefs sorted chronologically by last update date (newest first)
 - Visual distinction between own and shared briefs (label)
 - Ability to navigate to brief details by clicking
 
@@ -184,10 +208,17 @@ Acceptance Criteria:
 Title: Client Brief Acceptance
 Description: As a client I want to be able to accept a brief to confirm that I agree with the requirements
 Acceptance Criteria:
-- "Accept" button visible above brief content
+- "Accept" button visible above brief content (only when status is "sent")
 - Clicking changes status to "Accepted"
 - Status is visible to everyone with access
-- No ability to change status after client acceptance
+- No ability to change status after client acceptance (client cannot change from "accepted" to another status)
+
+**Clarification:**
+- "No ability to change status after client acceptance" means:
+  - Client cannot change status from 'accepted' to another status (rejected, needs_modification)
+  - Owner CAN still edit brief content, which resets status to 'draft' (invalidates acceptance)
+  - This is intentional - content edits invalidate acceptance, requiring client to review and re-accept
+  - After owner edits accepted brief, status resets to 'draft', and brief must be re-shared for client to accept again
 
 ### US-010
 Title: Client Brief Rejection
@@ -260,7 +291,7 @@ Acceptance Criteria:
 Title: Displaying Brief Details
 Description: As a user with access I want to see full brief details to familiarize myself with requirements
 Acceptance Criteria:
-- View shows: header, content, footer, status, creation/modification date
+- View shows: header, content, footer, status, creation date (created_at), last update date (updated_at)
 - Action buttons visible depending on user role
 - Comment section below brief
 - Information about brief author
@@ -306,8 +337,8 @@ Acceptance Criteria:
 Title: System Limits Handling
 Description: As a creator I want to be informed about system limits to be able to manage them
 Acceptance Criteria:
-- Display of current number of briefs (e.g., "7/10 briefs")
-- Limit reached message when attempting to create 11th brief
+- Display of current number of briefs (e.g., "15/20 briefs")
+- Limit reached message when attempting to create 21st brief
 - Suggestion to delete old briefs when reaching limit
 - Character counter in fields with restrictions
 

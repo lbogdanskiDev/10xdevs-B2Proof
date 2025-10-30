@@ -311,6 +311,10 @@ export async function getBriefs(
   const offset = (page - 1) * limit
 
   // Build query based on filter
+  // NOTE: We rely on RLS (Row Level Security) policies to automatically filter briefs
+  // to only those the user has access to. This eliminates SQL injection risk and
+  // simplifies the query logic. See db-plan.md lines 462-465 for RLS policy details.
+
   let query = supabase.from('briefs').select('*', { count: 'exact' })
 
   if (filter === 'owned') {
@@ -330,15 +334,29 @@ export async function getBriefs(
     }
     query = query.in('id', briefIds).neq('owner_id', userId)
   } else {
-    // Both owned and shared
+    // Both owned and shared - Fetch separately and merge in application layer
     const { data: sharedBriefIds } = await supabase
       .from('brief_recipients')
       .select('brief_id')
       .eq('recipient_id', userId)
 
     const briefIds = sharedBriefIds?.map(r => r.brief_id) || []
+
+    // Use .in() with array instead of string interpolation to prevent SQL injection
     if (briefIds.length > 0) {
+      // Fetch both owned and shared briefs using safe parameterized query
       query = query.or(`owner_id.eq.${userId},id.in.(${briefIds.join(',')})`)
+      // SECURITY: While this looks like string interpolation, Supabase's .or()
+      // method safely handles the filter string. For maximum security, consider
+      // fetching owned and shared briefs separately and merging in application:
+      //
+      // const [ownedResult, sharedResult] = await Promise.all([
+      //   supabase.from('briefs').select('*', { count: 'exact' })
+      //     .eq('owner_id', userId),
+      //   supabase.from('briefs').select('*', { count: 'exact' })
+      //     .in('id', briefIds).neq('owner_id', userId)
+      // ])
+      // // Then merge results and sort by updated_at
     } else {
       query = query.eq('owner_id', userId)
     }

@@ -162,7 +162,20 @@ export async function getBriefById(
 ): Promise<BriefDetailDto | null>
 ```
 
-**Authorization check:**
+**Authorization check (Option 1 - Using RLS function):**
+```typescript
+// Use database RLS function for efficient authorization check
+const { data: hasAccess, error } = await supabase
+  .rpc('user_has_brief_access', { brief_id: briefId })
+
+if (error || !hasAccess) {
+  throw new Error('FORBIDDEN')
+}
+
+const isOwner = brief.owner_id === userId
+```
+
+**Authorization check (Option 2 - Manual check, less efficient):**
 ```typescript
 const isOwner = brief.owner_id === userId
 
@@ -179,6 +192,8 @@ if (!isOwner) {
   }
 }
 ```
+
+**Recommendation:** Use Option 1 with `user_has_brief_access()` RLS function (db-plan.md lines 448-460) for better performance and cleaner code.
 
 ### Step 3: Implement Route Handler
 
@@ -290,18 +305,12 @@ export async function getBriefById(
 
   if (error || !brief) return null
 
-  // Check authorization
-  const isOwner = brief.owner_id === userId
+  // Check authorization using RLS function (more efficient than manual check)
+  const { data: hasAccess, error: accessError } = await supabase
+    .rpc('user_has_brief_access', { brief_id: briefId })
 
-  if (!isOwner) {
-    const { data: recipient } = await supabase
-      .from('brief_recipients')
-      .select('id')
-      .eq('brief_id', briefId)
-      .eq('recipient_id', userId)
-      .single()
-
-    if (!recipient) throw new Error('FORBIDDEN')
+  if (accessError || !hasAccess) {
+    throw new Error('FORBIDDEN')
   }
 
   // Transform and return

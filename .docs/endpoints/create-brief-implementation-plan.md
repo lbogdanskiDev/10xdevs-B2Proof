@@ -76,6 +76,22 @@ This endpoint allows creator users to create new project briefs with rich text c
 ```typescript
 import { z } from "zod";
 
+// Helper function to count text length in TipTap JSON content
+function countTipTapTextLength(node: unknown): number {
+  if (!node || typeof node !== "object") return 0;
+  let length = 0;
+  const nodeObj = node as Record<string, unknown>;
+  if (nodeObj.type === "text" && typeof nodeObj.text === "string") {
+    length += nodeObj.text.length;
+  }
+  if (Array.isArray(nodeObj.content)) {
+    for (const child of nodeObj.content) {
+      length += countTipTapTextLength(child);
+    }
+  }
+  return length;
+}
+
 const createBriefSchema = z.object({
   header: z
     .string()
@@ -86,7 +102,16 @@ const createBriefSchema = z.object({
     .record(z.unknown())
     .refine((val) => typeof val === "object" && val !== null, {
       message: "Content must be a valid TipTap JSON object",
-    }),
+    })
+    .refine(
+      (val) => {
+        const textLength = countTipTapTextLength(val);
+        return textLength <= 10000;
+      },
+      {
+        message: "Content must not exceed 10,000 characters",
+      }
+    ),
   footer: z
     .string()
     .max(200, "Footer must be 200 characters or less")
@@ -94,6 +119,8 @@ const createBriefSchema = z.object({
     .nullable(),
 });
 ```
+
+**Note:** The `countTipTapTextLength()` function recursively traverses the TipTap document tree and counts all text node characters, enforcing the 10,000 character limit as per PRD requirements (see tech-stack.md line 57).
 
 ---
 
@@ -280,9 +307,11 @@ export async function createBrief(
   }
 
   // 2. Check brief count limit (max 20)
+  // NOTE: Using select('id') instead of select('*') for better performance
+  // We only need the count, not the actual data
   const { count, error: countError } = await supabase
     .from("briefs")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("owner_id", userId);
 
   if (countError) {
@@ -623,9 +652,11 @@ export async function createBrief(
   }
 
   // 2. Check brief count limit (max 20)
+  // NOTE: Using select('id') instead of select('*') for better performance
+  // We only need the count, not the actual data
   const { count, error: countError } = await supabase
     .from("briefs")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("owner_id", userId);
 
   if (countError) {

@@ -2,26 +2,27 @@
 
 ## Implementation Status Overview
 
-**Last Updated**: 2025-10-28
+**Last Updated**: 2025-10-29
 
-### Completed Endpoints (4/14)
+### Completed Endpoints (6/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
 | `/api/users/me` | GET | ✅ Implemented | [ac762fe](https://github.com/user/repo/commit/ac762fe) |
 | `/api/briefs` | GET | ✅ Implemented | [41747d7](https://github.com/user/repo/commit/41747d7) |
 | `/api/briefs/:id` | GET | ✅ Implemented | [fef2bc6](https://github.com/user/repo/commit/fef2bc6) |
-| `/api/briefs` | POST | ✅ Implemented | Pending commit |
+| `/api/briefs` | POST | ✅ Implemented | [9782e92](https://github.com/user/repo/commit/9782e92) |
+| `/api/briefs/:id` | PATCH | ✅ Implemented | Pending commit |
+| `/api/briefs/:id/status` | PATCH | ✅ Implemented | Pending commit |
 
-### Pending Endpoints (10/14)
+### Pending Endpoints (9/15)
 - `/api/users/me` - DELETE (account deletion)
-- `/api/briefs/:id` - PATCH (update content/status)
 - `/api/briefs/:id` - DELETE (delete brief)
 - `/api/briefs/:id/recipients` - GET, POST, DELETE (recipient management)
 - `/api/briefs/:id/comments` - GET, POST (comments)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 29% (4/14 endpoints complete)
+**Progress**: 40% (6/15 endpoints complete)
 
 ---
 
@@ -241,6 +242,11 @@ Retrieve paginated list of briefs (owned and shared with user).
 }
 ```
 
+**Computed Properties:**
+- `isOwned`: Boolean - `true` if authenticated user is the brief owner (`brief.owner_id === auth.uid()`), `false` if user is a recipient
+  - Used for UI conditional rendering (show edit/delete buttons only if `isOwned === true`)
+  - Helps frontend distinguish between owned briefs and shared briefs in the same list
+
 **Error Responses:**
 - `400 Bad Request`: Invalid query parameters
 - `401 Unauthorized`: Invalid or expired token (when auth is implemented)
@@ -296,6 +302,11 @@ Retrieve full details of a specific brief.
   "updatedAt": "2025-01-15T11:00:00Z"
 }
 ```
+
+**Computed Properties:**
+- `isOwned`: Boolean - `true` if authenticated user is the brief owner (`brief.owner_id === auth.uid()`), `false` if user is a recipient
+  - Used for UI conditional rendering (show edit/delete/share buttons only if `isOwned === true`)
+  - Used to determine which actions are available (owner can edit, client can change status)
 
 **Error Responses:**
 - `400 Bad Request`: Invalid brief ID format
@@ -391,60 +402,66 @@ Create a new brief (creators only).
 
 ---
 
-### 5.4 Update Brief
+### 5.4 Update Brief Content (Owner Only) ✅ IMPLEMENTED
 
 **PATCH** `/api/briefs/:id`
 
-Update brief content (owner) or status (client with access).
+Update brief content and metadata (owner only). Automatically resets status to 'draft' via database trigger.
+
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/route.ts](../src/app/api/briefs/[id]/route.ts) (PATCH method)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`updateBrief`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`UpdateBriefSchema`)
+- ✅ Authorization: Enforces owner-only access
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
 
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
 
-**Request Body (Owner - Content Update):**
+**Request Body:**
 ```json
 {
   "header": "Updated Title",
-  "content": { /* Updated TipTap JSON */ },
+  "content": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [
+          {
+            "type": "text",
+            "text": "Updated brief content"
+          }
+        ]
+      }
+    ]
+  },
   "footer": "Updated footer"
 }
 ```
 
-**Request Body (Client - Status Update):**
-```json
-{
-  "status": "accepted"
-}
-```
-
-```json
-{
-  "status": "needs_modification",
-  "comment": "Please add more details about the timeline"
-}
-```
-
 **Validation:**
-
-**For owners (creators):**
 - `header`: Optional, string, 1-200 characters
-- `content`: Optional, valid TipTap JSON structure
+- `content`: Optional, valid TipTap JSON structure, max 10,000 text characters
 - `footer`: Optional, string, max 200 characters or null
-- Cannot update `status` directly (resets to `draft` automatically via database trigger when content is modified)
 
-**For recipients (clients):**
-- `status`: Optional, enum: `accepted` | `rejected` | `needs_modification`
-- `comment`: Required if `status` is `needs_modification`, string, 1-1000 characters
-- Cannot update `header`, `content`, or `footer`
+**Business Rules:**
+- Only brief owner can update content
+- Can edit brief in ANY status (draft, sent, accepted, rejected, needs_modification)
+- Editing automatically resets status to 'draft' via database trigger
+- Editing invalidates client acceptance/rejection
+- All recipients retain access after edit (must re-share if needed)
 
-**Business Logic:**
-- **Owner updates:** Changing `header`/`content`/`footer` triggers automatic status reset to `draft` (database trigger)
-- **Client status updates:** Must have brief access, current brief status must be `sent`
-- **Status `needs_modification`:** Automatically creates comment with provided content
+**Special Case: Editing "Accepted" Brief**
+- Once brief is accepted by client, owner can still edit it
+- Editing resets status to 'draft' (client acceptance is lost)
+- Brief must be re-shared (status changes to 'sent') and re-accepted
+- Frontend should show warning modal before editing accepted brief
 
-**Success Response (200 OK) - Content Update:**
+**Success Response (200 OK):**
 ```json
 {
   "id": "uuid",
@@ -462,7 +479,77 @@ Update brief content (owner) or status (client with access).
 }
 ```
 
-**Success Response (200 OK) - Status Update:**
+**Error Responses:**
+- `400 Bad Request`: Validation errors
+  ```json
+  {
+    "error": "Validation failed",
+    "details": [
+      {
+        "field": "content",
+        "message": "Content must not exceed 10,000 characters"
+      }
+    ]
+  }
+  ```
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
+- `403 Forbidden`: User is not the brief owner
+  ```json
+  {
+    "error": "Only the brief owner can update content"
+  }
+  ```
+- `404 Not Found`: Brief does not exist
+
+---
+
+### 5.5 Update Brief Status (Client Only) ✅ IMPLEMENTED
+
+**PATCH** `/api/briefs/:id/status`
+
+Change brief status (client with access only). Used for Accept/Reject/Request Modification actions.
+
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/status/route.ts](../src/app/api/briefs/[id]/status/route.ts)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`updateBriefStatus`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`UpdateBriefStatusSchema`)
+- ✅ Authorization: Enforces client access (recipient only, not owner)
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
+**Headers:**
+- `Authorization: Bearer {token}` (not validated in development mode)
+
+**Path Parameters:**
+- `id`: UUID - Brief identifier
+
+**Request Body (Accept/Reject):**
+```json
+{
+  "status": "accepted"
+}
+```
+
+**Request Body (Needs Modification - requires comment):**
+```json
+{
+  "status": "needs_modification",
+  "comment": "Please add more details about the timeline"
+}
+```
+
+**Validation:**
+- `status`: Required, enum: `accepted` | `rejected` | `needs_modification`
+- `comment`: Required if `status` is `needs_modification`, string, 1-1000 characters
+
+**Business Rules:**
+- Only clients with brief access (recipients) can change status
+- Owners (creators) cannot change status via this endpoint
+- Brief must be in `sent` status to allow status change
+- Cannot change status from `accepted` to another status (prevents re-acceptance workflow)
+- Changing to `needs_modification` automatically creates a comment with provided content
+- Logs status change to audit_log
+
+**Success Response (200 OK) - Accept/Reject:**
 ```json
 {
   "id": "uuid",
@@ -474,7 +561,7 @@ Update brief content (owner) or status (client with access).
 }
 ```
 
-**Success Response (200 OK) - Status Update with Comment:**
+**Success Response (200 OK) - Needs Modification with Comment:**
 ```json
 {
   "id": "uuid",
@@ -487,7 +574,10 @@ Update brief content (owner) or status (client with access).
     "id": "uuid",
     "briefId": "uuid",
     "authorId": "uuid",
+    "authorEmail": "client@example.com",
+    "authorRole": "client",
     "content": "Please add more details about the timeline",
+    "isOwn": true,
     "createdAt": "2025-01-15T11:00:00Z"
   }
 }
@@ -506,12 +596,12 @@ Update brief content (owner) or status (client with access).
     ]
   }
   ```
-- `401 Unauthorized`: Invalid or expired token
-- `403 Forbidden`:
-  - Client trying to update content fields
-  - Owner trying to update status directly
-  - Client trying to update status when brief is not in `sent` state
-  - User without brief access
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
+- `403 Forbidden`: Multiple scenarios
+  - User is the brief owner (not a recipient)
+  - User does not have brief access
+  - Brief is not in `sent` status
+  - Attempting to change from `accepted` status
   ```json
   {
     "error": "Only clients with access can change brief status when it's in 'sent' state"
@@ -521,7 +611,7 @@ Update brief content (owner) or status (client with access).
 
 ---
 
-### 5.5 Delete Brief
+### 5.6 Delete Brief
 
 **DELETE** `/api/briefs/:id`
 
@@ -664,13 +754,17 @@ Remove user's access to brief (owner only, resets status to 'draft' if last reci
 
 **GET** `/api/briefs/:id/comments`
 
-Retrieve all comments for a brief (users with access only).
+Retrieve paginated comments for a brief (users with access only).
 
 **Headers:**
 - `Authorization: Bearer {token}`
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
+
+**Query Parameters:**
+- `page`: Number (default: 1) - Page number
+- `limit`: Number (default: 50, max: 100) - Comments per page
 
 **Success Response (200 OK):**
 ```json
@@ -686,11 +780,18 @@ Retrieve all comments for a brief (users with access only).
       "isOwn": false,
       "createdAt": "2025-01-15T10:45:00Z"
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 127,
+    "totalPages": 3
+  }
 }
 ```
 
 **Error Responses:**
+- `400 Bad Request`: Invalid query parameters
 - `401 Unauthorized`: Invalid or expired token
 - `403 Forbidden`: User does not have access to this brief
 - `404 Not Found`: Brief does not exist
@@ -956,9 +1057,25 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Conflict Errors (409 Conflict):**
+
+**Use Cases:**
+- Attempting to share brief with user who already has access
+- Attempting to create duplicate resource
+- Race condition conflicts (e.g., concurrent status updates)
+
+**Standard Format:**
 ```json
 {
-  "error": "Resource already exists"
+  "error": "Resource conflict description",
+  "conflictType": "duplicate_recipient"
+}
+```
+
+**Examples:**
+```json
+{
+  "error": "User already has access to this brief",
+  "conflictType": "duplicate_recipient"
 }
 ```
 
@@ -1024,23 +1141,44 @@ All list endpoints support pagination:
 
 ## 12. Rate Limiting
 
-### 12.1 Limits (Recommended for Production)
+### 12.1 MVP Decision
 
+**Rate limiting is OUT OF SCOPE for MVP.**
+
+**Rationale:**
+- Vercel provides basic DDoS protection out of the box
+- Small user base in MVP phase (limited risk)
+- Adds complexity to development and testing
+- Can be added in Phase 2 after launch with real usage data
+
+**Basic Protection:**
+- Vercel Edge Network provides automatic rate limiting for extreme abuse
+- Database RLS policies prevent unauthorized access
+- Brief creation limited to 20 per user (enforced at database level)
+
+### 12.2 Post-MVP Implementation Plan
+
+**Recommended for Production (Phase 2):**
+
+**Implementation Options:**
+- Vercel Edge Config with rate limiting middleware
+- Upstash Redis for distributed rate limiting
+- `@upstash/ratelimit` library for Next.js integration
+
+**Recommended Limits:**
 - Authentication endpoints: 5 requests/minute per IP
 - Brief creation: 10 requests/minute per user
 - Comment creation: 20 requests/minute per user
 - General API: 100 requests/minute per user
 
-### 12.2 Response Headers
-
+**Response Headers:**
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1642248600
 ```
 
-### 12.3 Rate Limit Exceeded (429 Too Many Requests)
-
+**Rate Limit Exceeded (429 Too Many Requests):**
 ```json
 {
   "error": "Rate limit exceeded",
@@ -1086,7 +1224,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 | GET | `/api/briefs` | List briefs (paginated) | Yes | Any |
 | GET | `/api/briefs/:id` | Get brief details | Yes | Any* |
 | POST | `/api/briefs` | Create brief | Yes | Creator |
-| PATCH | `/api/briefs/:id` | Update brief content or status | Yes | Creator** / Client* |
+| PATCH | `/api/briefs/:id` | Update brief content | Yes | Creator** |
+| PATCH | `/api/briefs/:id/status` | Update brief status | Yes | Client* |
 | DELETE | `/api/briefs/:id` | Delete brief | Yes | Creator** |
 | GET | `/api/briefs/:id/recipients` | List recipients | Yes | Creator** |
 | POST | `/api/briefs/:id/recipients` | Share brief | Yes | Creator** |
@@ -1095,11 +1234,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 | POST | `/api/briefs/:id/comments` | Create comment | Yes | Any* |
 | DELETE | `/api/comments/:id` | Delete comment | Yes | Any*** |
 
-**Total: 14 custom API endpoints** (authentication + profile creation handled by Supabase)
-
-**Note:** The `PATCH /api/briefs/:id` endpoint serves dual purpose:
-- **Creators** can update brief content (`header`, `content`, `footer`)
-- **Clients** can update brief status (`accepted`, `rejected`, `needs_modification`)
+**Total: 15 custom API endpoints** (authentication + profile creation handled by Supabase)
 
 **Legend:**
 - `*` = Must have access to the brief (owner or recipient)

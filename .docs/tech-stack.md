@@ -15,7 +15,46 @@ Utility-first CSS framework. Minimal bundles (only used classes), built-in desig
 Copy-paste UI components (full control, zero vendor lock-in). Accessibility built-in (ARIA + Radix UI), Tailwind-native, components in `src/components/ui/`.
 
 ### TipTap 3
-Headless WYSIWYG editor. Full UI/UX control, extensible (custom nodes for proof annotations), Markdown support, collaborative-ready (Y.js).
+Headless WYSIWYG editor for brief content. Full UI/UX control, extensible node system, JSON-based content storage (not HTML), collaborative-ready (Y.js for future).
+
+**Allowed Extensions (MVP):**
+- **Document** (root node) - Container for all content
+- **Paragraph** - Basic text blocks
+- **Text** - Plain text nodes with marks
+- **Bold** - Bold text formatting
+- **Italic** - Italic text formatting
+- **Underline** - Underlined text
+- **Strike** - Strikethrough text
+- **Heading** - Headings (levels 1-3 only)
+- **BulletList / OrderedList / ListItem** - Lists (bulleted and numbered)
+- **HardBreak** - Manual line breaks
+
+**Disabled for MVP:**
+- Image upload (no file attachments in MVP)
+- Code blocks (not needed for briefs)
+- Tables (too complex for MVP)
+- Embeds (videos, iframes)
+- Custom colors/fonts (simplified design)
+- Horizontal rules
+- Blockquotes
+
+**Content Structure:**
+- Stored as JSON in PostgreSQL JSONB column
+- Maximum content length: 10,000 text characters (validated via Zod)
+- No user-provided HTML (prevents XSS)
+- Output sanitized before rendering
+
+**XSS Prevention:**
+- Content stored as structured JSON (not HTML strings)
+- TipTap only renders allowed node types
+- No script tags or dangerous HTML
+- Automatic sanitization on render
+
+**Content Validation:**
+- Zod schema validates TipTap document structure
+- Recursive character counting for 10,000 limit
+- Type checking ensures valid node types
+- Helper function `countTipTapTextLength()` in [brief.schema.ts](../src/lib/schemas/brief.schema.ts)
 
 ---
 

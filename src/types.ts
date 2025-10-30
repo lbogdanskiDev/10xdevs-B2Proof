@@ -161,14 +161,23 @@ export interface CreateBriefCommand {
 }
 
 /**
- * Update brief command
- * Used in: PATCH /api/briefs/:id
+ * Update brief command (owner content update)
+ * Used in: PATCH /api/briefs/:id (owner content update)
  * Source: briefs table update type
  */
 export interface UpdateBriefCommand {
   header?: string;
   content?: BriefUpdate["content"];
   footer?: string | null;
+}
+
+/**
+ * Update brief status command (client status update)
+ * Used in: PATCH /api/briefs/:id (client status update)
+ */
+export interface UpdateBriefStatusCommand {
+  status: BriefStatus;
+  comment?: string;
 }
 
 /**
@@ -198,6 +207,16 @@ export interface RequestModificationCommand {
  */
 export interface RequestModificationResponseDto extends BriefStatusResponseDto {
   comment: CommentDto;
+}
+
+/**
+ * Update brief status response with optional comment
+ * Used in: PATCH /api/briefs/:id (response for status updates, includes comment for needs_modification)
+ */
+export interface UpdateBriefStatusWithCommentResponseDto extends BriefStatusResponseDto {
+  commentCount: number;
+  updatedAt: string;
+  comment?: CommentDto;
 }
 
 // ============================================================================

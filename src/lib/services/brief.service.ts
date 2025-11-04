@@ -617,6 +617,75 @@ export async function updateBriefStatus(
   return response;
 }
 
+/**
+ * Deletes a brief and logs the action to audit trail
+ *
+ * Business rules enforced:
+ * - User must be the brief owner (strict ownership check)
+ * - Audit log is created BEFORE deletion (critical for recovery)
+ * - Cascade deletion automatically handles related records (recipients, comments)
+ *
+ * @param supabase - Supabase client instance
+ * @param briefId - UUID of the brief to delete
+ * @param userId - Current user's UUID from auth
+ * @throws {NotFoundError} If brief doesn't exist
+ * @throws {ForbiddenError} If user is not the owner
+ * @throws {ApiError} If audit log or deletion fails
+ */
+export async function deleteBrief(supabase: SupabaseClient, briefId: string, userId: string): Promise<void> {
+  // 1. Fetch brief and verify existence
+  const { data: brief, error: fetchError } = await supabase.from("briefs").select("*").eq("id", briefId).single();
+
+  if (fetchError || !brief) {
+    throw new NotFoundError("Brief", briefId);
+  }
+
+  // 2. Verify ownership
+  if (brief.owner_id !== userId) {
+    throw new ForbiddenError("You are not the owner of this brief");
+  }
+
+  // 3. Log audit trail BEFORE deletion (critical for recovery)
+  const { error: auditError } = await supabase.from("audit_log").insert({
+    user_id: userId,
+    action: "brief_deleted",
+    entity_type: "brief",
+    entity_id: brief.id,
+    old_data: {
+      owner_id: brief.owner_id,
+      header: brief.header,
+      content: brief.content,
+      footer: brief.footer,
+      status: brief.status,
+      status_changed_at: brief.status_changed_at,
+      status_changed_by: brief.status_changed_by,
+      comment_count: brief.comment_count,
+      created_at: brief.created_at,
+      updated_at: brief.updated_at,
+    },
+  });
+
+  if (auditError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to log audit trail:", auditError);
+    throw new ApiError("DATABASE_ERROR", "Failed to log deletion audit trail", 500);
+  }
+
+  // 4. Delete brief (cascade will handle brief_recipients and comments)
+  const { error: deleteError } = await supabase.from("briefs").delete().eq("id", briefId);
+
+  if (deleteError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to delete brief:", deleteError);
+    throw new ApiError("DATABASE_ERROR", "Failed to delete brief", 500);
+  }
+
+  // eslint-disable-next-line no-console -- Service layer logging for debugging
+  console.info(`[brief.service] Brief ${briefId} deleted by user ${userId}`);
+
+  // Success - no return value needed (void)
+}
+
 // ============================================================================
 // Helper Functions (Lower-level abstractions)
 // ============================================================================

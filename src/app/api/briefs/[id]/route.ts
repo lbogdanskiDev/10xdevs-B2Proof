@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/db/supabase.server";
 import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
-import { getBriefById, updateBriefContent } from "@/lib/services/brief.service";
+import { getBriefById, updateBriefContent, deleteBrief } from "@/lib/services/brief.service";
 import { BriefIdSchema, updateBriefContentSchema } from "@/lib/schemas/brief.schema";
 import { ApiError } from "@/lib/errors/api-errors";
 import type { BriefDetailDto, ErrorResponse, UpdateBriefCommand } from "@/types";
@@ -157,6 +157,68 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[PATCH /api/briefs/:id] Unexpected error:", error);
+    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/briefs/:id
+ * Deletes a brief (owner only)
+ *
+ * Enforces strict ownership - only the brief owner can delete.
+ * Creates audit log entry before deletion for compliance and recovery.
+ * Cascade deletion automatically removes related records (recipients, comments).
+ *
+ * NOTE: Currently using mock authentication with DEFAULT_USER_PROFILE
+ * Uses admin client to bypass RLS during development
+ * TODO: Replace with real Supabase Auth and regular client when authentication is implemented
+ *
+ * @param request - Next.js request object
+ * @param params - Route parameters containing brief ID
+ * @returns 204 No Content on success, or error response
+ */
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    // Step 1: Await params (Next.js 15 breaking change)
+    const { id } = await params;
+
+    // Step 2: Validate UUID format
+    const validationResult = BriefIdSchema.safeParse({ id });
+
+    // Guard: Check validation
+    if (!validationResult.success) {
+      const details = validationResult.error.errors.map((err) => ({
+        field: err.path.join("."),
+        message: err.message,
+      }));
+
+      // eslint-disable-next-line no-console -- API error logging for debugging
+      console.error("[DELETE /api/briefs/:id] Validation error:", details);
+      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
+    }
+
+    // Step 3: Get Supabase admin client and mock user
+    // TEMPORARY: Using admin client for development with mock authentication
+    // TODO: Replace with createSupabaseServerClient() and real auth
+    const supabase = createSupabaseAdminClient();
+
+    // TEMPORARY: Using mock user profile for development
+    // TODO: Replace with real authentication: await supabase.auth.getUser()
+    const userId = DEFAULT_USER_PROFILE.id;
+
+    // Step 4: Delete brief (service handles authorization, audit log, and cascade)
+    await deleteBrief(supabase, validationResult.data.id, userId);
+
+    // Happy path: Return 204 No Content (no response body)
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+    }
+
+    // Handle unexpected errors
+    // eslint-disable-next-line no-console -- API error logging for debugging
+    console.error("[DELETE /api/briefs/:id] Unexpected error:", error);
     return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
   }
 }

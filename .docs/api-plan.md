@@ -4,7 +4,7 @@
 
 **Last Updated**: 2025-11-04
 
-### Completed Endpoints (8/15)
+### Completed Endpoints (9/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
@@ -15,14 +15,15 @@
 | `/api/briefs/:id` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
 | `/api/briefs/:id/status` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
 | `/api/briefs/:id` | DELETE | ✅ Implemented | [5671ed4](https://github.com/user/repo/commit/5671ed4) |
+| `/api/briefs/:id/recipients` | GET | ✅ Implemented | Ready for commit |
 
-### Pending Endpoints (7/15)
+### Pending Endpoints (6/15)
 - `/api/users/me` - DELETE (account deletion)
-- `/api/briefs/:id/recipients` - GET, POST, DELETE (recipient management)
+- `/api/briefs/:id/recipients` - POST, DELETE (share brief, revoke access)
 - `/api/briefs/:id/comments` - GET, POST (comments)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 53% (8/15 endpoints complete)
+**Progress**: 60% (9/15 endpoints complete)
 
 ---
 
@@ -649,14 +650,29 @@ Permanently delete a brief (owner only).
 
 ## 6. Brief Recipient Endpoints
 
-### 6.1 List Brief Recipients
+### 6.1 List Brief Recipients ✅ IMPLEMENTED
 
 **GET** `/api/briefs/:id/recipients`
 
 Retrieve list of users with access to the brief (owner only).
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/recipients/route.ts](../src/app/api/briefs/[id]/recipients/route.ts)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefRecipients`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
+- ✅ Authorization: Enforces owner-only access in route handler
+- ✅ Email Retrieval: Uses `supabase.auth.admin.getUserById()` with parallel execution
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
+**Implementation Details:**
+- Authorization check performed in route handler (not service layer)
+- Email fetching uses `Promise.all()` for parallel execution (avoids N+1 problem)
+- Service layer only handles data retrieval
+- Fallback email `"unknown@example.com"` when user data unavailable
+- Results ordered by `shared_at DESC` (most recent first)
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -676,10 +692,28 @@ Retrieve list of users with access to the brief (owner only).
 }
 ```
 
+**Success Response (200 OK) - Empty List:**
+```json
+{
+  "data": []
+}
+```
+
 **Error Responses:**
-- `401 Unauthorized`: Invalid or expired token
+- `400 Bad Request`: Invalid brief ID format (not valid UUID)
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User is not the brief owner
+  ```json
+  {
+    "error": "Only the brief owner can view recipients"
+  }
+  ```
 - `404 Not Found`: Brief does not exist
+  ```json
+  {
+    "error": "Brief with ID {id} not found"
+  }
+  ```
 
 ---
 
@@ -1313,7 +1347,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ `briefService.ts` - Brief create operation (`createBrief`) implemented with role check and limit enforcement
    - ✅ `briefService.ts` - Brief update operations (`updateBriefContent`, `updateBriefStatus`) implemented
    - ✅ `briefService.ts` - Brief delete operation (`deleteBrief`) implemented with audit trail
-   - ⏳ `recipientService.ts` - Sharing logic - TODO
+   - ✅ `briefService.ts` - Brief recipients read operation (`getBriefRecipients`) implemented
+   - ⏳ `recipientService.ts` - Sharing logic (POST, DELETE) - TODO
    - ⏳ `commentService.ts` - Comment operations - TODO
    - All services use authenticated Supabase client with RLS
 
@@ -1322,7 +1357,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ Brief endpoints: `briefs/route.ts` (GET, POST implemented)
    - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET, PATCH, DELETE implemented)
    - ✅ Brief status endpoint: `briefs/[id]/status/route.ts` (PATCH implemented)
-   - ⏳ Recipient endpoints: `briefs/[id]/recipients/route.ts` - TODO
+   - ✅ Recipient endpoints: `briefs/[id]/recipients/route.ts` (GET implemented)
+   - ⏳ Recipient endpoints: POST, DELETE (share brief, revoke access) - TODO
    - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`, `comments/[id]/route.ts` - TODO
 
 ### Phase 4: Error Handling & Testing

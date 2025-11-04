@@ -10,8 +10,9 @@ import type {
   UpdateBriefStatusWithCommentResponseDto,
   CommentDto,
   BriefStatus,
+  BriefRecipientDto,
 } from "@/types";
-import { ApiError, ForbiddenError, UnauthorizedError, NotFoundError } from "@/lib/errors/api-errors";
+import { ApiError, ForbiddenError, UnauthorizedError, NotFoundError, DatabaseError } from "@/lib/errors/api-errors";
 
 /**
  * Retrieves paginated list of briefs for a user
@@ -684,6 +685,62 @@ export async function deleteBrief(supabase: SupabaseClient, briefId: string, use
   console.info(`[brief.service] Brief ${briefId} deleted by user ${userId}`);
 
   // Success - no return value needed (void)
+}
+
+/**
+ * Get list of recipients for a brief
+ *
+ * Retrieves recipients with email addresses.
+ * Results ordered by shared_at DESC (most recent first).
+ *
+ * Note: Authorization should be handled by the caller (route handler).
+ * Note: Email retrieval requires admin client access to auth.users.
+ *
+ * @param supabase - Supabase client instance
+ * @param briefId - Brief UUID
+ * @returns Array of recipients with email and sharing metadata
+ * @throws {DatabaseError} If database query fails
+ */
+export async function getBriefRecipients(supabase: SupabaseClient, briefId: string): Promise<BriefRecipientDto[]> {
+  // Query recipients from brief_recipients table
+  const { data: recipients, error: recipientsError } = await supabase
+    .from("brief_recipients")
+    .select("id, recipient_id, shared_by, shared_at")
+    .eq("brief_id", briefId)
+    .order("shared_at", { ascending: false });
+
+  if (recipientsError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to fetch recipients:", recipientsError);
+    throw new DatabaseError("retrieve recipients");
+  }
+
+  // Handle empty list
+  if (!recipients || recipients.length === 0) {
+    return [];
+  }
+
+  // Batch fetch user emails using admin API
+  // Note: This requires admin client. In production, consider creating a database function
+  // or view that exposes emails through RLS for better performance.
+  const emailPromises = recipients.map(async (row) => {
+    const { data: userData } = await supabase.auth.admin.getUserById(row.recipient_id);
+    return {
+      ...row,
+      recipientEmail: userData.user?.email ?? "unknown@example.com",
+    };
+  });
+
+  const recipientsWithEmails = await Promise.all(emailPromises);
+
+  // Transform to DTOs
+  return recipientsWithEmails.map((row) => ({
+    id: row.id,
+    recipientId: row.recipient_id,
+    recipientEmail: row.recipientEmail,
+    sharedBy: row.shared_by,
+    sharedAt: row.shared_at,
+  }));
 }
 
 // ============================================================================

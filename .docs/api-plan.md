@@ -2,27 +2,27 @@
 
 ## Implementation Status Overview
 
-**Last Updated**: 2025-10-29
+**Last Updated**: 2025-11-04
 
-### Completed Endpoints (6/15)
+### Completed Endpoints (8/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
 | `/api/users/me` | GET | ✅ Implemented | [ac762fe](https://github.com/user/repo/commit/ac762fe) |
 | `/api/briefs` | GET | ✅ Implemented | [41747d7](https://github.com/user/repo/commit/41747d7) |
-| `/api/briefs/:id` | GET | ✅ Implemented | [fef2bc6](https://github.com/user/repo/commit/fef2bc6) |
+| `/api/briefs/:id` | GET | ✅ Implemented | [f2f8fd0](https://github.com/user/repo/commit/f2f8fd0) |
 | `/api/briefs` | POST | ✅ Implemented | [9782e92](https://github.com/user/repo/commit/9782e92) |
-| `/api/briefs/:id` | PATCH | ✅ Implemented | Pending commit |
-| `/api/briefs/:id/status` | PATCH | ✅ Implemented | Pending commit |
+| `/api/briefs/:id` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
+| `/api/briefs/:id/status` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
+| `/api/briefs/:id` | DELETE | ✅ Implemented | [5671ed4](https://github.com/user/repo/commit/5671ed4) |
 
-### Pending Endpoints (9/15)
+### Pending Endpoints (7/15)
 - `/api/users/me` - DELETE (account deletion)
-- `/api/briefs/:id` - DELETE (delete brief)
 - `/api/briefs/:id/recipients` - GET, POST, DELETE (recipient management)
 - `/api/briefs/:id/comments` - GET, POST (comments)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 40% (6/15 endpoints complete)
+**Progress**: 53% (8/15 endpoints complete)
 
 ---
 
@@ -611,14 +611,23 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 
 ---
 
-### 5.6 Delete Brief
+### 5.6 Delete Brief ✅ IMPLEMENTED
 
 **DELETE** `/api/briefs/:id`
 
 Permanently delete a brief (owner only).
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/route.ts](../src/app/api/briefs/[id]/route.ts) (DELETE method)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`deleteBrief`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
+- ✅ Authorization: Enforces owner-only access
+- ✅ Audit Trail: Creates audit log entry before deletion
+- ✅ Cascade Deletion: Automatically removes comments and recipients via database constraints
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -626,8 +635,14 @@ Permanently delete a brief (owner only).
 **Success Response (204 No Content)**
 
 **Error Responses:**
-- `401 Unauthorized`: Invalid or expired token
+- `400 Bad Request`: Invalid brief ID format
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User is not the owner
+  ```json
+  {
+    "error": "Only the brief owner can delete the brief"
+  }
+  ```
 - `404 Not Found`: Brief does not exist
 
 ---
@@ -1296,18 +1311,17 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ `userService.ts` - User profile operations (development mode with DEFAULT_USER_PROFILE)
    - ✅ `briefService.ts` - Brief read operations (`getBriefs`, `getBriefById`) implemented
    - ✅ `briefService.ts` - Brief create operation (`createBrief`) implemented with role check and limit enforcement
-   - ⏳ `briefService.ts` - Brief update and delete operations - TODO
+   - ✅ `briefService.ts` - Brief update operations (`updateBriefContent`, `updateBriefStatus`) implemented
+   - ✅ `briefService.ts` - Brief delete operation (`deleteBrief`) implemented with audit trail
    - ⏳ `recipientService.ts` - Sharing logic - TODO
    - ⏳ `commentService.ts` - Comment operations - TODO
    - All services use authenticated Supabase client with RLS
 
 8. **Build API Route Handlers** in `src/app/api/` ✅ IN PROGRESS
    - ✅ User endpoints: `users/me/route.ts` (GET implemented)
-   - ✅ Brief endpoints: `briefs/route.ts` (GET implemented with pagination & filters)
-   - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET implemented with authorization)
-   - ✅ Brief endpoints: `briefs/route.ts` (POST implemented with role check and validation)
-   - ⏳ Brief endpoints: `briefs/[id]/route.ts` (PATCH handles both content and status updates) - TODO
-   - ⏳ Brief endpoints: `briefs/[id]/route.ts` (DELETE) - TODO
+   - ✅ Brief endpoints: `briefs/route.ts` (GET, POST implemented)
+   - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET, PATCH, DELETE implemented)
+   - ✅ Brief status endpoint: `briefs/[id]/status/route.ts` (PATCH implemented)
    - ⏳ Recipient endpoints: `briefs/[id]/recipients/route.ts` - TODO
    - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`, `comments/[id]/route.ts` - TODO
 

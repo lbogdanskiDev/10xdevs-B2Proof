@@ -871,6 +871,123 @@ export async function getBriefRecipients(supabase: SupabaseClient, briefId: stri
   }));
 }
 
+/**
+ * Revoke recipient access to a brief (owner only)
+ *
+ * Business Rules:
+ * - Only brief owner can revoke access
+ * - Recipient access must exist
+ * - If last recipient is removed, reset brief status to 'draft'
+ * - Audit trail is logged before deletion
+ *
+ * @param supabase - Authenticated Supabase client
+ * @param briefId - UUID of brief
+ * @param recipientId - UUID of recipient to revoke access from
+ * @param ownerId - UUID of authenticated user (must be brief owner)
+ *
+ * @throws {NotFoundError} Brief not found or user not owner
+ * @throws {NotFoundError} Recipient access not found
+ * @throws {DatabaseError} If database operation fails
+ */
+export async function revokeBriefRecipient(
+  supabase: SupabaseClient,
+  briefId: string,
+  recipientId: string,
+  ownerId: string
+): Promise<void> {
+  // Guard clause: Verify brief exists and user is owner
+  const { data: brief, error: briefError } = await supabase
+    .from("briefs")
+    .select("id, owner_id, status")
+    .eq("id", briefId)
+    .eq("owner_id", ownerId)
+    .single();
+
+  if (briefError || !brief) {
+    throw new NotFoundError("Brief", briefId);
+  }
+
+  // Guard clause: Verify recipient access exists
+  const { data: recipientAccess, error: recipientError } = await supabase
+    .from("brief_recipients")
+    .select("id, brief_id, recipient_id, shared_by, shared_at")
+    .eq("brief_id", briefId)
+    .eq("recipient_id", recipientId)
+    .single();
+
+  if (recipientError || !recipientAccess) {
+    throw new NotFoundError("Recipient access", recipientId);
+  }
+
+  // Count remaining recipients (before deletion)
+  const { count, error: countError } = await supabase
+    .from("brief_recipients")
+    .select("*", { count: "exact", head: true })
+    .eq("brief_id", briefId);
+
+  if (countError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to count recipients:", countError);
+    throw new DatabaseError("count recipients");
+  }
+
+  const isLastRecipient = count === 1;
+
+  // Log audit trail BEFORE deletion (critical for recovery)
+  const { error: auditError } = await supabase.from("audit_log").insert({
+    user_id: ownerId,
+    action: "delete",
+    entity_type: "brief_recipient",
+    entity_id: recipientAccess.id,
+    old_data: {
+      brief_id: recipientAccess.brief_id,
+      recipient_id: recipientAccess.recipient_id,
+      shared_by: recipientAccess.shared_by,
+      shared_at: recipientAccess.shared_at,
+      was_last_recipient: isLastRecipient,
+    },
+  });
+
+  if (auditError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to log audit trail:", auditError);
+    throw new DatabaseError("log audit trail");
+  }
+
+  // Delete recipient access
+  const { error: deleteError } = await supabase.from("brief_recipients").delete().eq("id", recipientAccess.id);
+
+  if (deleteError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to delete recipient:", deleteError);
+    throw new DatabaseError("delete recipient access");
+  }
+
+  // If last recipient removed, reset brief status to 'draft'
+  if (isLastRecipient && brief.status !== "draft") {
+    const { error: updateError } = await supabase
+      .from("briefs")
+      .update({
+        status: "draft",
+        status_changed_at: new Date().toISOString(),
+        status_changed_by: ownerId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", briefId);
+
+    if (updateError) {
+      // eslint-disable-next-line no-console -- Service layer logging for debugging
+      console.error("[brief.service] Failed to reset brief status:", updateError);
+      // Don't throw - recipient is already deleted, log the error but don't fail
+    }
+  }
+
+  // eslint-disable-next-line no-console -- Service layer logging for debugging
+  console.info(
+    `[brief.service] Recipient ${recipientId} access revoked from brief ${briefId} by user ${ownerId}. Last recipient: ${isLastRecipient}`
+  );
+}
+
 // ============================================================================
 // Helper Functions (Lower-level abstractions)
 // ============================================================================

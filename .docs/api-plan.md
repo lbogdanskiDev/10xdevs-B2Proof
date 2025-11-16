@@ -4,7 +4,7 @@
 
 **Last Updated**: 2025-01-16
 
-### Completed Endpoints (11/15)
+### Completed Endpoints (12/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
@@ -17,14 +17,14 @@
 | `/api/briefs/:id/status` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
 | `/api/briefs/:id` | DELETE | ✅ Implemented | [5671ed4](https://github.com/user/repo/commit/5671ed4) |
 | `/api/briefs/:id/recipients` | GET | ✅ Implemented | [19dc685](https://github.com/user/repo/commit/19dc685) |
-| `/api/briefs/:id/recipients` | POST | ✅ Implemented | Ready for commit |
+| `/api/briefs/:id/recipients` | POST | ✅ Implemented | [efc5a44](https://github.com/user/repo/commit/efc5a44) |
+| `/api/briefs/:id/recipients/:recipientId` | DELETE | ✅ Implemented | Ready for commit |
 
-### Pending Endpoints (4/15)
-- `/api/briefs/:id/recipients/:recipientId` - DELETE (revoke access)
+### Pending Endpoints (3/15)
 - `/api/briefs/:id/comments` - GET, POST (comments)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 73% (11/15 endpoints complete)
+**Progress**: 80% (12/15 endpoints complete)
 
 ---
 
@@ -785,11 +785,26 @@ Share brief with a user by email (owner only, max 10 recipients, changes status 
 
 ---
 
-### 6.3 Revoke Recipient Access
+### 6.3 Revoke Recipient Access ✅ IMPLEMENTED
 
 **DELETE** `/api/briefs/:id/recipients/:recipientId`
 
 Remove user's access to brief (owner only, resets status to 'draft' if last recipient).
+
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/recipients/[recipientId]/route.ts](../src/app/api/briefs/[id]/recipients/[recipientId]/route.ts)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`revokeBriefRecipient`)
+- ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`RevokeRecipientSchema`)
+- ✅ Authorization: Enforces owner-only access
+- ✅ Audit Trail: Creates audit log entry before deletion with `was_last_recipient` flag
+- ✅ Status Reset: Automatically resets brief status to 'draft' when last recipient is removed
+
+**Implementation Details:**
+- Authorization check performed in service layer (verifies ownership via database query)
+- Audit log created BEFORE deletion for data recovery capability
+- Status reset only occurs if last recipient AND status is not already 'draft'
+- If status update fails after recipient deletion, error is logged but operation succeeds
+- Service layer uses guard clauses for validation and early returns
 
 **Headers:**
 - `Authorization: Bearer {token}`
@@ -801,9 +816,37 @@ Remove user's access to brief (owner only, resets status to 'draft' if last reci
 **Success Response (204 No Content)**
 
 **Error Responses:**
+- `400 Bad Request`: Invalid brief ID or recipient ID format (not valid UUID)
+  ```json
+  {
+    "error": "Invalid request parameters",
+    "details": [
+      {
+        "field": "recipientId",
+        "message": "Invalid recipient ID format"
+      }
+    ]
+  }
+  ```
 - `401 Unauthorized`: Invalid or expired token
-- `403 Forbidden`: User is not the brief owner
-- `404 Not Found`: Brief or recipient access does not exist
+- `403 Forbidden`: User is not the brief owner (returns 404 for security - prevents resource enumeration)
+- `404 Not Found`: Brief does not exist, user is not owner, or recipient access does not exist
+  ```json
+  {
+    "error": "Brief with ID {id} not found"
+  }
+  ```
+  ```json
+  {
+    "error": "Recipient access with ID {recipientId} not found"
+  }
+  ```
+- `500 Internal Server Error`: Database error during audit logging or deletion
+  ```json
+  {
+    "error": "Database error during log audit trail"
+  }
+  ```
 
 ---
 
@@ -1359,8 +1402,10 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ `briefService.ts` - Brief create operation (`createBrief`) implemented with role check and limit enforcement
    - ✅ `briefService.ts` - Brief update operations (`updateBriefContent`, `updateBriefStatus`) implemented
    - ✅ `briefService.ts` - Brief delete operation (`deleteBrief`) implemented with audit trail
-   - ✅ `briefService.ts` - Brief recipients read operation (`getBriefRecipients`) implemented
-   - ⏳ `recipientService.ts` - Sharing logic (POST, DELETE) - TODO
+   - ✅ `briefService.ts` - Brief recipients operations implemented
+     - `getBriefRecipients()` - List recipients
+     - `shareBriefWithRecipient()` - Share brief with recipient by email
+     - `revokeBriefRecipient()` - Revoke recipient access with status reset
    - ⏳ `commentService.ts` - Comment operations - TODO
    - All services use authenticated Supabase client with RLS
 
@@ -1369,8 +1414,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ Brief endpoints: `briefs/route.ts` (GET, POST implemented)
    - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET, PATCH, DELETE implemented)
    - ✅ Brief status endpoint: `briefs/[id]/status/route.ts` (PATCH implemented)
-   - ✅ Recipient endpoints: `briefs/[id]/recipients/route.ts` (GET implemented)
-   - ⏳ Recipient endpoints: POST, DELETE (share brief, revoke access) - TODO
+   - ✅ Recipient endpoints: `briefs/[id]/recipients/route.ts` (GET, POST implemented)
+   - ✅ Recipient endpoints: `briefs/[id]/recipients/[recipientId]/route.ts` (DELETE implemented)
    - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`, `comments/[id]/route.ts` - TODO
 
 ### Phase 4: Error Handling & Testing

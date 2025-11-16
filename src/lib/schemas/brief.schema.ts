@@ -204,3 +204,17 @@ export type ShareBriefInput = z.infer<typeof shareBriefSchema>;
  * UUID validation schema for path parameters
  */
 export const uuidSchema = z.string().uuid("Invalid UUID format");
+
+/**
+ * Validation schema for DELETE /api/briefs/:id/recipients/:recipientId path parameters
+ * Used to revoke recipient access from a brief
+ */
+export const RevokeRecipientSchema = z.object({
+  id: z.string().uuid({ message: "Invalid brief ID format" }),
+  recipientId: z.string().uuid({ message: "Invalid recipient ID format" }),
+});
+
+/**
+ * TypeScript type inferred from RevokeRecipientSchema
+ */
+export type RevokeRecipientInput = z.infer<typeof RevokeRecipientSchema>;

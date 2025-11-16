@@ -347,6 +347,30 @@ $$;
 
 COMMENT ON FUNCTION create_profile_for_new_user IS 'Trigger function: Auto-creates profile on user signup with role from metadata';
 
+-- ----------------------------------------------------------------------------
+-- get_user_by_email
+-- Lookup user by email from auth.users table
+-- This is needed because auth.users is not directly accessible via Supabase client
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION get_user_by_email(email_param TEXT)
+RETURNS TABLE (id UUID, email TEXT)
+SECURITY DEFINER
+SET search_path = ''
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT au.id, au.email
+  FROM auth.users au
+  WHERE au.email = email_param;
+END;
+$$;
+
+COMMENT ON FUNCTION get_user_by_email IS 'Looks up user by email from auth.users table (SECURITY DEFINER for auth schema access)';
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION get_user_by_email(TEXT) TO authenticated;
+
 -- ============================================================================
 -- VERIFICATION
 -- ============================================================================

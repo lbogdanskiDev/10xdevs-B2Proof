@@ -57,21 +57,24 @@ export interface Database {
         Row: {
           brief_id: string;
           id: string;
-          recipient_id: string;
+          recipient_id: string | null;
+          recipient_email: string;
           shared_at: string;
           shared_by: string;
         };
         Insert: {
           brief_id: string;
           id?: string;
-          recipient_id: string;
+          recipient_id?: string | null;
+          recipient_email: string;
           shared_at?: string;
           shared_by: string;
         };
         Update: {
           brief_id?: string;
           id?: string;
-          recipient_id?: string;
+          recipient_id?: string | null;
+          recipient_email?: string;
           shared_at?: string;
           shared_by?: string;
         };
@@ -184,6 +187,10 @@ export interface Database {
     Views: Record<never, never>;
     Functions: {
       user_has_brief_access: { Args: { brief_id: string }; Returns: boolean };
+      get_user_by_email: {
+        Args: { email_param: string };
+        Returns: { id: string; email: string }[];
+      };
     };
     Enums: {
       audit_action:

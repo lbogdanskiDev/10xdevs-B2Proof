@@ -182,3 +182,25 @@ export const updateBriefStatusSchema = z
  * TypeScript type inferred from updateBriefStatusSchema
  */
 export type UpdateBriefStatusInput = z.infer<typeof updateBriefStatusSchema>;
+
+/**
+ * Schema for sharing a brief with a recipient
+ * Used in: POST /api/briefs/:id/recipients
+ */
+export const shareBriefSchema = z.object({
+  email: z
+    .string({ required_error: "Email is required" })
+    .email("Invalid email format")
+    .min(1, "Email cannot be empty")
+    .max(255, "Email too long"),
+});
+
+/**
+ * TypeScript type inferred from shareBriefSchema
+ */
+export type ShareBriefInput = z.infer<typeof shareBriefSchema>;
+
+/**
+ * UUID validation schema for path parameters
+ */
+export const uuidSchema = z.string().uuid("Invalid UUID format");

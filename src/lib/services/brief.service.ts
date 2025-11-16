@@ -11,8 +11,16 @@ import type {
   CommentDto,
   BriefStatus,
   BriefRecipientDto,
+  ShareBriefResponseDto,
 } from "@/types";
-import { ApiError, ForbiddenError, UnauthorizedError, NotFoundError, DatabaseError } from "@/lib/errors/api-errors";
+import {
+  ApiError,
+  ForbiddenError,
+  UnauthorizedError,
+  NotFoundError,
+  DatabaseError,
+  ConflictError,
+} from "@/lib/errors/api-errors";
 
 /**
  * Retrieves paginated list of briefs for a user
@@ -688,24 +696,156 @@ export async function deleteBrief(supabase: SupabaseClient, briefId: string, use
 }
 
 /**
+ * Share a brief with a recipient by email
+ *
+ * Business rules enforced:
+ * - Brief must exist and user must be owner
+ * - Maximum 10 recipients per brief
+ * - No duplicate shares (same email already shared)
+ * - Automatically changes status from 'draft' to 'sent' on first share (via trigger)
+ *
+ * IMPORTANT: Allows sharing with non-existent users (pending registration)
+ * - Stores email in recipient_email field
+ * - When user registers with this email, they automatically get access via RLS
+ * - UI can check if user exists to show "pending" badge
+ *
+ * @param supabase - Supabase client instance
+ * @param briefId - UUID of the brief to share
+ * @param recipientEmail - Email address of recipient (can be non-existent user)
+ * @param ownerId - UUID of the brief owner (from auth)
+ * @returns Created recipient record with email and user existence status
+ * @throws {NotFoundError} Brief not found or user not owner
+ * @throws {ForbiddenError} Recipient limit exceeded (max 10)
+ * @throws {ConflictError} Email already has access to brief
+ * @throws {DatabaseError} Database operation failed
+ */
+export async function shareBriefWithRecipient(
+  supabase: SupabaseClient,
+  briefId: string,
+  recipientEmail: string,
+  ownerId: string
+): Promise<ShareBriefResponseDto> {
+  // Step 1: Verify brief exists and user is owner
+  const { data: brief, error: briefError } = await supabase
+    .from("briefs")
+    .select("id, owner_id, status")
+    .eq("id", briefId)
+    .eq("owner_id", ownerId)
+    .single();
+
+  if (briefError || !brief) {
+    throw new NotFoundError("Brief", briefId);
+  }
+
+  // Step 2: Check recipient limit (max 10)
+  const { count, error: countError } = await supabase
+    .from("brief_recipients")
+    .select("*", { count: "exact", head: true })
+    .eq("brief_id", briefId);
+
+  if (countError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to check recipient count:", countError);
+    throw new DatabaseError("check recipient count", countError.message);
+  }
+
+  if (count !== null && count >= 10) {
+    throw new ForbiddenError("Maximum of 10 recipients per brief exceeded");
+  }
+
+  // Step 3: Check for duplicate email (prevents sharing same email twice)
+  const { data: existingRecipient } = await supabase
+    .from("brief_recipients")
+    .select("id")
+    .eq("brief_id", briefId)
+    .eq("recipient_email", recipientEmail)
+    .single();
+
+  if (existingRecipient) {
+    throw new ConflictError(`Brief already shared with ${recipientEmail}`);
+  }
+
+  // Step 4: Lookup if user exists (optional - for UI feedback only)
+  // This doesn't block sharing - just provides status info
+  const { data: recipientUser } = await supabase.rpc("get_user_by_email", {
+    email_param: recipientEmail,
+  });
+
+  const recipientId = recipientUser?.[0]?.id || null;
+
+  // Step 5: Insert recipient (works for both existing and non-existent users)
+  // - If user exists: recipient_id is set, user gets immediate access
+  // - If user doesn't exist: recipient_id is NULL, user gets access after registration
+  const { data: newRecipient, error: insertError } = await supabase
+    .from("brief_recipients")
+    .insert({
+      brief_id: briefId,
+      recipient_id: recipientId,
+      recipient_email: recipientEmail,
+      shared_by: ownerId,
+    })
+    .select("id, brief_id, recipient_id, recipient_email, shared_by, shared_at")
+    .single();
+
+  if (insertError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to share brief:", insertError);
+    throw new DatabaseError("share brief", insertError.message);
+  }
+
+  // Step 6: Log audit trail (non-blocking - don't throw on failure)
+  const { error: auditError } = await supabase.from("audit_log").insert({
+    user_id: ownerId,
+    action: "brief_shared",
+    entity_type: "brief_recipient",
+    entity_id: newRecipient.id,
+    new_data: {
+      brief_id: newRecipient.brief_id,
+      recipient_id: newRecipient.recipient_id,
+      recipient_email: newRecipient.recipient_email,
+      shared_by: newRecipient.shared_by,
+      shared_at: newRecipient.shared_at,
+      user_exists: recipientId !== null,
+    },
+  });
+
+  if (auditError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to log audit trail:", auditError);
+    // Don't throw - audit log failure shouldn't break the operation
+  }
+
+  // Step 7: Return recipient details with email
+  return {
+    id: newRecipient.id,
+    briefId: newRecipient.brief_id,
+    recipientId: newRecipient.recipient_id || "",
+    recipientEmail: newRecipient.recipient_email || recipientEmail,
+    sharedBy: newRecipient.shared_by,
+    sharedAt: newRecipient.shared_at,
+  };
+}
+
+/**
  * Get list of recipients for a brief
  *
- * Retrieves recipients with email addresses.
+ * Retrieves recipients with email addresses and user existence status.
  * Results ordered by shared_at DESC (most recent first).
  *
  * Note: Authorization should be handled by the caller (route handler).
- * Note: Email retrieval requires admin client access to auth.users.
+ * Note: Email is now stored directly in brief_recipients table.
  *
  * @param supabase - Supabase client instance
  * @param briefId - Brief UUID
- * @returns Array of recipients with email and sharing metadata
+ * @returns Array of recipients with email, sharing metadata, and user existence status
  * @throws {DatabaseError} If database query fails
  */
 export async function getBriefRecipients(supabase: SupabaseClient, briefId: string): Promise<BriefRecipientDto[]> {
   // Query recipients from brief_recipients table
+  // recipient_email is now stored directly in the table
   const { data: recipients, error: recipientsError } = await supabase
     .from("brief_recipients")
-    .select("id, recipient_id, shared_by, shared_at")
+    .select("id, recipient_id, recipient_email, shared_by, shared_at")
     .eq("brief_id", briefId)
     .order("shared_at", { ascending: false });
 
@@ -720,24 +860,12 @@ export async function getBriefRecipients(supabase: SupabaseClient, briefId: stri
     return [];
   }
 
-  // Batch fetch user emails using admin API
-  // Note: This requires admin client. In production, consider creating a database function
-  // or view that exposes emails through RLS for better performance.
-  const emailPromises = recipients.map(async (row) => {
-    const { data: userData } = await supabase.auth.admin.getUserById(row.recipient_id);
-    return {
-      ...row,
-      recipientEmail: userData.user?.email ?? "unknown@example.com",
-    };
-  });
-
-  const recipientsWithEmails = await Promise.all(emailPromises);
-
   // Transform to DTOs
-  return recipientsWithEmails.map((row) => ({
+  // recipient_id is null if user hasn't registered yet (pending invitation)
+  return recipients.map((row) => ({
     id: row.id,
-    recipientId: row.recipient_id,
-    recipientEmail: row.recipientEmail,
+    recipientId: row.recipient_id || "",
+    recipientEmail: row.recipient_email,
     sharedBy: row.shared_by,
     sharedAt: row.shared_at,
   }));

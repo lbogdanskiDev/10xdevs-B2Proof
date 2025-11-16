@@ -2,9 +2,9 @@
 
 ## Implementation Status Overview
 
-**Last Updated**: 2025-11-16
+**Last Updated**: 2025-01-16
 
-### Completed Endpoints (10/15)
+### Completed Endpoints (11/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
@@ -17,13 +17,14 @@
 | `/api/briefs/:id/status` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
 | `/api/briefs/:id` | DELETE | ✅ Implemented | [5671ed4](https://github.com/user/repo/commit/5671ed4) |
 | `/api/briefs/:id/recipients` | GET | ✅ Implemented | [19dc685](https://github.com/user/repo/commit/19dc685) |
+| `/api/briefs/:id/recipients` | POST | ✅ Implemented | Ready for commit |
 
-### Pending Endpoints (5/15)
-- `/api/briefs/:id/recipients` - POST, DELETE (share brief, revoke access)
+### Pending Endpoints (4/15)
+- `/api/briefs/:id/recipients/:recipientId` - DELETE (revoke access)
 - `/api/briefs/:id/comments` - GET, POST (comments)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 67% (10/15 endpoints complete)
+**Progress**: 73% (11/15 endpoints complete)
 
 ---
 

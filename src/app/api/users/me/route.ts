@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getUserProfile } from "@/lib/services/user.service";
+import { createSupabaseServerClient } from "@/db/supabase.server";
+import { getUserProfile, deleteUserAccount } from "@/lib/services/user.service";
 import { ApiError } from "@/lib/errors";
 import type { UserProfileDto, ErrorResponse } from "@/types";
 
@@ -39,6 +40,56 @@ export async function GET() {
     console.error("[GET /api/users/me] Unexpected error:", error);
     return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
   }
+}
+
+/**
+ * DELETE /api/users/me
+ * Permanently deletes the authenticated user's account and all associated data
+ *
+ * Security:
+ * - Requires valid JWT token (Authorization header)
+ * - User can only delete their own account
+ * - Creates audit log before deletion (GDPR compliance)
+ *
+ * Cascading Deletes (via database FK constraints):
+ * - profiles
+ * - briefs (owned)
+ * - comments (authored)
+ * - brief_recipients (as recipient or sharer)
+ *
+ * @returns 204 No Content on success
+ */
+export async function DELETE(): Promise<NextResponse<ErrorResponse> | NextResponse> {
+  const supabase = await createSupabaseServerClient();
+
+  // Authenticate user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json<ErrorResponse>({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Delete user account and all associated data
+  try {
+    await deleteUserAccount(supabase, user.id);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("Error deleting user account:", error);
+
+    // Check if user not found
+    if (error instanceof Error && error.message === "User not found") {
+      return NextResponse.json<ErrorResponse>({ error: "User not found" }, { status: 404 });
+    }
+
+    // Generic server error
+    return NextResponse.json<ErrorResponse>({ error: "Failed to delete account" }, { status: 500 });
+  }
+
+  // Return 204 No Content (no response body)
+  return new NextResponse(null, { status: 204 });
 }
 
 // Configure route segment - disable caching for auth endpoints

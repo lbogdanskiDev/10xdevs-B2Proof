@@ -2,28 +2,28 @@
 
 ## Implementation Status Overview
 
-**Last Updated**: 2025-11-04
+**Last Updated**: 2025-11-16
 
-### Completed Endpoints (9/15)
+### Completed Endpoints (10/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
 | `/api/users/me` | GET | ✅ Implemented | [ac762fe](https://github.com/user/repo/commit/ac762fe) |
+| `/api/users/me` | DELETE | ✅ Implemented | Ready for commit |
 | `/api/briefs` | GET | ✅ Implemented | [41747d7](https://github.com/user/repo/commit/41747d7) |
 | `/api/briefs/:id` | GET | ✅ Implemented | [f2f8fd0](https://github.com/user/repo/commit/f2f8fd0) |
 | `/api/briefs` | POST | ✅ Implemented | [9782e92](https://github.com/user/repo/commit/9782e92) |
 | `/api/briefs/:id` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
 | `/api/briefs/:id/status` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
 | `/api/briefs/:id` | DELETE | ✅ Implemented | [5671ed4](https://github.com/user/repo/commit/5671ed4) |
-| `/api/briefs/:id/recipients` | GET | ✅ Implemented | Ready for commit |
+| `/api/briefs/:id/recipients` | GET | ✅ Implemented | [19dc685](https://github.com/user/repo/commit/19dc685) |
 
-### Pending Endpoints (6/15)
-- `/api/users/me` - DELETE (account deletion)
+### Pending Endpoints (5/15)
 - `/api/briefs/:id/recipients` - POST, DELETE (share brief, revoke access)
 - `/api/briefs/:id/comments` - GET, POST (comments)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 60% (9/15 endpoints complete)
+**Progress**: 67% (10/15 endpoints complete)
 
 ---
 
@@ -179,11 +179,18 @@ const { data, error } = await supabase.auth.updateUser({
 
 ---
 
-### 4.3 Delete Account
+### 4.3 Delete Account ✅ IMPLEMENTED
 
 **DELETE** `/api/users/me`
 
-Delete authenticated user's account and all associated data (briefs, comments).
+Delete authenticated user's account and all associated data (briefs, comments, recipients).
+
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/users/me/route.ts](../src/app/api/users/me/route.ts) (DELETE method)
+- ✅ Service Layer: [src/lib/services/user.service.ts](../src/lib/services/user.service.ts) (`deleteUserAccount`)
+- ✅ Authorization: JWT token validation via Supabase Auth
+- ✅ Audit Trail: Creates audit log entry before deletion (GDPR compliance)
+- ✅ Cascade Deletion: Automatically removes profiles, briefs, comments, and recipients via database constraints
 
 **Headers:**
 - `Authorization: Bearer {token}`
@@ -192,6 +199,8 @@ Delete authenticated user's account and all associated data (briefs, comments).
 
 **Error Responses:**
 - `401 Unauthorized`: Invalid or expired token
+- `404 Not Found`: User account not found
+- `500 Internal Server Error`: Failed to delete account or log deletion
 
 ---
 
@@ -1342,7 +1351,9 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
      - `ValidationError` (400) - Input validation failures
      - `DatabaseError` (500) - Database operations
      - `ConflictError` (409) - Resource conflicts
-   - ✅ `userService.ts` - User profile operations (development mode with DEFAULT_USER_PROFILE)
+   - ✅ `userService.ts` - User profile operations
+     - `getUserProfile()` - Development mode with DEFAULT_USER_PROFILE
+     - `deleteUserAccount()` - Account deletion with audit trail and cascading deletes
    - ✅ `briefService.ts` - Brief read operations (`getBriefs`, `getBriefById`) implemented
    - ✅ `briefService.ts` - Brief create operation (`createBrief`) implemented with role check and limit enforcement
    - ✅ `briefService.ts` - Brief update operations (`updateBriefContent`, `updateBriefStatus`) implemented
@@ -1353,7 +1364,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - All services use authenticated Supabase client with RLS
 
 8. **Build API Route Handlers** in `src/app/api/` ✅ IN PROGRESS
-   - ✅ User endpoints: `users/me/route.ts` (GET implemented)
+   - ✅ User endpoints: `users/me/route.ts` (GET, DELETE implemented)
    - ✅ Brief endpoints: `briefs/route.ts` (GET, POST implemented)
    - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET, PATCH, DELETE implemented)
    - ✅ Brief status endpoint: `briefs/[id]/status/route.ts` (PATCH implemented)

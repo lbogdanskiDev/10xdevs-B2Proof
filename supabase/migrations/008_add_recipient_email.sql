@@ -47,7 +47,8 @@ ADD CONSTRAINT recipient_email_format_check CHECK (recipient_email ~* '^[A-Za-z0
 
 -- Update user_has_brief_access function to handle recipient_email matching
 -- This allows users who register with a pending email to automatically get access
-DROP FUNCTION IF EXISTS user_has_brief_access(UUID);
+-- Use CASCADE to drop dependent policies, which will be recreated automatically
+DROP FUNCTION IF EXISTS user_has_brief_access(UUID) CASCADE;
 
 CREATE OR REPLACE FUNCTION user_has_brief_access(brief_id UUID)
 RETURNS BOOLEAN
@@ -87,6 +88,39 @@ END;
 $$;
 
 COMMENT ON FUNCTION user_has_brief_access IS 'Returns true if current user owns or has been granted access to the brief (by ID or email)';
+
+-- Recreate policies that were dropped by CASCADE
+-- Users can view briefs they own or have been granted access to
+CREATE POLICY briefs_select_accessible
+  ON briefs
+  FOR SELECT
+  USING (
+    owner_id = (SELECT auth.uid()) OR
+    user_has_brief_access(id)
+  );
+
+COMMENT ON POLICY briefs_select_accessible ON briefs IS 'Users can view briefs they own or have access to';
+
+-- Users can view comments on briefs they have access to
+CREATE POLICY comments_select_accessible_briefs
+  ON comments
+  FOR SELECT
+  USING (
+    user_has_brief_access(brief_id)
+  );
+
+COMMENT ON POLICY comments_select_accessible_briefs ON comments IS 'Users can view comments on briefs they have access to';
+
+-- Users can create comments on briefs they have access to
+CREATE POLICY comments_insert_accessible_briefs
+  ON comments
+  FOR INSERT
+  WITH CHECK (
+    author_id = (SELECT auth.uid()) AND
+    user_has_brief_access(brief_id)
+  );
+
+COMMENT ON POLICY comments_insert_accessible_briefs ON comments IS 'Users can comment on briefs they have access to';
 
 -- ============================================================================
 -- UPDATE TRIGGERS

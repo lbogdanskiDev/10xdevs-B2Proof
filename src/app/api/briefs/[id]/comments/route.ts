@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/db/supabase.server";
-import { createCommentSchema } from "@/lib/schemas/comment.schema";
-import { createComment } from "@/lib/services/comments.service";
+import { createCommentSchema, getCommentsQuerySchema } from "@/lib/schemas/comment.schema";
+import { createComment, getCommentsByBriefId } from "@/lib/services/comments.service";
 import { ApiError } from "@/lib/errors/api-errors";
 import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
-import type { CommentDto, ErrorResponse } from "@/types";
+import type { CommentDto, ErrorResponse, PaginatedResponse } from "@/types";
+import { z } from "zod";
 
 // Force dynamic rendering (no static optimization)
 export const dynamic = "force-dynamic";
@@ -83,6 +84,103 @@ export async function POST(
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[POST /api/briefs/:id/comments] Unexpected error:", error);
+    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+/**
+ * GET /api/briefs/:id/comments
+ *
+ * Retrieve paginated list of comments for a specific brief
+ *
+ * Enforces authorization: user must be the brief owner OR a shared recipient
+ * Supports pagination via query parameters (page, limit)
+ *
+ * NOTE: Currently using mock authentication with DEFAULT_USER_PROFILE
+ * Uses admin client to bypass RLS during development
+ * TODO: Replace with real Supabase Auth and regular client when authentication is implemented
+ *
+ * @param request - Next.js request object
+ * @param params - Route parameters { id: string }
+ * @returns 200 OK with PaginatedResponse<CommentDto> or error response
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse<PaginatedResponse<CommentDto> | ErrorResponse>> {
+  try {
+    // Step 1: Await params (Next.js 15 breaking change)
+    const { id: briefId } = await params;
+
+    // Step 2: Validate brief ID format (UUID)
+    const briefIdSchema = z.string().uuid();
+    const briefIdValidation = briefIdSchema.safeParse(briefId);
+
+    // Guard: Check brief ID format
+    if (!briefIdValidation.success) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          error: "Invalid brief ID format",
+          details: briefIdValidation.error.errors.map((err) => ({
+            field: "id",
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    // Step 3: Validate query parameters
+    const { searchParams } = new URL(request.url);
+    const queryValidation = getCommentsQuerySchema.safeParse({
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    });
+
+    // Guard: Check query parameters
+    if (!queryValidation.success) {
+      return NextResponse.json<ErrorResponse>(
+        {
+          error: "Invalid query parameters",
+          details: queryValidation.error.errors.map((err) => ({
+            field: err.path.join("."),
+            message: err.message,
+          })),
+        },
+        { status: 400 }
+      );
+    }
+
+    const { page, limit } = queryValidation.data;
+
+    // Step 4: Get Supabase admin client and mock user
+    // TEMPORARY: Using admin client for development with mock authentication
+    // TODO: Replace with createSupabaseServerClient() and real auth
+    const supabase = createSupabaseAdminClient();
+
+    // TEMPORARY: Using mock user profile for development
+    // TODO: Replace with real authentication: await supabase.auth.getUser()
+    const userId = DEFAULT_USER_PROFILE.id;
+
+    // Step 5: Fetch comments via service
+    const result = await getCommentsByBriefId(supabase, {
+      briefId,
+      userId,
+      page,
+      limit,
+    });
+
+    // Happy path: Return success response
+    return NextResponse.json<PaginatedResponse<CommentDto>>(result, { status: 200 });
+  } catch (error) {
+    // Handle known API errors
+    if (error instanceof ApiError) {
+      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+    }
+
+    // Handle unexpected errors
+    // eslint-disable-next-line no-console -- API error logging for debugging
+    console.error("[GET /api/briefs/:id/comments] Unexpected error:", error);
     return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
   }
 }

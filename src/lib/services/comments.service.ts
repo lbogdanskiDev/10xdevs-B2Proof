@@ -1,5 +1,5 @@
-import type { SupabaseClient, CommentDto } from "@/types";
-import { ForbiddenError, DatabaseError } from "@/lib/errors/api-errors";
+import type { SupabaseClient, CommentDto, PaginatedResponse } from "@/types";
+import { ForbiddenError, DatabaseError, NotFoundError } from "@/lib/errors/api-errors";
 
 /**
  * Create a new comment on a brief
@@ -130,4 +130,121 @@ export async function createComment(
   };
 
   return commentDto;
+}
+
+/**
+ * Parameters for fetching comments by brief ID
+ */
+interface GetCommentsParams {
+  briefId: string;
+  userId: string;
+  page: number;
+  limit: number;
+}
+
+/**
+ * Fetch paginated comments for a brief
+ * Validates user access and enriches with author details
+ *
+ * Business rules enforced:
+ * - User must be the brief owner OR a shared recipient
+ * - Comments are ordered by created_at DESC (newest first)
+ * - Pagination is enforced with max 100 items per page
+ * - Author email and role are included via JOINs
+ * - isOwn flag indicates if comment belongs to requesting user
+ *
+ * @param supabase - Supabase client instance
+ * @param params - Query parameters (briefId, userId, page, limit)
+ * @returns Paginated list of comments with metadata
+ * @throws {NotFoundError} If brief doesn't exist
+ * @throws {ForbiddenError} If user doesn't have access to the brief
+ * @throws {DatabaseError} If database operation fails
+ */
+export async function getCommentsByBriefId(
+  supabase: SupabaseClient,
+  params: GetCommentsParams
+): Promise<PaginatedResponse<CommentDto>> {
+  const { briefId, userId, page, limit } = params;
+
+  // Step 1: Check if brief exists and user has access (owner OR recipient)
+  const { data: brief, error: briefError } = await supabase
+    .from("briefs")
+    .select("id, owner_id, comment_count")
+    .eq("id", briefId)
+    .single();
+
+  if (briefError || !brief) {
+    throw new NotFoundError("Brief not found");
+  }
+
+  // Step 2: Check access - user is owner OR recipient
+  const isOwner = brief.owner_id === userId;
+  let hasAccess = isOwner;
+
+  if (!isOwner) {
+    const { data: recipient } = await supabase
+      .from("brief_recipients")
+      .select("id")
+      .eq("brief_id", briefId)
+      .eq("recipient_id", userId)
+      .maybeSingle();
+
+    hasAccess = !!recipient;
+  }
+
+  if (!hasAccess) {
+    throw new ForbiddenError("User does not have access to this brief");
+  }
+
+  // Step 3: Fetch paginated comments
+  const offset = (page - 1) * limit;
+
+  const { data: comments, error: commentsError } = await supabase
+    .from("comments")
+    .select("id, brief_id, author_id, content, created_at")
+    .eq("brief_id", briefId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (commentsError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[comments.service] Failed to fetch comments:", commentsError);
+    throw new DatabaseError("comment fetch", commentsError.message);
+  }
+
+  // Step 4: Enrich comments with author details
+  const commentDtos: CommentDto[] = await Promise.all(
+    (comments || []).map(async (comment) => {
+      // Fetch author email from auth.users
+      const { data: authUser } = await supabase.auth.admin.getUserById(comment.author_id);
+
+      // Fetch author role from profiles
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", comment.author_id).single();
+
+      return {
+        id: comment.id,
+        briefId: comment.brief_id,
+        authorId: comment.author_id,
+        authorEmail: authUser?.user?.email || "unknown@example.com",
+        authorRole: profile?.role || "client",
+        content: comment.content,
+        isOwn: comment.author_id === userId,
+        createdAt: comment.created_at,
+      };
+    })
+  );
+
+  // Step 5: Calculate pagination metadata using denormalized comment_count
+  const total = brief.comment_count || 0;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    data: commentDtos,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
 }

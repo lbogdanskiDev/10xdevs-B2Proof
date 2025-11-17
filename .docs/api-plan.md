@@ -2,9 +2,9 @@
 
 ## Implementation Status Overview
 
-**Last Updated**: 2025-01-16
+**Last Updated**: 2025-01-17
 
-### Completed Endpoints (12/15)
+### Completed Endpoints (14/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
@@ -19,12 +19,13 @@
 | `/api/briefs/:id/recipients` | GET | ✅ Implemented | [19dc685](https://github.com/user/repo/commit/19dc685) |
 | `/api/briefs/:id/recipients` | POST | ✅ Implemented | [efc5a44](https://github.com/user/repo/commit/efc5a44) |
 | `/api/briefs/:id/recipients/:recipientId` | DELETE | ✅ Implemented | Ready for commit |
+| `/api/briefs/:id/comments` | POST | ✅ Implemented | Ready for commit |
+| `/api/briefs/:id/comments` | GET | ✅ Implemented | Ready for commit |
 
-### Pending Endpoints (3/15)
-- `/api/briefs/:id/comments` - GET, POST (comments)
+### Pending Endpoints (1/15)
 - `/api/comments/:id` - DELETE (delete comment)
 
-**Progress**: 80% (12/15 endpoints complete)
+**Progress**: 93.3% (14/15 endpoints complete)
 
 ---
 
@@ -852,21 +853,36 @@ Remove user's access to brief (owner only, resets status to 'draft' if last reci
 
 ## 7. Comment Endpoints
 
-### 7.1 List Comments
+### 7.1 List Comments ✅ IMPLEMENTED
 
 **GET** `/api/briefs/:id/comments`
 
 Retrieve paginated comments for a brief (users with access only).
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/comments/route.ts](../src/app/api/briefs/[id]/comments/route.ts) (GET method)
+- ✅ Service Layer: [src/lib/services/comments.service.ts](../src/lib/services/comments.service.ts) (`getCommentsByBriefId`)
+- ✅ Validation Schema: [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts) (`getCommentsQuerySchema`)
+- ✅ Authorization: Enforces owner or recipient access (checked in service layer)
+- ✅ Pagination: Supports custom page/limit with denormalized comment_count
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
+**Implementation Details:**
+- Access control performed in service layer (verifies ownership or recipient status via database queries)
+- Comments ordered by `created_at DESC` (newest first)
+- Author email and role fetched from `auth.users` and `profiles` tables using `Promise.all()` for parallel execution
+- Pagination metadata calculated from denormalized `comment_count` field on briefs table
+- `isOwn` flag indicates if comment belongs to requesting user
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
 
 **Query Parameters:**
-- `page`: Number (default: 1) - Page number
-- `limit`: Number (default: 50, max: 100) - Comments per page
+- `page`: Number (default: 1, min: 1) - Page number
+- `limit`: Number (default: 50, min: 1, max: 100) - Comments per page
 
 **Success Response (200 OK):**
 ```json
@@ -893,21 +909,64 @@ Retrieve paginated comments for a brief (users with access only).
 ```
 
 **Error Responses:**
-- `400 Bad Request`: Invalid query parameters
-- `401 Unauthorized`: Invalid or expired token
+- `400 Bad Request`: Invalid query parameters or invalid UUID format
+  ```json
+  {
+    "error": "Invalid query parameters",
+    "details": [
+      {
+        "field": "page",
+        "message": "Number must be greater than or equal to 1"
+      }
+    ]
+  }
+  ```
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User does not have access to this brief
+  ```json
+  {
+    "error": "User does not have access to this brief"
+  }
+  ```
 - `404 Not Found`: Brief does not exist
+  ```json
+  {
+    "error": "Brief not found not found"
+  }
+  ```
+- `500 Internal Server Error`: Database error during comment fetch
+  ```json
+  {
+    "error": "Internal server error"
+  }
+  ```
 
 ---
 
-### 7.2 Create Comment
+### 7.2 Create Comment ✅ IMPLEMENTED
 
 **POST** `/api/briefs/:id/comments`
 
 Add a comment to a brief (users with access only).
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/comments/route.ts](../src/app/api/briefs/[id]/comments/route.ts)
+- ✅ Service Layer: [src/lib/services/comments.service.ts](../src/lib/services/comments.service.ts) (`createComment`)
+- ✅ Validation Schema: [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts) (`createCommentSchema`)
+- ✅ Authorization: Enforces owner or recipient access (checked in service layer)
+- ✅ Comment Count Increment: Automatically increments `comment_count` on brief
+- ✅ Audit Trail: Creates audit log entry with `comment_created` action
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
+**Implementation Details:**
+- Access control performed in service layer (verifies ownership or recipient status via database queries)
+- Comment count incremented with manual rollback on failure (reads current count, increments, updates)
+- Audit log created after successful comment insertion (non-critical, won't rollback on failure)
+- Service layer uses guard clauses for validation and early returns
+- Email and role fetched from `auth.users` and `profiles` tables for response DTO
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -920,7 +979,7 @@ Add a comment to a brief (users with access only).
 ```
 
 **Validation:**
-- `content`: Required, string, 1-1000 characters
+- `content`: Required, string, trimmed, 1-1000 characters
 
 **Success Response (201 Created):**
 ```json
@@ -937,7 +996,7 @@ Add a comment to a brief (users with access only).
 ```
 
 **Error Responses:**
-- `400 Bad Request`: Validation errors
+- `400 Bad Request`: Validation errors (invalid UUID format or invalid content)
   ```json
   {
     "error": "Validation failed",
@@ -949,9 +1008,30 @@ Add a comment to a brief (users with access only).
     ]
   }
   ```
-- `401 Unauthorized`: Invalid or expired token
+  ```json
+  {
+    "error": "Validation failed",
+    "details": [
+      {
+        "field": "id",
+        "message": "Invalid brief ID format"
+      }
+    ]
+  }
+  ```
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User does not have access to this brief
-- `404 Not Found`: Brief does not exist
+  ```json
+  {
+    "error": "You do not have access to this brief"
+  }
+  ```
+- `500 Internal Server Error`: Database error during comment creation or count update
+  ```json
+  {
+    "error": "Internal server error"
+  }
+  ```
 
 ---
 
@@ -1382,8 +1462,9 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
      - `BriefQuerySchema` - Validates GET /api/briefs query parameters (page, limit, filter, status)
      - `BriefIdSchema` - Validates UUID format for brief ID parameters
      - `CreateBriefSchema` - Validates POST /api/briefs request body (header, content, footer)
+   - ✅ Comment validation schemas created in [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts)
+     - `createCommentSchema` - Validates POST /api/briefs/:id/comments request body (content 1-1000 chars, trimmed)
    - ⏳ TODO: Schemas for update brief operations
-   - ⏳ TODO: Comment validation schemas
    - ⏳ TODO: Recipient validation schemas
 
 7. **Create service layer** in `src/lib/services/` ✅ IN PROGRESS
@@ -1406,7 +1487,10 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
      - `getBriefRecipients()` - List recipients
      - `shareBriefWithRecipient()` - Share brief with recipient by email
      - `revokeBriefRecipient()` - Revoke recipient access with status reset
-   - ⏳ `commentService.ts` - Comment operations - TODO
+   - ✅ `commentsService.ts` - Comment operations implemented
+     - `createComment()` - Create comment with access control, comment count increment, and audit trail
+     - `getCommentsByBriefId()` - Fetch paginated comments with author details
+   - ⏳ `commentService.ts` - Comment delete operation - TODO
    - All services use authenticated Supabase client with RLS
 
 8. **Build API Route Handlers** in `src/app/api/` ✅ IN PROGRESS
@@ -1416,7 +1500,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ Brief status endpoint: `briefs/[id]/status/route.ts` (PATCH implemented)
    - ✅ Recipient endpoints: `briefs/[id]/recipients/route.ts` (GET, POST implemented)
    - ✅ Recipient endpoints: `briefs/[id]/recipients/[recipientId]/route.ts` (DELETE implemented)
-   - ⏳ Comment endpoints: `briefs/[id]/comments/route.ts`, `comments/[id]/route.ts` - TODO
+   - ✅ Comment endpoints: `briefs/[id]/comments/route.ts` (GET, POST implemented)
+   - ⏳ Comment delete endpoint: `comments/[id]/route.ts` (DELETE) - TODO
 
 ### Phase 4: Error Handling & Testing
 9. **Add consistent error handling**

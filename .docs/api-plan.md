@@ -4,7 +4,7 @@
 
 **Last Updated**: 2025-01-17
 
-### Completed Endpoints (14/15)
+### Completed Endpoints (15/15)
 
 | Endpoint | Method | Status | Commit |
 |----------|--------|--------|--------|
@@ -21,11 +21,9 @@
 | `/api/briefs/:id/recipients/:recipientId` | DELETE | ✅ Implemented | Ready for commit |
 | `/api/briefs/:id/comments` | POST | ✅ Implemented | Ready for commit |
 | `/api/briefs/:id/comments` | GET | ✅ Implemented | Ready for commit |
+| `/api/comments/:id` | DELETE | ✅ Implemented | Ready for commit |
 
-### Pending Endpoints (1/15)
-- `/api/comments/:id` - DELETE (delete comment)
-
-**Progress**: 93.3% (14/15 endpoints complete)
+**Progress**: 100% (15/15 endpoints complete) 🎉
 
 ---
 
@@ -1035,14 +1033,31 @@ Add a comment to a brief (users with access only).
 
 ---
 
-### 7.3 Delete Comment
+### 7.3 Delete Comment ✅ IMPLEMENTED
 
 **DELETE** `/api/comments/:id`
 
-Delete own comment.
+Delete own comment (author only). Updates brief's comment_count and creates audit log entry.
+
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/comments/[id]/route.ts](../src/app/api/comments/[id]/route.ts)
+- ✅ Service Layer: [src/lib/services/comments.service.ts](../src/lib/services/comments.service.ts) (`deleteComment`)
+- ✅ Validation Schema: [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts) (`deleteCommentParamsSchema`)
+- ✅ Authorization: Enforces author-only deletion (checked in service layer)
+- ✅ Comment Count Decrement: Automatically decrements `comment_count` on brief
+- ✅ Audit Trail: Creates audit log entry with `delete` action and old_data
+- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+
+**Implementation Details:**
+- Authorization check performed in service layer (verifies authorship via database query)
+- Comment must exist and user must be the author to delete
+- Brief's comment_count decremented after successful deletion (uses Math.max to prevent negative values)
+- Audit log created after deletion with full comment data in old_data field
+- Service layer uses guard clauses for validation and early returns
+- Non-critical errors (audit log, comment count) are logged but don't fail the operation
 
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (not validated in development mode)
 
 **Path Parameters:**
 - `id`: UUID - Comment identifier
@@ -1050,9 +1065,37 @@ Delete own comment.
 **Success Response (204 No Content)**
 
 **Error Responses:**
-- `401 Unauthorized`: Invalid or expired token
+- `400 Bad Request`: Invalid comment ID format (not valid UUID)
+  ```json
+  {
+    "error": "Invalid comment ID format",
+    "details": [
+      {
+        "field": "id",
+        "message": "Comment ID must be a valid UUID"
+      }
+    ]
+  }
+  ```
+- `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User is not the comment author
+  ```json
+  {
+    "error": "You can only delete your own comments"
+  }
+  ```
 - `404 Not Found`: Comment does not exist
+  ```json
+  {
+    "error": "Comment not found"
+  }
+  ```
+- `500 Internal Server Error`: Database error during deletion
+  ```json
+  {
+    "error": "Internal server error"
+  }
+  ```
 
 ---
 
@@ -1464,6 +1507,8 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
      - `CreateBriefSchema` - Validates POST /api/briefs request body (header, content, footer)
    - ✅ Comment validation schemas created in [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts)
      - `createCommentSchema` - Validates POST /api/briefs/:id/comments request body (content 1-1000 chars, trimmed)
+     - `getCommentsQuerySchema` - Validates GET /api/briefs/:id/comments query parameters (page, limit)
+     - `deleteCommentParamsSchema` - Validates DELETE /api/comments/:id path parameters (UUID format)
    - ⏳ TODO: Schemas for update brief operations
    - ⏳ TODO: Recipient validation schemas
 
@@ -1490,10 +1535,10 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ `commentsService.ts` - Comment operations implemented
      - `createComment()` - Create comment with access control, comment count increment, and audit trail
      - `getCommentsByBriefId()` - Fetch paginated comments with author details
-   - ⏳ `commentService.ts` - Comment delete operation - TODO
+     - `deleteComment()` - Delete comment with author-only authorization, comment count decrement, and audit trail
    - All services use authenticated Supabase client with RLS
 
-8. **Build API Route Handlers** in `src/app/api/` ✅ IN PROGRESS
+8. **Build API Route Handlers** in `src/app/api/` ✅ COMPLETED
    - ✅ User endpoints: `users/me/route.ts` (GET, DELETE implemented)
    - ✅ Brief endpoints: `briefs/route.ts` (GET, POST implemented)
    - ✅ Brief endpoints: `briefs/[id]/route.ts` (GET, PATCH, DELETE implemented)
@@ -1501,7 +1546,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ Recipient endpoints: `briefs/[id]/recipients/route.ts` (GET, POST implemented)
    - ✅ Recipient endpoints: `briefs/[id]/recipients/[recipientId]/route.ts` (DELETE implemented)
    - ✅ Comment endpoints: `briefs/[id]/comments/route.ts` (GET, POST implemented)
-   - ⏳ Comment delete endpoint: `comments/[id]/route.ts` (DELETE) - TODO
+   - ✅ Comment delete endpoint: `comments/[id]/route.ts` (DELETE implemented)
 
 ### Phase 4: Error Handling & Testing
 9. **Add consistent error handling**

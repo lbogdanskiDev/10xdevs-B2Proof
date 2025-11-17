@@ -31,3 +31,16 @@ export const getCommentsQuerySchema = z.object({
  * TypeScript type inferred from getCommentsQuerySchema
  */
 export type GetCommentsQuery = z.infer<typeof getCommentsQuerySchema>;
+
+/**
+ * Validation schema for DELETE /api/comments/:id path parameters
+ * Validates comment ID format
+ */
+export const deleteCommentParamsSchema = z.object({
+  id: z.string().uuid("Comment ID must be a valid UUID"),
+});
+
+/**
+ * TypeScript type inferred from deleteCommentParamsSchema
+ */
+export type DeleteCommentParams = z.infer<typeof deleteCommentParamsSchema>;

@@ -20,7 +20,7 @@ import type { ErrorResponse } from "@/types";
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; recipientId: string }> }
-): Promise<NextResponse<ErrorResponse | void>> {
+): Promise<NextResponse<ErrorResponse | null>> {
   try {
     // Step 1: Await params (Next.js 15 breaking change)
     const { id, recipientId } = await params;

@@ -248,3 +248,88 @@ export async function getCommentsByBriefId(
     },
   };
 }
+
+/**
+ * Delete a comment (author only)
+ * Validates comment ownership and updates brief comment count
+ *
+ * Business rules enforced:
+ * - User must be the comment author (authorization check)
+ * - Brief comment count is decremented after deletion
+ * - Audit log entry is created for compliance tracking
+ *
+ * @param supabase - Supabase client instance
+ * @param commentId - UUID of the comment to delete
+ * @param userId - UUID of the requesting user (from auth)
+ * @throws {NotFoundError} If comment doesn't exist
+ * @throws {ForbiddenError} If user is not the comment author
+ * @throws {DatabaseError} If database operation fails
+ */
+export async function deleteComment(supabase: SupabaseClient, commentId: string, userId: string): Promise<void> {
+  // Step 1: Fetch comment to verify existence and authorship
+  const { data: comment, error: fetchError } = await supabase
+    .from("comments")
+    .select("id, brief_id, author_id, content, created_at")
+    .eq("id", commentId)
+    .single();
+
+  if (fetchError || !comment) {
+    throw new NotFoundError("Comment not found");
+  }
+
+  // Step 2: Authorization check - user must be the comment author
+  if (comment.author_id !== userId) {
+    throw new ForbiddenError("You can only delete your own comments");
+  }
+
+  // Step 3: Delete comment
+  const { error: deleteError } = await supabase.from("comments").delete().eq("id", commentId);
+
+  if (deleteError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[comments.service] Failed to delete comment:", deleteError);
+    throw new DatabaseError("comment deletion", deleteError.message);
+  }
+
+  // Step 4: Decrement comment count on brief
+  const { data: currentBrief } = await supabase
+    .from("briefs")
+    .select("comment_count")
+    .eq("id", comment.brief_id)
+    .single();
+
+  const newCount = Math.max((currentBrief?.comment_count || 1) - 1, 0);
+
+  const { error: updateError } = await supabase
+    .from("briefs")
+    .update({ comment_count: newCount })
+    .eq("id", comment.brief_id);
+
+  if (updateError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[comments.service] Failed to update comment count:", updateError);
+    // Comment is already deleted - log the error but don't fail the operation
+  }
+
+  // Step 5: Create audit log entry
+  const { error: auditError } = await supabase.from("audit_log").insert({
+    user_id: userId,
+    action: "comment_deleted",
+    entity_type: "comment",
+    entity_id: commentId,
+    old_data: {
+      id: comment.id,
+      brief_id: comment.brief_id,
+      author_id: comment.author_id,
+      content: comment.content,
+      created_at: comment.created_at,
+    },
+    new_data: null,
+  });
+
+  if (auditError) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[comments.service] Failed to create audit log:", auditError);
+    // Non-critical error - don't fail the operation
+  }
+}

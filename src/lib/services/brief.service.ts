@@ -936,7 +936,7 @@ export async function revokeBriefRecipient(
   // Log audit trail BEFORE deletion (critical for recovery)
   const { error: auditError } = await supabase.from("audit_log").insert({
     user_id: ownerId,
-    action: "delete",
+    action: "brief_unshared",
     entity_type: "brief_recipient",
     entity_id: recipientAccess.id,
     old_data: {

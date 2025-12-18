@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { Toaster } from "@/components/ui/sonner";
 import "@/styles/global.css";
 
 export const metadata: Metadata = {
-  title: "10x Next.js Starter",
-  description: "Next.js 15 with App Router, React 19, TypeScript, and Tailwind CSS",
+  title: "B2Proof",
+  description: "Brief management and collaboration platform",
 };
 
 export default function RootLayout({
@@ -12,11 +13,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" type="image/png" href="/favicon.png" />
       </head>
-      <body>{children}</body>
+      <body className="min-h-screen bg-background font-sans antialiased">
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

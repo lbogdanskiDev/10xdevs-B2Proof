@@ -118,3 +118,80 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* TipTap prose styles for brief content */
+  .prose {
+    @apply text-foreground;
+  }
+
+  .prose h1 {
+    @apply text-2xl font-bold mb-4 mt-6 first:mt-0;
+  }
+
+  .prose h2 {
+    @apply text-xl font-semibold mb-3 mt-5 first:mt-0;
+  }
+
+  .prose h3 {
+    @apply text-lg font-medium mb-2 mt-4 first:mt-0;
+  }
+
+  .prose p {
+    @apply mb-4 leading-relaxed;
+  }
+
+  .prose ul,
+  .prose ol {
+    @apply mb-4 pl-6;
+  }
+
+  .prose ul {
+    @apply list-disc;
+  }
+
+  .prose ol {
+    @apply list-decimal;
+  }
+
+  .prose li {
+    @apply mb-1;
+  }
+
+  .prose blockquote {
+    @apply border-l-4 border-muted pl-4 italic my-4;
+  }
+
+  .prose code {
+    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+
+  .prose pre {
+    @apply bg-muted p-4 rounded overflow-x-auto my-4;
+  }
+
+  .prose pre code {
+    @apply bg-transparent p-0;
+  }
+
+  .prose hr {
+    @apply my-6 border-border;
+  }
+
+  .prose strong {
+    @apply font-semibold;
+  }
+
+  .prose em {
+    @apply italic;
+  }
+
+  .prose s {
+    @apply line-through;
+  }
+
+  /* Dark mode adjustments */
+  .prose-invert {
+    @apply text-foreground;
+  }
+}

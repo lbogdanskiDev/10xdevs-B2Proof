@@ -22,3 +22,7 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+
+tsconfig.tsbuildinfo
+.claude/settings.local.json

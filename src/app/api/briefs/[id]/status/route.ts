@@ -4,7 +4,7 @@ import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
 import { updateBriefStatus } from "@/lib/services/brief.service";
 import { BriefIdSchema, updateBriefStatusSchema } from "@/lib/schemas/brief.schema";
 import { ApiError } from "@/lib/errors/api-errors";
-import type { ErrorResponse, UpdateBriefStatusCommand, UpdateBriefStatusWithCommentResponseDto } from "@/types";
+import type { ErrorReturn, UpdateBriefStatusCommand, UpdateBriefStatusWithCommentResponseDto } from "@/types";
 
 /**
  * PATCH /api/briefs/:id/status
@@ -46,7 +46,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[PATCH /api/briefs/:id/status] UUID validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     // Step 3: Parse request body
@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Guard: Check if body is empty
     if (!body || Object.keys(body).length === 0) {
-      return NextResponse.json<ErrorResponse>({ error: "Request body is required" }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Request body is required" }, { status: 400 });
     }
 
     // Step 4: Validate status update data
@@ -69,7 +69,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[PATCH /api/briefs/:id/status] Status validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Validation failed", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Validation failed", details }, { status: 400 });
     }
 
     // Step 5: Get Supabase admin client and mock user
@@ -89,13 +89,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[PATCH /api/briefs/:id/status] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 

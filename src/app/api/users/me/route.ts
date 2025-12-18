@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/db/supabase.server";
 import { getUserProfile, deleteUserAccount } from "@/lib/services/user.service";
 import { ApiError } from "@/lib/errors";
-import type { UserProfileDto, ErrorResponse } from "@/types";
+import type { UserProfileDto, ErrorReturn } from "@/types";
 
 /**
  * GET /api/users/me
@@ -31,14 +31,14 @@ export async function GET() {
       // TODO: Replace with proper logging service (e.g., Sentry, Winston)
       // eslint-disable-next-line no-console
       console.error(`[GET /api/users/me] ${error.name}:`, error.message);
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // TODO: Replace with proper logging service (e.g., Sentry, Winston)
     // eslint-disable-next-line no-console
     console.error("[GET /api/users/me] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -59,7 +59,7 @@ export async function GET() {
  *
  * @returns 204 No Content on success
  */
-export async function DELETE(): Promise<NextResponse<ErrorResponse> | NextResponse> {
+export async function DELETE(): Promise<NextResponse<ErrorReturn> | NextResponse> {
   const supabase = await createSupabaseServerClient();
 
   // Authenticate user
@@ -69,7 +69,7 @@ export async function DELETE(): Promise<NextResponse<ErrorResponse> | NextRespon
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return NextResponse.json<ErrorResponse>({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json<ErrorReturn>({ error: "Unauthorized" }, { status: 401 });
   }
 
   // Delete user account and all associated data
@@ -81,11 +81,11 @@ export async function DELETE(): Promise<NextResponse<ErrorResponse> | NextRespon
 
     // Check if user not found
     if (error instanceof Error && error.message === "User not found") {
-      return NextResponse.json<ErrorResponse>({ error: "User not found" }, { status: 404 });
+      return NextResponse.json<ErrorReturn>({ error: "User not found" }, { status: 404 });
     }
 
     // Generic server error
-    return NextResponse.json<ErrorResponse>({ error: "Failed to delete account" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Failed to delete account" }, { status: 500 });
   }
 
   // Return 204 No Content (no response body)

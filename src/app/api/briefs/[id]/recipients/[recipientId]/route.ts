@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/db/supabase.server";
 import { RevokeRecipientSchema } from "@/lib/schemas/brief.schema";
 import { revokeBriefRecipient } from "@/lib/services/brief.service";
 import { ApiError, UnauthorizedError } from "@/lib/errors/api-errors";
-import type { ErrorResponse } from "@/types";
+import type { ErrorReturn } from "@/types";
 
 /**
  * DELETE /api/briefs/:id/recipients/:recipientId
@@ -20,7 +20,7 @@ import type { ErrorResponse } from "@/types";
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; recipientId: string }> }
-): Promise<NextResponse<ErrorResponse | null>> {
+): Promise<NextResponse<ErrorReturn | null>> {
   try {
     // Step 1: Await params (Next.js 15 breaking change)
     const { id, recipientId } = await params;
@@ -37,7 +37,7 @@ export async function DELETE(
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[DELETE /api/briefs/:id/recipients/:recipientId] Validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid request parameters", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid request parameters", details }, { status: 400 });
     }
 
     const { id: briefId, recipientId: validRecipientId } = validationResult.data;
@@ -62,12 +62,12 @@ export async function DELETE(
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[DELETE /api/briefs/:id/recipients/:recipientId] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }

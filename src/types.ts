@@ -298,7 +298,7 @@ export interface ValidationErrorDetail {
 /**
  * Generic error response
  */
-export interface ErrorResponse {
+export interface ErrorReturn {
   error: string;
   details?: ValidationErrorDetail[];
   retryAfter?: number;
@@ -311,12 +311,12 @@ export interface ErrorResponse {
 /**
  * Type guard to check if a response is an error
  */
-export function isErrorResponse(response: unknown): response is ErrorResponse {
+export function isErrorResponse(response: unknown): response is ErrorReturn {
   return (
     typeof response === "object" &&
     response !== null &&
     "error" in response &&
-    typeof (response as ErrorResponse).error === "string"
+    typeof (response as ErrorReturn).error === "string"
   );
 }
 

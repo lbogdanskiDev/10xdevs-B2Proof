@@ -4,7 +4,7 @@ import { deleteCommentParamsSchema } from "@/lib/schemas/comment.schema";
 import { deleteComment } from "@/lib/services/comments.service";
 import { ApiError, NotFoundError, ForbiddenError } from "@/lib/errors/api-errors";
 import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
-import type { ErrorResponse } from "@/types";
+import type { ErrorReturn } from "@/types";
 
 // Force dynamic rendering (no static optimization)
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<ErrorResponse | null>> {
+): Promise<NextResponse<ErrorReturn | null>> {
   try {
     // Step 1: Await params (Next.js 15 breaking change)
     const { id } = await params;
@@ -37,7 +37,7 @@ export async function DELETE(
     const validation = deleteCommentParamsSchema.safeParse({ id });
 
     if (!validation.success) {
-      return NextResponse.json<ErrorResponse>(
+      return NextResponse.json<ErrorReturn>(
         {
           error: "Invalid comment ID format",
           details: validation.error.errors.map((err) => ({
@@ -66,7 +66,7 @@ export async function DELETE(
     if (error instanceof ApiError) {
       const statusCode = error instanceof NotFoundError ? 404 : error instanceof ForbiddenError ? 403 : 500;
 
-      return NextResponse.json<ErrorResponse>(
+      return NextResponse.json<ErrorReturn>(
         {
           error: error.message,
         },
@@ -78,7 +78,7 @@ export async function DELETE(
     // eslint-disable-next-line no-console -- Route handler error logging
     console.error("[DELETE /api/comments/:id] Unexpected error:", error);
 
-    return NextResponse.json<ErrorResponse>(
+    return NextResponse.json<ErrorReturn>(
       {
         error: "Internal server error",
       },

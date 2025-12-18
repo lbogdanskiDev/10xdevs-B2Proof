@@ -4,7 +4,7 @@ import { createCommentSchema, getCommentsQuerySchema } from "@/lib/schemas/comme
 import { createComment, getCommentsByBriefId } from "@/lib/services/comments.service";
 import { ApiError } from "@/lib/errors/api-errors";
 import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
-import type { CommentDto, ErrorResponse, PaginatedResponse } from "@/types";
+import type { CommentDto, ErrorReturn, PaginatedResponse } from "@/types";
 import { z } from "zod";
 
 // Force dynamic rendering (no static optimization)
@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<CommentDto | ErrorResponse>> {
+): Promise<NextResponse<CommentDto | ErrorReturn>> {
   try {
     // Step 1: Await params (Next.js 15 breaking change)
     const { id: briefId } = await params;
@@ -36,7 +36,7 @@ export async function POST(
     // Step 2: Validate brief ID format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(briefId)) {
-      return NextResponse.json<ErrorResponse>(
+      return NextResponse.json<ErrorReturn>(
         {
           error: "Validation failed",
           details: [{ field: "id", message: "Invalid brief ID format" }],
@@ -58,7 +58,7 @@ export async function POST(
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[POST /api/briefs/:id/comments] Validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Validation failed", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Validation failed", details }, { status: 400 });
     }
 
     // Step 4: Get Supabase admin client and mock user
@@ -78,13 +78,13 @@ export async function POST(
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[POST /api/briefs/:id/comments] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -107,7 +107,7 @@ export async function POST(
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<NextResponse<PaginatedResponse<CommentDto> | ErrorResponse>> {
+): Promise<NextResponse<PaginatedResponse<CommentDto> | ErrorReturn>> {
   try {
     // Step 1: Await params (Next.js 15 breaking change)
     const { id: briefId } = await params;
@@ -118,7 +118,7 @@ export async function GET(
 
     // Guard: Check brief ID format
     if (!briefIdValidation.success) {
-      return NextResponse.json<ErrorResponse>(
+      return NextResponse.json<ErrorReturn>(
         {
           error: "Invalid brief ID format",
           details: briefIdValidation.error.errors.map((err) => ({
@@ -139,7 +139,7 @@ export async function GET(
 
     // Guard: Check query parameters
     if (!queryValidation.success) {
-      return NextResponse.json<ErrorResponse>(
+      return NextResponse.json<ErrorReturn>(
         {
           error: "Invalid query parameters",
           details: queryValidation.error.errors.map((err) => ({
@@ -175,12 +175,12 @@ export async function GET(
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[GET /api/briefs/:id/comments] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }

@@ -4,7 +4,7 @@ import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
 import { getBriefById, updateBriefContent, deleteBrief } from "@/lib/services/brief.service";
 import { BriefIdSchema, updateBriefContentSchema } from "@/lib/schemas/brief.schema";
 import { ApiError } from "@/lib/errors/api-errors";
-import type { BriefDetailDto, ErrorResponse, UpdateBriefCommand } from "@/types";
+import type { BriefDetailDto, ErrorReturn, UpdateBriefCommand } from "@/types";
 
 /**
  * GET /api/briefs/:id
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[GET /api/briefs/:id] Validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     // Step 3: Get Supabase admin client and mock user
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Guard: Check if brief exists
     if (!brief) {
-      return NextResponse.json<ErrorResponse>({ error: "Brief not found" }, { status: 404 });
+      return NextResponse.json<ErrorReturn>({ error: "Brief not found" }, { status: 404 });
     }
 
     // Happy path: Return brief detail
@@ -61,13 +61,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[GET /api/briefs/:id] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -103,7 +103,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[PATCH /api/briefs/:id] UUID validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     // Step 3: Parse request body
@@ -111,7 +111,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Guard: Check if body is empty
     if (!body || Object.keys(body).length === 0) {
-      return NextResponse.json<ErrorResponse>({ error: "Request body is required" }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Request body is required" }, { status: 400 });
     }
 
     // Step 4: Validate content update data
@@ -126,7 +126,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[PATCH /api/briefs/:id] Content validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Validation failed", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Validation failed", details }, { status: 400 });
     }
 
     // Step 5: Get Supabase admin client and mock user
@@ -151,13 +151,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[PATCH /api/briefs/:id] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -194,7 +194,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[DELETE /api/briefs/:id] Validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     // Step 3: Get Supabase admin client and mock user
@@ -213,13 +213,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[DELETE /api/briefs/:id] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 

@@ -4,7 +4,7 @@ import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
 import { getBriefs, createBrief } from "@/lib/services/brief.service";
 import { BriefQuerySchema, CreateBriefSchema } from "@/lib/schemas/brief.schema";
 import { ApiError } from "@/lib/errors/api-errors";
-import type { BriefListItemDto, PaginatedResponse, ErrorResponse, BriefDetailDto, CreateBriefCommand } from "@/types";
+import type { BriefListItemDto, PaginatedResponse, ErrorReturn, BriefDetailDto, CreateBriefCommand } from "@/types";
 
 /**
  * GET /api/briefs
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[GET /api/briefs] Validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid query parameters", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid query parameters", details }, { status: 400 });
     }
 
     // Step 3: Fetch briefs from service
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[GET /api/briefs] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[POST /api/briefs] Validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Validation failed", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Validation failed", details }, { status: 400 });
     }
 
     const data: CreateBriefCommand = validationResult.data;
@@ -110,13 +110,13 @@ export async function POST(request: NextRequest) {
     if (error instanceof ApiError) {
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error(`[POST /api/briefs] API error (${error.statusCode}):`, error.message);
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[POST /api/briefs] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 

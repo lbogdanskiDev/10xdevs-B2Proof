@@ -3,7 +3,7 @@ import { BriefIdSchema, shareBriefSchema } from "@/lib/schemas/brief.schema";
 import { getBriefRecipients, shareBriefWithRecipient } from "@/lib/services/brief.service";
 import { createSupabaseAdminClient } from "@/db/supabase.server";
 import { ApiError, NotFoundError, ForbiddenError } from "@/lib/errors/api-errors";
-import type { BriefRecipientDto, ErrorResponse, ShareBriefResponseDto } from "@/types";
+import type { BriefRecipientDto, ErrorReturn, ShareBriefResponseDto } from "@/types";
 import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
 
 // Force dynamic rendering (no static optimization)
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[GET /api/briefs/:id/recipients] Validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     // Step 3: Get Supabase admin client and mock user
@@ -80,13 +80,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[GET /api/briefs/:id/recipients] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[POST /api/briefs/:id/recipients] Brief ID validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     const briefId = briefIdValidation.data.id;
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       // eslint-disable-next-line no-console -- API error logging for debugging
       console.error("[POST /api/briefs/:id/recipients] Body validation error:", details);
-      return NextResponse.json<ErrorResponse>({ error: "Invalid request body", details }, { status: 400 });
+      return NextResponse.json<ErrorReturn>({ error: "Invalid request body", details }, { status: 400 });
     }
 
     const { email } = bodyValidation.data;
@@ -165,12 +165,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
+      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     // eslint-disable-next-line no-console -- API error logging for debugging
     console.error("[POST /api/briefs/:id/recipients] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>({ error: "An error occurred while sharing the brief" }, { status: 500 });
+    return NextResponse.json<ErrorReturn>({ error: "An error occurred while sharing the brief" }, { status: 500 });
   }
 }

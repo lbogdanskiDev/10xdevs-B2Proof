@@ -21,6 +21,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 ## 3. Functional Requirements
 
 ### 3.1 User System and Authorization
+
 - Registration of new users via form with email and password fields
 - Validation of email address uniqueness in the system
 - Password validation: minimum 8 characters, containing at least one digit
@@ -30,6 +31,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - Profile page allowing password change (requires current password) and account deletion
 
 ### 3.2 Brief Management
+
 - Creating a new brief via form with fields: header (max 200 characters, required), content (max 10,000 characters, required), footer (max 200 characters, optional)
 - Simple WYSIWYG text formatting
 - Editing existing brief (resets status to "Draft")
@@ -40,6 +42,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - Visual distinction between own and shared briefs via label
 
 ### 3.3 Status System
+
 - Automatic status assignment: Draft, Sent, Accepted, Rejected, Needs Modification
 - Status workflow: Draft → Sent → (Accepted | Rejected | Needs Modification)
 - Possibility to reactivate rejected brief via editing
@@ -47,6 +50,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - Three CTA buttons for recipients: Accept, Reject, Needs Modification (visible above brief)
 
 ### 3.4 Sharing System
+
 - Sharing brief by entering recipient's email address
 - Possibility to share one brief with maximum 10 users
 - Only brief creator can manage access
@@ -54,6 +58,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - Recipient must have an account in the system to view brief
 
 ### 3.5 Comment System
+
 - Adding public comments visible to creator and everyone the brief is shared with
 - Limit of 1000 characters per comment
 - Chronological display of comments
@@ -62,18 +67,21 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - Labels distinguishing user roles in comments
 
 ### 3.6 User Interface
+
 - Responsive web application (mobile-first)
 - Brief list view, selected brief view with visual section separation, user profile
 - Interface in English language
 - No onboarding on first login
 
 ### 3.7. Legal Requirements and Restrictions:
-   - User personal data and briefs stored in compliance with GDPR
-   - Right to access and delete data (account along with briefs) upon user request
+
+- User personal data and briefs stored in compliance with GDPR
+- Right to access and delete data (account along with briefs) upon user request
 
 ## 4. Product Boundaries
 
 ### 4.1 Features Outside MVP Scope
+
 - Import of files in PDF, DOCX, and other formats
 - Integrations with external platforms (Slack, Trello, etc.)
 - Native mobile application
@@ -93,6 +101,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - Brief attachments
 
 ### 4.2 Technical Limitations
+
 - Application accessible only through web browser
 - No support for browsers older than 2 years
 - Maximum brief size: 10,000 characters
@@ -102,9 +111,11 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 ## 5. User Stories
 
 ### US-001
+
 Title: New User Registration as Creator
 Description: As a new user I want to be able to register in the system using my email address and password to gain access to brief creation features
 Acceptance Criteria:
+
 - Registration form contains fields: email, password, password confirmation, role selection (creator/client)
 - System validates email address uniqueness
 - System requires password of minimum 8 characters containing at least one digit
@@ -112,6 +123,7 @@ Acceptance Criteria:
 - System displays error messages for invalid data
 
 **UI Components:**
+
 - Email input field (type="email")
 - Password input field (type="password", show/hide toggle)
 - Password confirmation field (type="password", client-side validation)
@@ -120,6 +132,7 @@ Acceptance Criteria:
 - Link to login page: "Already have an account? Sign in"
 
 **Client-Side Validation:**
+
 - Email format validation
 - Password confirmation must match password
 - Password requirements shown below input (checklist: min 8 characters, at least one digit)
@@ -128,9 +141,11 @@ Acceptance Criteria:
 **Note:** Password confirmation is validated client-side only, not sent to backend
 
 ### US-002
+
 Title: Existing User Login
 Description: As a registered user I want to be able to log into the system using my email and password to access my briefs
 Acceptance Criteria:
+
 - Login form contains fields: email and password
 - System verifies login data correctness
 - After successful login user is redirected to brief list
@@ -138,9 +153,11 @@ Acceptance Criteria:
 - System ends previous session if it exists
 
 ### US-003
+
 Title: Creating New Brief
 Description: As a creator I want to be able to create a new brief by filling out a simple form to communicate project requirements to the client
 Acceptance Criteria:
+
 - Form contains fields: header (max 200 characters), content (max 10,000 characters), footer
 - Header and content fields are required
 - System does not allow saving incomplete brief
@@ -149,9 +166,11 @@ Acceptance Criteria:
 - Content field shows character counter
 
 ### US-004
+
 Title: Editing Existing Brief
 Description: As a creator I want to be able to edit my brief to make corrections before or after sending
 Acceptance Criteria:
+
 - Ability to edit all brief fields in ANY status (draft, sent, accepted, rejected, needs_modification)
 - Editing brief automatically resets status to "Draft" via database trigger
 - System displays warning about status reset before saving changes to non-draft briefs
@@ -159,6 +178,7 @@ Acceptance Criteria:
 - All recipients retain access after edit (no need to re-share)
 
 **Clarification:**
+
 - Creators can edit briefs in ANY status (draft, sent, accepted, rejected, needs_modification)
 - Editing automatically resets status to 'draft' via database trigger
 - Warning modal is shown before saving changes to non-draft briefs
@@ -166,9 +186,11 @@ Acceptance Criteria:
 - Brief must be shared again (status changes to "sent") for client to re-accept
 
 ### US-005
+
 Title: Deleting Brief
 Description: As a creator I want to be able to delete a brief to free up space for new briefs within the limit
 Acceptance Criteria:
+
 - Delete button available on brief list and in detail view
 - System displays confirmation modal before deletion
 - Brief is permanently deleted from system (hard delete)
@@ -176,19 +198,25 @@ Acceptance Criteria:
 - After deletion user returns to brief list
 
 ### US-006
+
 Title: Viewing Brief List
 Description: As a user I want to see a list of all my briefs and those shared with me to have an overview of active projects
 Acceptance Criteria:
+
 - List displays: title, last update date (updated_at), status, number of comments
 - Pagination of 10 briefs per page
 - Briefs sorted chronologically by last update date (newest first)
 - Visual distinction between own and shared briefs (label)
 - Ability to navigate to brief details by clicking
+- Create brief button available on brief list
+- Edit and Delete specific brief buttons available on brief list
 
 ### US-007
+
 Title: Sharing Brief with Recipient
 Description: As a creator I want to share a brief with a client by entering their email so they can review and accept it
 Acceptance Criteria:
+
 - Field for entering recipient's email address
 - Ability to add up to 10 recipients per brief
 - System verifies if user with given email exists
@@ -196,24 +224,29 @@ Acceptance Criteria:
 - List of current recipients with ability to remove access
 
 ### US-008
+
 Title: Revoking Brief Access
 Description: As a creator I want to be able to revoke access to a brief from a specific recipient to control who has access
 Acceptance Criteria:
+
 - List of recipients with delete button next to each
 - Revoking all access changes status to "Draft"
 - System does not require confirmation when revoking access
 - Recipient loses immediate access to brief
 
 ### US-009
+
 Title: Client Brief Acceptance
 Description: As a client I want to be able to accept a brief to confirm that I agree with the requirements
 Acceptance Criteria:
+
 - "Accept" button visible above brief content (only when status is "sent")
 - Clicking changes status to "Accepted"
 - Status is visible to everyone with access
 - No ability to change status after client acceptance (client cannot change from "accepted" to another status)
 
 **Clarification:**
+
 - "No ability to change status after client acceptance" means:
   - Client cannot change status from 'accepted' to another status (rejected, needs_modification)
   - Owner CAN still edit brief content, which resets status to 'draft' (invalidates acceptance)
@@ -221,18 +254,22 @@ Acceptance Criteria:
   - After owner edits accepted brief, status resets to 'draft', and brief must be re-shared for client to accept again
 
 ### US-010
+
 Title: Client Brief Rejection
 Description: As a client I want to be able to reject a brief to signal that I disagree with the proposal
 Acceptance Criteria:
+
 - "Reject" button visible above brief content
 - Clicking changes status to "Rejected"
 - Ability to reactivate brief by creator through editing
 - Status visible to everyone with access
 
 ### US-011
+
 Title: Request Brief Modification
 Description: As a client I want to be able to request brief modifications to indicate that changes are needed
 Acceptance Criteria:
+
 - "Needs Modification" button visible above brief content
 - Clicking changes status to "Needs Modification"
 - Changing status to "Needs Modification" requires a comment
@@ -240,9 +277,11 @@ Acceptance Criteria:
 - Status visible to everyone with access
 
 ### US-012
+
 Title: Adding Comment to Brief
 Description: As a user with access I want to be able to add a comment to a brief to conduct discussion and clarify doubts
 Acceptance Criteria:
+
 - Text field for entering comment (max 1000 characters)
 - Character counter visible while typing
 - Comment appears immediately after adding
@@ -250,27 +289,33 @@ Acceptance Criteria:
 - Label indicating author's role (creator/client)
 
 ### US-013
+
 Title: Deleting Own Comment
 Description: As a comment author I want to be able to delete it if I made a mistake
 Acceptance Criteria:
+
 - Delete button visible only on own comments
 - Deletion happens immediately without confirmation
 - Comment disappears from list for all users
 - No ability to restore deleted comment
 
 ### US-014
+
 Title: Viewing Comments
 Description: As a user with access I want to see all comments on a brief to track the discussion
 Acceptance Criteria:
+
 - Comments displayed chronologically (newest first)
 - Visible: author, date, content, author's role
 - Comments visible to everyone with access to brief
 - Number of comments visible on brief list
 
 ### US-015
+
 Title: User Password Change
 Description: As a user I want to be able to change my password to maintain account security
 Acceptance Criteria:
+
 - Password change form on profile page
 - Required fields: current password, new password, new password confirmation
 - New password validation (min 8 characters, one digit, new password and confirmation must be identical)
@@ -278,9 +323,11 @@ Acceptance Criteria:
 - User remains logged in after change
 
 ### US-016
+
 Title: User Account Deletion
 Description: As a user I want to be able to delete my account when I no longer need to use the system
 Acceptance Criteria:
+
 - Account deletion button on profile page
 - Confirmation modal with irreversibility warning
 - Account deletion deletes all user briefs and comments
@@ -288,9 +335,11 @@ Acceptance Criteria:
 - Email becomes available for re-registration
 
 ### US-017
+
 Title: Displaying Brief Details
 Description: As a user with access I want to see full brief details to familiarize myself with requirements
 Acceptance Criteria:
+
 - View shows: header, content, footer, status, creation date (created_at), last update date (updated_at)
 - Action buttons visible depending on user role
 - Comment section below brief
@@ -298,45 +347,55 @@ Acceptance Criteria:
 - List of recipients (visible only to creator)
 
 ### US-018
+
 Title: Application Navigation
 Description: As a user I want to be able to easily navigate the application to efficiently use the system
 Acceptance Criteria:
+
 - Navigation menu with options: Brief List, New Brief (for creators), Profile, Logout
 - Logo/application name leads to brief list
 - Breadcrumbs showing current location
 - Responsive menu for mobile devices
 
 ### US-019
+
 Title: System Logout
 Description: As a user I want to be able to log out to secure my account
 Acceptance Criteria:
+
 - Logout button available in navigation menu
 - Logout ends user session
 - Redirect to login page
 - Attempt to access protected resources redirects to login
 
 ### US-020
+
 Title: Error and Validation Handling
 Description: As a user I want to receive clear error messages to know how to fix them
 Acceptance Criteria:
+
 - Form validation shows errors at appropriate fields
 - Error messages are specific and helpful
 - Server errors displayed in readable way
 - Preservation of data in forms during validation errors
 
 ### US-021
+
 Title: Resource Access Authorization
 Description: As a system I want to control access to resources to ensure data security
 Acceptance Criteria:
+
 - User can edit/delete only own briefs
 - Access to brief only for creator and shared recipients
 - Clients cannot create new briefs
 - Redirect to error page when lacking permissions
 
 ### US-022
+
 Title: System Limits Handling
 Description: As a creator I want to be informed about system limits to be able to manage them
 Acceptance Criteria:
+
 - Display of current number of briefs (e.g., "15/20 briefs")
 - Limit reached message when attempting to create 21st brief
 - Suggestion to delete old briefs when reaching limit
@@ -345,10 +404,12 @@ Acceptance Criteria:
 ## 6. Success Metrics
 
 ### 6.1 Main KPIs
+
 - Brief acceptance rate: 80% of briefs reach "Accepted" status within 7 days of creation
 - User activity: 70% of registered creators generate minimum 1 brief weekly
 
 ### 6.2 Usage Metrics
+
 - Number of registered users by role (creator/client)
 - Average number of briefs per creator monthly
 - Brief limit utilization coefficient (% of users with >8 briefs)
@@ -356,15 +417,18 @@ Acceptance Criteria:
 - Average number of comments per brief
 
 ### 6.3 Retention Metrics
+
 - 30-day user retention: minimum 60%
 - Weekly active users (WAU): minimum 40% of registered
 - Returning client coefficient: minimum 50% of clients view more than 1 brief
 
 ### 6.4 Process Efficiency Metrics
+
 - Reduction in number of emails needed to accept brief by 70%
 - Reduction in time from first contact to work start by 40%
 
 ### 6.5 Measurement Method (post-MVP)
+
 - Implementation of analytics system to track events in application
 - Weekly reports of key metrics
 - Monthly user satisfaction surveys

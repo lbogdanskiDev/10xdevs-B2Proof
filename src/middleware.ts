@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { DEFAULT_USER_PROFILE } from "./db/supabase.client";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -36,8 +37,32 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh session if expired
-  await supabase.auth.getUser();
+  // Get user session
+  // const {
+  //   data: { user },
+  // } = await supabase.auth.getUser();
+
+  const user = DEFAULT_USER_PROFILE;
+  const { pathname } = request.nextUrl;
+
+  // Redirect from home page based on auth state
+  if (pathname === "/") {
+    const redirectUrl = user ? "/briefs" : "/login";
+    return NextResponse.redirect(new URL(redirectUrl, request.url));
+  }
+
+  // Protect dashboard paths - redirect to /login if not authenticated
+  const protectedPaths = ["/briefs", "/profile"];
+  const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
+
+  if (isProtectedPath && !user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Logged-in users should not see /login
+  if (pathname === "/login" && user) {
+    return NextResponse.redirect(new URL("/briefs", request.url));
+  }
 
   return supabaseResponse;
 }

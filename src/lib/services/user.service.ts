@@ -17,11 +17,7 @@ import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
 export async function getUserProfile(): Promise<UserProfileDto> {
   // TODO: Replace with actual implementation when auth is ready
   // Current: Return mock data for development
-  return {
-    ...DEFAULT_USER_PROFILE,
-    createdAt: DEFAULT_USER_PROFILE.createdAt.toISOString(),
-    updatedAt: DEFAULT_USER_PROFILE.updatedAt.toISOString(),
-  } as UserProfileDto;
+  return DEFAULT_USER_PROFILE;
 }
 
 /**

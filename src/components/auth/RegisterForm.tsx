@@ -3,15 +3,15 @@
 import { useState, useId, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { registerAction } from "@/lib/actions/auth.actions";
 import { PasswordRequirements, type PasswordValidation } from "./PasswordRequirements";
 import type { UserRole } from "@/types";
 
@@ -31,12 +31,7 @@ interface RegisterFormErrors {
   password?: string;
   passwordConfirm?: string;
   role?: string;
-}
-
-interface RegisterCommand {
-  email: string;
-  password: string;
-  role: UserRole;
+  general?: string;
 }
 
 // ============================================================================
@@ -112,31 +107,6 @@ function validateForm(data: RegisterFormData): RegisterFormErrors {
 }
 
 // ============================================================================
-// Mock Registration Handler
-// ============================================================================
-
-async function handleRegister(data: RegisterCommand): Promise<void> {
-  // Symulacja opóźnienia sieciowego
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  // Mock: rejestracja zawsze kończy się sukcesem
-  // TODO: W przyszłości tutaj będzie wywołanie Supabase Auth:
-  // const { error } = await supabase.auth.signUp({
-  //   email: data.email,
-  //   password: data.password,
-  //   options: { data: { role: data.role } }
-  // });
-  // if (error) throw error;
-
-  // eslint-disable-next-line no-console
-  console.log("Mock registration successful, user:", {
-    ...DEFAULT_USER_PROFILE,
-    email: data.email,
-    role: data.role,
-  });
-}
-
-// ============================================================================
 // RegisterForm Component
 // ============================================================================
 
@@ -152,6 +122,7 @@ export function RegisterForm() {
   const passwordErrorId = useId();
   const passwordConfirmErrorId = useId();
   const roleErrorId = useId();
+  const generalErrorId = useId();
 
   // Form state
   const [formData, setFormData] = useState<RegisterFormData>({
@@ -250,7 +221,7 @@ export function RegisterForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Validate all fields
+    // Validate all fields (including client-side password confirmation)
     const validationErrors = validateForm(formData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -258,25 +229,34 @@ export function RegisterForm() {
     }
 
     setIsSubmitting(true);
+    setErrors({});
 
     try {
-      await handleRegister({
-        email: formData.email,
-        password: formData.password,
-        role: formData.role as UserRole,
-      });
-      router.push("/briefs");
-    } catch (error) {
-      // Handle potential future errors from Supabase Auth
-      if (error instanceof Error) {
-        if (error.message.includes("already registered")) {
-          setErrors({ email: "This email is already registered" });
-        } else {
-          toast.error("Something went wrong. Please try again.");
-        }
+      // Call Server Action (confirmPassword is NOT sent - client-side validation only)
+      const submitData = new FormData();
+      submitData.append("email", formData.email);
+      submitData.append("password", formData.password);
+      submitData.append("role", formData.role);
+
+      const result = await registerAction(submitData);
+
+      if (result.success) {
+        router.push(result.redirectTo || "/briefs");
       } else {
-        toast.error("Something went wrong. Please try again.");
+        // Handle field-specific errors
+        if (result.fieldErrors) {
+          setErrors(result.fieldErrors);
+        } else if (result.error) {
+          // Check for email already registered error
+          if (result.error.includes("already registered")) {
+            setErrors({ email: result.error });
+          } else {
+            setErrors({ general: result.error });
+          }
+        }
       }
+    } catch {
+      setErrors({ general: "An unexpected error occurred. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
@@ -294,6 +274,14 @@ export function RegisterForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* General Error Alert */}
+          {errors.general && (
+            <Alert variant="destructive" id={generalErrorId}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.general}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor={emailId}>Email</Label>

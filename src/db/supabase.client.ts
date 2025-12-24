@@ -14,11 +14,3 @@ export function createSupabaseBrowserClient() {
 
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 }
-
-export const DEFAULT_USER_PROFILE = {
-  id: "00000000-0000-0000-0000-000000000000",
-  email: "demo@example.com",
-  role: "creator" as const,
-  createdAt: new Date("2024-01-15").toISOString(),
-  updatedAt: new Date().toISOString(),
-};

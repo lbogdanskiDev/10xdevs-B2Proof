@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/db/supabase.client";
+import { logoutAction } from "@/lib/actions/auth.actions";
 import type { UserProfileDto } from "@/types";
 import type { AuthContextValue } from "@/lib/types/navigation.types";
 
@@ -21,10 +21,11 @@ export function AuthProvider({ children, initialUser }: AuthProviderProps) {
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
-      setUser(null);
-      router.push("/login");
+      const result = await logoutAction();
+      if (result.success && result.redirectTo) {
+        setUser(null);
+        router.push(result.redirectTo);
+      }
     } finally {
       setIsLoading(false);
     }

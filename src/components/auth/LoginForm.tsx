@@ -3,14 +3,19 @@
 import { useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { loginAction } from "@/lib/actions/auth.actions";
+
+interface LoginFormProps {
+  error?: string;
+  redirectTo?: string;
+}
 
 interface LoginFormData {
   email: string;
@@ -20,6 +25,7 @@ interface LoginFormData {
 interface LoginFormErrors {
   email?: string;
   password?: string;
+  general?: string;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,29 +63,17 @@ function validateForm(data: LoginFormData): LoginFormErrors {
   return errors;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-async function handleLogin(data: LoginFormData): Promise<void> {
-  // Symulacja opóźnienia sieciowego
-  await new Promise((resolve) => setTimeout(resolve, 500));
+const ERROR_MESSAGES: Record<string, string> = {
+  session_expired: "Session expired. Please log in again.",
+};
 
-  // Mock: logowanie zawsze kończy się sukcesem
-  // TODO: W przyszłości tutaj będzie wywołanie Supabase Auth:
-  // const { error } = await supabase.auth.signInWithPassword({
-  //   email: data.email,
-  //   password: data.password,
-  // });
-  // if (error) throw error;
-
-  // eslint-disable-next-line no-console
-  console.log("Mock login successful, user:", DEFAULT_USER_PROFILE);
-}
-
-export function LoginForm() {
+export function LoginForm({ error, redirectTo }: LoginFormProps) {
   const router = useRouter();
   const emailId = useId();
   const passwordId = useId();
   const emailErrorId = useId();
   const passwordErrorId = useId();
+  const generalErrorId = useId();
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -88,6 +82,9 @@ export function LoginForm() {
   const [errors, setErrors] = useState<LoginFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Map URL error parameter to user-friendly message
+  const urlErrorMessage = error ? ERROR_MESSAGES[error] || error : undefined;
 
   function handleEmailChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
@@ -133,12 +130,30 @@ export function LoginForm() {
     }
 
     setIsSubmitting(true);
+    setErrors({});
 
     try {
-      await handleLogin(formData);
-      router.push("/briefs");
+      // Call Server Action
+      const submitData = new FormData();
+      submitData.append("email", formData.email);
+      submitData.append("password", formData.password);
+
+      const result = await loginAction(submitData);
+
+      if (result.success) {
+        // Redirect to the requested page or the default from action
+        const destination = redirectTo || result.redirectTo || "/briefs";
+        router.push(destination);
+      } else {
+        // Handle field-specific errors
+        if (result.fieldErrors) {
+          setErrors(result.fieldErrors);
+        } else if (result.error) {
+          setErrors({ general: result.error });
+        }
+      }
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      setErrors({ general: "An unexpected error occurred. Please try again." });
     } finally {
       setIsSubmitting(false);
     }
@@ -152,6 +167,22 @@ export function LoginForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* URL Error Alert (e.g., session expired) */}
+          {urlErrorMessage && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{urlErrorMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* General Error Alert (e.g., invalid credentials) */}
+          {errors.general && (
+            <Alert variant="destructive" id={generalErrorId}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errors.general}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor={emailId}>Email</Label>

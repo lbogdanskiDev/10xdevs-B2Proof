@@ -1,5 +1,5 @@
 export { AccountInfoCard } from "./AccountInfoCard";
 export { ChangePasswordCard } from "./ChangePasswordCard";
-export { DangerZoneCard } from "./DangerZoneCard";
 export { DeleteAccountDialog } from "./DeleteAccountDialog";
+export { DeleteAccountSection } from "./DeleteAccountSection";
 export { ProfilePageClient } from "./ProfilePageClient";

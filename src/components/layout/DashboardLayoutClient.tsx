@@ -4,12 +4,12 @@ import { useState, useCallback } from "react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider, useAuth } from "@/components/hooks/use-auth";
-import { useBriefCount } from "@/components/hooks/use-brief-count";
+import { AuthProvider, useAuth } from "@/components/hooks/useAuth";
+import { useBriefCount } from "@/components/hooks/useBriefCount";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { MobileNav } from "./MobileNav";
-import { getNavigationItems, MAX_BRIEFS_PER_USER } from "@/lib/constants/navigation";
+import { getNavigationItems, MAX_BRIEFS_PER_USER } from "@/lib/constants/navigation.constants";
 import type { UserProfileDto } from "@/types";
 
 interface DashboardLayoutClientProps {

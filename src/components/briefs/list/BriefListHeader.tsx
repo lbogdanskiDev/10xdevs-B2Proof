@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { UserRole } from "@/types";
-import { MAX_BRIEFS_PER_USER } from "@/lib/constants/brief-status";
+import { MAX_BRIEFS_PER_USER } from "@/lib/constants/brief-status.constants";
 
 export interface BriefListHeaderProps {
   userRole: UserRole;

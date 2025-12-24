@@ -1,6 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { MAX_BRIEFS_PER_USER } from "@/lib/constants/brief-status";
+import { MAX_BRIEFS_PER_USER } from "@/lib/constants/brief-status.constants";
 
 export interface BriefLimitAlertProps {
   currentCount: number;

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { BRIEF_STATUS_CONFIG } from "@/lib/constants/brief-status";
+import { BRIEF_STATUS_CONFIG } from "@/lib/constants/brief-status.constants";
 import type { BriefStatus } from "@/types";
 import { cn } from "@/lib/utils";
 

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Share2 } from "lucide-react";
 import { DeleteBriefDialog } from "./DeleteBriefDialog";
 import type { BriefDetailDto } from "@/types";
+import { ShareBriefDialog } from "./ShareBriefDialog";
 
 interface OwnerActionsProps {
   brief: BriefDetailDto;
@@ -34,10 +35,16 @@ export function OwnerActions({ brief }: OwnerActionsProps) {
         }
       />
 
-      <Button variant="outline" disabled>
-        <Share2 className="mr-2 h-4 w-4" />
-        Share
-      </Button>
+      <ShareBriefDialog
+        briefId={brief.id}
+        initialRecipients={[]}
+        trigger={
+          <Button variant="outline">
+            <Share2 className="mr-2 h-4 w-4" />
+            Share
+          </Button>
+        }
+      />
     </div>
   );
 }

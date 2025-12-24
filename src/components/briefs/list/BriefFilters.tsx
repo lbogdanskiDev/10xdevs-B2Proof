@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BRIEF_STATUS_CONFIG } from "@/lib/constants/brief-status";
+import { BRIEF_STATUS_CONFIG } from "@/lib/constants/brief-status.constants";
 import type { UserRole } from "@/types";
 
 export interface BriefFiltersProps {
@@ -21,7 +21,7 @@ export function BriefFilters({ userRole }: BriefFiltersProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  const isClient = userRole === "client";
+  const isCreator = userRole === "creator";
   const currentFilter = searchParams.get("filter") || "owned";
   const currentStatus = searchParams.get("status") || "all";
 
@@ -55,7 +55,7 @@ export function BriefFilters({ userRole }: BriefFiltersProps) {
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      {isClient && (
+      {isCreator && (
         <Tabs value={currentFilter} onValueChange={handleFilterChange}>
           <TabsList>
             <TabsTrigger value="owned">My Briefs</TabsTrigger>

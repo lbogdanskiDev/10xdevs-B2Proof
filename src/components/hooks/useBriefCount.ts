@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { MAX_BRIEFS_PER_USER, BRIEF_LIMIT_WARNING_THRESHOLD } from "@/lib/constants/navigation";
+import { MAX_BRIEFS_PER_USER, BRIEF_LIMIT_WARNING_THRESHOLD } from "@/lib/constants/navigation.constants";
 import type { BriefCountData } from "@/lib/types/navigation.types";
 
 /**

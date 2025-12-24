@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/db/supabase.server";
 import { DashboardLayoutClient } from "@/components/layout/DashboardLayoutClient";
 import type { UserProfileDto } from "@/types";
-import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -54,8 +53,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   const supabase = await createSupabaseServerClient();
 
   // Get user profile (server-side)
-  // const user = await getUserProfile(supabase);
-  const user = DEFAULT_USER_PROFILE;
+  const user = await getUserProfile(supabase);
 
   // Redirect to login if not authenticated
   if (!user) {

@@ -13,6 +13,7 @@ interface ErrorProps {
 
 export default function EditBriefError({ error, reset }: ErrorProps) {
   useEffect(() => {
+    // eslint-disable-next-line no-console
     console.error("Edit brief error:", error);
   }, [error]);
 

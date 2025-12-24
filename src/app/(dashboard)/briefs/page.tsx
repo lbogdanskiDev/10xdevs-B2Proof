@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import {
   BriefListHeader,
   BriefFilters,
@@ -9,8 +10,8 @@ import {
   BriefPagination,
   BriefLimitAlert,
 } from "@/components/briefs";
-import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
-import { BRIEF_LIMIT_WARNING_THRESHOLD } from "@/lib/constants/brief-status";
+import { createSupabaseServerClient } from "@/db/supabase.server";
+import { BRIEF_LIMIT_WARNING_THRESHOLD } from "@/lib/constants/brief-status.constants";
 import type { BriefListItemDto, PaginatedResponse, BriefQueryParams, UserRole } from "@/types";
 
 interface BriefListPageProps {
@@ -23,6 +24,7 @@ interface BriefListPageProps {
 
 /**
  * Fetches briefs from the API with query parameters
+ * Passes cookies for authentication
  */
 async function fetchBriefs(params: BriefQueryParams): Promise<PaginatedResponse<BriefListItemDto>> {
   const queryParams = new URLSearchParams();
@@ -34,9 +36,19 @@ async function fetchBriefs(params: BriefQueryParams): Promise<PaginatedResponse<
 
   const url = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/briefs?${queryParams.toString()}`;
 
+  // Get cookies for authentication
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join("; ");
+
   const response = await fetch(url, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Cookie: cookieHeader,
+    },
     cache: "no-store",
   });
 
@@ -55,6 +67,24 @@ export default async function BriefListPage({ searchParams }: BriefListPageProps
   // Await searchParams as per Next.js 15 requirements
   const params = await searchParams;
 
+  // Get user role from profile
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Fetch user profile to get role
+  let userRole: UserRole = "client";
+  if (user) {
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+
+    if (profile) {
+      userRole = profile.role as UserRole;
+    }
+  }
+
+  const isCreator = userRole === "creator";
+
   // Parse query parameters
   const queryParams: BriefQueryParams = {
     page: params.page ? parseInt(params.page, 10) : 1,
@@ -64,11 +94,6 @@ export default async function BriefListPage({ searchParams }: BriefListPageProps
 
   // Fetch briefs data
   const { data: briefs, pagination } = await fetchBriefs(queryParams);
-
-  // TEMPORARY: Using mock user profile
-  // TODO: Replace with real authentication
-  const userRole = DEFAULT_USER_PROFILE.role as UserRole;
-  const isCreator = userRole === "creator";
 
   // Determine empty state variant
   let emptyStateVariant: EmptyStateVariant | null = null;

@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { DeleteAccountDialog } from "./DeleteAccountDialog";
 import { useDeleteAccount } from "@/components/hooks/useDeleteAccount";
-import type { DangerZoneCardProps } from "@/lib/types/profile.types";
+interface DeleteAccountSectionProps {
+  userEmail: string;
+}
 
-export function DangerZoneCard({ userEmail }: DangerZoneCardProps) {
+export function DeleteAccountSection({ userEmail }: DeleteAccountSectionProps) {
   const {
     confirmEmail,
     isDialogOpen,

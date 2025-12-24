@@ -1,137 +1,50 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import type { JSONContent } from "@tiptap/react";
-import type { CreateBriefFormState, FieldErrors, CreateBriefResult } from "@/lib/types/create-brief.types";
+import { useBriefForm } from "./useBriefForm";
+import type { BriefFormErrors, BriefFormResult } from "@/lib/types/brief-form.types";
 import type { BriefDetailDto, ValidationErrorDetail } from "@/types";
-import { CREATE_BRIEF_CONSTANTS } from "@/lib/constants/create-brief.constants";
 
-interface UseCreateBriefFormReturn {
-  // State
-  formState: CreateBriefFormState;
+// ============================================================================
+// Types
+// ============================================================================
 
-  // Field handlers
-  setHeader: (value: string) => void;
-  setContent: (content: JSONContent) => void;
-  setContentCharCount: (count: number) => void;
-  setFooter: (value: string) => void;
-
-  // Validation
-  validateForm: () => boolean;
-  canSubmit: boolean;
-
-  // Actions
-  handleSubmit: () => Promise<CreateBriefResult>;
+interface UseCreateBriefFormReturn extends ReturnType<typeof useBriefForm> {
+  handleSubmit: () => Promise<BriefFormResult>;
   handleCancel: () => void;
-
-  // Reset
-  resetForm: () => void;
 }
 
-const initialState: CreateBriefFormState = {
-  header: "",
-  content: null,
-  footer: "",
-  contentCharCount: 0,
-  isDirty: false,
-  isSubmitting: false,
-  errors: {},
-};
+// ============================================================================
+// Hook Implementation
+// ============================================================================
 
+/**
+ * Hook for managing create brief form
+ * Extends base useBriefForm with create-specific submit and cancel logic
+ */
 export function useCreateBriefForm(): UseCreateBriefFormReturn {
   const router = useRouter();
-  const [formState, setFormState] = useState<CreateBriefFormState>(initialState);
+  const form = useBriefForm({ requireDirtyForSubmit: false });
 
-  const setHeader = useCallback((value: string) => {
-    setFormState((prev) => ({
-      ...prev,
-      header: value,
-      isDirty: true,
-      errors: { ...prev.errors, header: undefined },
-    }));
-  }, []);
-
-  const setContent = useCallback((content: JSONContent) => {
-    setFormState((prev) => ({
-      ...prev,
-      content,
-      isDirty: true,
-      errors: { ...prev.errors, content: undefined },
-    }));
-  }, []);
-
-  const setContentCharCount = useCallback((count: number) => {
-    setFormState((prev) => ({
-      ...prev,
-      contentCharCount: count,
-    }));
-  }, []);
-
-  const setFooter = useCallback((value: string) => {
-    setFormState((prev) => ({
-      ...prev,
-      footer: value,
-      isDirty: true,
-      errors: { ...prev.errors, footer: undefined },
-    }));
-  }, []);
-
-  const validateForm = useCallback((): boolean => {
-    const errors: FieldErrors = {};
-    const { header, contentCharCount, footer } = formState;
-
-    // Header validation
-    if (!header.trim()) {
-      errors.header = "Header is required";
-    } else if (header.length > CREATE_BRIEF_CONSTANTS.HEADER_MAX_LENGTH) {
-      errors.header = `Header must be ${CREATE_BRIEF_CONSTANTS.HEADER_MAX_LENGTH} characters or less`;
-    }
-
-    // Content validation
-    if (contentCharCount === 0) {
-      errors.content = "Content is required";
-    } else if (contentCharCount > CREATE_BRIEF_CONSTANTS.CONTENT_MAX_LENGTH) {
-      errors.content = `Content must not exceed ${CREATE_BRIEF_CONSTANTS.CONTENT_MAX_LENGTH} characters`;
-    }
-
-    // Footer validation
-    if (footer.length > CREATE_BRIEF_CONSTANTS.FOOTER_MAX_LENGTH) {
-      errors.footer = `Footer must be ${CREATE_BRIEF_CONSTANTS.FOOTER_MAX_LENGTH} characters or less`;
-    }
-
-    setFormState((prev) => ({ ...prev, errors }));
-    return Object.keys(errors).length === 0;
-  }, [formState]);
-
-  const canSubmit = useMemo(() => {
-    const { header, contentCharCount, footer, isSubmitting } = formState;
-    return (
-      header.trim().length > 0 &&
-      header.length <= CREATE_BRIEF_CONSTANTS.HEADER_MAX_LENGTH &&
-      contentCharCount > 0 &&
-      contentCharCount <= CREATE_BRIEF_CONSTANTS.CONTENT_MAX_LENGTH &&
-      footer.length <= CREATE_BRIEF_CONSTANTS.FOOTER_MAX_LENGTH &&
-      !isSubmitting
-    );
-  }, [formState]);
-
-  const handleSubmit = useCallback(async (): Promise<CreateBriefResult> => {
-    if (!validateForm()) {
+  const handleSubmit = useCallback(async (): Promise<BriefFormResult> => {
+    if (!form.validateForm()) {
       return { success: false, error: "Validation failed" };
     }
 
-    setFormState((prev) => ({ ...prev, isSubmitting: true, errors: {} }));
+    form.setIsSubmitting(true);
+    form.setErrors({});
 
     try {
+      const formData = form.getFormData();
       const response = await fetch("/api/briefs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          header: formState.header.trim(),
-          content: formState.content,
-          footer: formState.footer.trim() || null,
+          header: formData.header,
+          content: formData.content,
+          footer: formData.footer || null,
         }),
       });
 
@@ -140,7 +53,7 @@ export function useCreateBriefForm(): UseCreateBriefFormReturn {
 
         // Handle validation errors
         if (errorData.details) {
-          const fieldErrors: FieldErrors = {};
+          const fieldErrors: BriefFormErrors = {};
           errorData.details.forEach((detail: ValidationErrorDetail) => {
             if (detail.field === "header" || detail.field === "content" || detail.field === "footer") {
               fieldErrors[detail.field] = detail.message;
@@ -148,7 +61,8 @@ export function useCreateBriefForm(): UseCreateBriefFormReturn {
               fieldErrors.general = detail.message;
             }
           });
-          setFormState((prev) => ({ ...prev, errors: fieldErrors, isSubmitting: false }));
+          form.setErrors(fieldErrors);
+          form.setIsSubmitting(false);
           return { success: false, error: errorData.error, fieldErrors };
         }
 
@@ -166,7 +80,7 @@ export function useCreateBriefForm(): UseCreateBriefFormReturn {
             toast.error("Only creators can create briefs");
             router.push("/briefs");
           }
-          setFormState((prev) => ({ ...prev, isSubmitting: false }));
+          form.setIsSubmitting(false);
           return { success: false, error: errorData.error };
         }
 
@@ -177,40 +91,26 @@ export function useCreateBriefForm(): UseCreateBriefFormReturn {
       toast.success("Brief created successfully");
 
       // Reset dirty state before navigation
-      setFormState((prev) => ({ ...prev, isDirty: false }));
+      form.resetDirty();
       router.push(`/briefs/${data.id}`);
 
       return { success: true, data };
     } catch (err) {
       const message = err instanceof Error ? err.message : "An error occurred. Please try again.";
       toast.error(message);
-      setFormState((prev) => ({
-        ...prev,
-        isSubmitting: false,
-        errors: { general: message },
-      }));
+      form.setErrors({ general: message });
+      form.setIsSubmitting(false);
       return { success: false, error: message };
     }
-  }, [formState, validateForm, router]);
+  }, [form, router]);
 
   const handleCancel = useCallback(() => {
     router.push("/briefs");
   }, [router]);
 
-  const resetForm = useCallback(() => {
-    setFormState(initialState);
-  }, []);
-
   return {
-    formState,
-    setHeader,
-    setContent,
-    setContentCharCount,
-    setFooter,
-    validateForm,
-    canSubmit,
+    ...form,
     handleSubmit,
     handleCancel,
-    resetForm,
   };
 }

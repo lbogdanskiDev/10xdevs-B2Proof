@@ -116,6 +116,7 @@ export function useBriefComments({
   // Auto-refresh every 30s
   useEffect(() => {
     const interval = setInterval(() => {
+      // eslint-disable-next-line no-console
       refresh().catch(console.error); // Silent fail for polling
     }, pollingInterval);
 

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { BRIEF_LIMIT_WARNING_THRESHOLD, MAX_BRIEFS_PER_USER } from "@/lib/constants/navigation";
+import { BRIEF_LIMIT_WARNING_THRESHOLD, MAX_BRIEFS_PER_USER } from "@/lib/constants/navigation.constants";
 
 interface BriefCountBadgeProps {
   current: number;

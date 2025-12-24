@@ -75,9 +75,34 @@ export function useChangePassword(): UseChangePasswordReturn {
       try {
         const supabase = createSupabaseBrowserClient();
 
-        // Supabase Auth updateUser for password change
-        // Note: Supabase doesn't require current password verification by default
-        // The user is already authenticated via session
+        // Get current user email for re-authentication
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user?.email) {
+          setError("Unable to verify current session. Please log in again.");
+          return;
+        }
+
+        // Verify current password by re-authenticating (US-015 requirement)
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: formData.currentPassword,
+        });
+
+        if (verifyError) {
+          setError("Current password is incorrect");
+          return;
+        }
+
+        // Check if new password is different from current (client-side validation)
+        if (formData.currentPassword === formData.newPassword) {
+          setError("New password must be different from current password");
+          return;
+        }
+
+        // Update password
         const { error: updateError } = await supabase.auth.updateUser({
           password: formData.newPassword,
         });
@@ -85,7 +110,7 @@ export function useChangePassword(): UseChangePasswordReturn {
         if (updateError) {
           // Handle specific Supabase Auth errors
           if (updateError.message.includes("same as your old password")) {
-            setError("New password should be different from the old password");
+            setError("New password must be different from current password");
           } else if (updateError.message.includes("weak")) {
             setError("Password is too weak. Please choose a stronger password.");
           } else {

@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { StatusResetAlertDialogProps } from "@/lib/types/brief-form.types";
-import { BRIEF_STATUS_CONFIG } from "@/lib/constants/brief-status";
+import { BRIEF_STATUS_CONFIG } from "@/lib/constants/brief-status.constants";
 
 export function StatusResetAlertDialog({ open, onOpenChange, onConfirm, currentStatus }: StatusResetAlertDialogProps) {
   const statusConfig = BRIEF_STATUS_CONFIG[currentStatus];

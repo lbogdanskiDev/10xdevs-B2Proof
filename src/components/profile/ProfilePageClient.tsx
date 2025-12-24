@@ -3,7 +3,7 @@
 import type { UserProfileDto } from "@/types";
 import { AccountInfoCard } from "./AccountInfoCard";
 import { ChangePasswordCard } from "./ChangePasswordCard";
-import { DangerZoneCard } from "./DangerZoneCard";
+import { DeleteAccountSection } from "./DeleteAccountSection";
 
 interface ProfilePageClientProps {
   user: UserProfileDto;
@@ -21,7 +21,7 @@ export function ProfilePageClient({ user }: ProfilePageClientProps) {
 
       <ChangePasswordCard />
 
-      <DangerZoneCard userEmail={user.email} />
+      <DeleteAccountSection userEmail={user.email} />
     </div>
   );
 }

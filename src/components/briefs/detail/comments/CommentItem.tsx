@@ -55,7 +55,7 @@ export function CommentItem({ comment, onDelete }: CommentItemProps) {
         )}
       </div>
 
-      <p className="text-sm whitespace-pre-wrap">{JSON.parse(comment.content).content[0].content[0].text}</p>
+      <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
 
       <span className="text-xs text-muted-foreground">
         {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}

@@ -1,5 +1,10 @@
 import type { SupabaseClient, CommentDto, PaginatedResponse } from "@/types";
-import { ForbiddenError, DatabaseError, NotFoundError } from "@/lib/errors/api-errors";
+import { DatabaseError } from "@/lib/errors/api-errors";
+import { mapCommentToDto } from "@/lib/utils/mappers";
+import { requireBriefAccess, requireCommentAuthor } from "@/lib/utils/authorization.utils";
+import { auditCommentCreated, auditCommentDeleted } from "@/lib/utils/audit.utils";
+import { batchGetAuthorInfo, getAuthorInfo } from "@/lib/utils/user-lookup.utils";
+import { calculateOffset, calculatePagination } from "@/lib/utils/query.utils";
 
 /**
  * Create a new comment on a brief
@@ -13,8 +18,10 @@ import { ForbiddenError, DatabaseError, NotFoundError } from "@/lib/errors/api-e
  * @param supabase - Supabase client instance
  * @param briefId - UUID of the brief to comment on
  * @param authorId - UUID of the comment author (from auth)
+ * @param authorEmail - Author's email (for recipient_email matching)
  * @param content - Comment content (1-1000 characters, already validated)
  * @returns Created comment with author details
+ * @throws {NotFoundError} If brief doesn't exist
  * @throws {ForbiddenError} If user doesn't have access to the brief
  * @throws {DatabaseError} If database operation fails
  */
@@ -22,44 +29,13 @@ export async function createComment(
   supabase: SupabaseClient,
   briefId: string,
   authorId: string,
+  authorEmail: string,
   content: string
 ): Promise<CommentDto> {
-  // Step 1: Check if brief exists and user has access (owner or recipient)
-  // Use a single query that combines both checks for efficiency
-  const { data: accessCheck, error: accessError } = await supabase
-    .from("briefs")
-    .select(
-      `
-      id,
-      owner_id
-    `
-    )
-    .eq("id", briefId)
-    .single();
+  // Require brief access - throws NotFoundError or ForbiddenError if not authorized
+  await requireBriefAccess(supabase, briefId, authorId, authorEmail);
 
-  if (accessError || !accessCheck) {
-    // Brief doesn't exist - return 403 (don't reveal existence to unauthorized users)
-    throw new ForbiddenError("You do not have access to this brief");
-  }
-
-  // Check if user is owner
-  const isOwner = accessCheck.owner_id === authorId;
-
-  // If not owner, check if user is a recipient
-  if (!isOwner) {
-    const { data: recipientCheck } = await supabase
-      .from("brief_recipients")
-      .select("recipient_id")
-      .eq("brief_id", briefId)
-      .eq("recipient_id", authorId)
-      .single();
-
-    if (!recipientCheck) {
-      throw new ForbiddenError("You do not have access to this brief");
-    }
-  }
-
-  // Step 2: Insert comment
+  // Insert comment
   const { data: newComment, error: insertError } = await supabase
     .from("comments")
     .insert({
@@ -92,44 +68,19 @@ export async function createComment(
     throw new DatabaseError("comment count update", updateError.message);
   }
 
-  // Step 4: Create audit log entry
-  const { error: auditError } = await supabase.from("audit_log").insert({
-    user_id: authorId,
-    action: "comment_created",
-    entity_type: "comment",
-    entity_id: newComment.id,
-    new_data: {
-      brief_id: newComment.brief_id,
-      author_id: newComment.author_id,
-      content: newComment.content,
-      created_at: newComment.created_at,
-    },
+  // Step 4: Create audit log entry (non-blocking)
+  await auditCommentCreated(supabase, authorId, newComment.id, {
+    brief_id: newComment.brief_id,
+    author_id: newComment.author_id,
+    content: newComment.content,
+    created_at: newComment.created_at,
   });
 
-  if (auditError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[comments.service] Failed to create audit log:", auditError);
-    // Non-critical error - don't rollback the comment
-  }
+  // Step 5: Fetch author details for response using utility
+  const authorInfo = await getAuthorInfo(supabase, authorId);
 
-  // Step 5: Fetch author details for response
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", authorId).single();
-
-  const { data: authUser } = await supabase.auth.admin.getUserById(authorId);
-
-  // Map to CommentDto
-  const commentDto: CommentDto = {
-    id: newComment.id,
-    briefId: newComment.brief_id,
-    authorId: newComment.author_id,
-    authorEmail: authUser?.user?.email || "",
-    authorRole: profile?.role || "client",
-    content: newComment.content,
-    isOwn: true, // Always true for the creator
-    createdAt: newComment.created_at,
-  };
-
-  return commentDto;
+  // Map to CommentDto using mapper
+  return mapCommentToDto(newComment, authorInfo.email, authorInfo.role, authorId);
 }
 
 /**
@@ -138,6 +89,7 @@ export async function createComment(
 interface GetCommentsParams {
   briefId: string;
   userId: string;
+  userEmail: string;
   page: number;
   limit: number;
 }
@@ -154,7 +106,7 @@ interface GetCommentsParams {
  * - isOwn flag indicates if comment belongs to requesting user
  *
  * @param supabase - Supabase client instance
- * @param params - Query parameters (briefId, userId, page, limit)
+ * @param params - Query parameters (briefId, userId, userEmail, page, limit)
  * @returns Paginated list of comments with metadata
  * @throws {NotFoundError} If brief doesn't exist
  * @throws {ForbiddenError} If user doesn't have access to the brief
@@ -164,40 +116,13 @@ export async function getCommentsByBriefId(
   supabase: SupabaseClient,
   params: GetCommentsParams
 ): Promise<PaginatedResponse<CommentDto>> {
-  const { briefId, userId, page, limit } = params;
+  const { briefId, userId, userEmail, page, limit } = params;
 
-  // Step 1: Check if brief exists and user has access (owner OR recipient)
-  const { data: brief, error: briefError } = await supabase
-    .from("briefs")
-    .select("id, owner_id, comment_count")
-    .eq("id", briefId)
-    .single();
+  // Require brief access - throws NotFoundError or ForbiddenError if not authorized
+  const { brief } = await requireBriefAccess(supabase, briefId, userId, userEmail);
 
-  if (briefError || !brief) {
-    throw new NotFoundError("Brief not found");
-  }
-
-  // Step 2: Check access - user is owner OR recipient
-  const isOwner = brief.owner_id === userId;
-  let hasAccess = isOwner;
-
-  if (!isOwner) {
-    const { data: recipient } = await supabase
-      .from("brief_recipients")
-      .select("id")
-      .eq("brief_id", briefId)
-      .eq("recipient_id", userId)
-      .maybeSingle();
-
-    hasAccess = !!recipient;
-  }
-
-  if (!hasAccess) {
-    throw new ForbiddenError("User does not have access to this brief");
-  }
-
-  // Step 3: Fetch paginated comments
-  const offset = (page - 1) * limit;
+  // Fetch paginated comments
+  const offset = calculateOffset(page, limit);
 
   const { data: comments, error: commentsError } = await supabase
     .from("comments")
@@ -212,40 +137,27 @@ export async function getCommentsByBriefId(
     throw new DatabaseError("comment fetch", commentsError.message);
   }
 
-  // Step 4: Enrich comments with author details
-  const commentDtos: CommentDto[] = await Promise.all(
-    (comments || []).map(async (comment) => {
-      // Fetch author email from auth.users
-      const { data: authUser } = await supabase.auth.admin.getUserById(comment.author_id);
+  // Step 4: Batch fetch author info (reduces N*2 queries to 1 + N parallel queries)
+  // Before: 1 + (N × 2) = 21 queries for 10 comments
+  // After: 1 (profiles) + N (emails in parallel) = 11 queries for 10 comments
+  const authorIds = (comments || []).map((c) => c.author_id);
+  const authorInfoMap = await batchGetAuthorInfo(supabase, authorIds);
 
-      // Fetch author role from profiles
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", comment.author_id).single();
+  // Step 5: Map to DTOs using author info map
+  const commentDtos: CommentDto[] = (comments || []).map((comment) => {
+    const authorInfo = authorInfoMap.get(comment.author_id) ?? {
+      email: "unknown@example.com",
+      role: "client" as const,
+    };
+    return mapCommentToDto(comment, authorInfo.email, authorInfo.role, userId);
+  });
 
-      return {
-        id: comment.id,
-        briefId: comment.brief_id,
-        authorId: comment.author_id,
-        authorEmail: authUser?.user?.email || "unknown@example.com",
-        authorRole: profile?.role || "client",
-        content: comment.content,
-        isOwn: comment.author_id === userId,
-        createdAt: comment.created_at,
-      };
-    })
-  );
-
-  // Step 5: Calculate pagination metadata using denormalized comment_count
+  // Step 6: Calculate pagination metadata using denormalized comment_count
   const total = brief.comment_count || 0;
-  const totalPages = Math.ceil(total / limit);
 
   return {
     data: commentDtos,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages,
-    },
+    pagination: calculatePagination(page, limit, total),
   };
 }
 
@@ -266,23 +178,10 @@ export async function getCommentsByBriefId(
  * @throws {DatabaseError} If database operation fails
  */
 export async function deleteComment(supabase: SupabaseClient, commentId: string, userId: string): Promise<void> {
-  // Step 1: Fetch comment to verify existence and authorship
-  const { data: comment, error: fetchError } = await supabase
-    .from("comments")
-    .select("id, brief_id, author_id, content, created_at")
-    .eq("id", commentId)
-    .single();
+  // Require comment authorship - throws NotFoundError or ForbiddenError
+  const comment = await requireCommentAuthor(supabase, commentId, userId);
 
-  if (fetchError || !comment) {
-    throw new NotFoundError("Comment not found");
-  }
-
-  // Step 2: Authorization check - user must be the comment author
-  if (comment.author_id !== userId) {
-    throw new ForbiddenError("You can only delete your own comments");
-  }
-
-  // Step 3: Delete comment
+  // Delete comment
   const { error: deleteError } = await supabase.from("comments").delete().eq("id", commentId);
 
   if (deleteError) {
@@ -311,25 +210,12 @@ export async function deleteComment(supabase: SupabaseClient, commentId: string,
     // Comment is already deleted - log the error but don't fail the operation
   }
 
-  // Step 5: Create audit log entry
-  const { error: auditError } = await supabase.from("audit_log").insert({
-    user_id: userId,
-    action: "comment_deleted",
-    entity_type: "comment",
-    entity_id: commentId,
-    old_data: {
-      id: comment.id,
-      brief_id: comment.brief_id,
-      author_id: comment.author_id,
-      content: comment.content,
-      created_at: comment.created_at,
-    },
-    new_data: null,
+  // Step 5: Create audit log entry (non-blocking)
+  await auditCommentDeleted(supabase, userId, commentId, {
+    id: comment.id,
+    brief_id: comment.brief_id,
+    author_id: comment.author_id,
+    content: comment.content,
+    created_at: comment.created_at,
   });
-
-  if (auditError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[comments.service] Failed to create audit log:", auditError);
-    // Non-critical error - don't fail the operation
-  }
 }

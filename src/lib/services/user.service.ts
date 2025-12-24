@@ -1,23 +1,44 @@
 import type { UserProfileDto, SupabaseClient } from "@/types";
-import { DEFAULT_USER_PROFILE } from "@/db/supabase.client";
+import { UnauthorizedError, NotFoundError } from "@/lib/errors/api-errors";
+import { createSupabaseAdminClient } from "@/db/supabase.server";
 
 /**
- * Retrieves a user's profile
+ * Retrieves a user's profile from the database
  *
- * TODO: This is a temporary implementation using DEFAULT_USER_PROFILE
- * Future implementation will:
- * 1. Authenticate user via Supabase Auth (getUser())
- * 2. Query profiles table by user ID
- * 3. Combine auth.users.email with profiles table data
- * 4. Handle errors with custom ApiError classes
- * 5. Validate user permissions and RLS policies
- *
- * @returns UserProfileDto with default user data
+ * @param supabase - Authenticated Supabase client
+ * @returns UserProfileDto with user data
+ * @throws UnauthorizedError if user is not authenticated
+ * @throws NotFoundError if profile doesn't exist
  */
-export async function getUserProfile(): Promise<UserProfileDto> {
-  // TODO: Replace with actual implementation when auth is ready
-  // Current: Return mock data for development
-  return DEFAULT_USER_PROFILE;
+export async function getUserProfile(supabase: SupabaseClient): Promise<UserProfileDto> {
+  // Get authenticated user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    throw new UnauthorizedError("Not authenticated");
+  }
+
+  // Fetch profile from database
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, role, created_at, updated_at")
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) {
+    throw new NotFoundError("Profile not found");
+  }
+
+  return {
+    id: profile.id,
+    email: user.email ?? "",
+    role: profile.role,
+    createdAt: profile.created_at,
+    updatedAt: profile.updated_at,
+  };
 }
 
 /**
@@ -33,6 +54,9 @@ export async function getUserProfile(): Promise<UserProfileDto> {
  * @throws Error if deletion fails
  */
 export async function deleteUserAccount(supabase: SupabaseClient, userId: string): Promise<void> {
+  // Create admin client for operations requiring Service Role Key
+  const adminClient = createSupabaseAdminClient();
+
   // Fetch user data for audit log before deletion
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -44,18 +68,18 @@ export async function deleteUserAccount(supabase: SupabaseClient, userId: string
     throw new Error("User not found");
   }
 
-  // Get email from auth.users via admin API
+  // Get email from auth.users via admin API (requires Service Role Key)
   const {
     data: { user },
     error: userError,
-  } = await supabase.auth.admin.getUserById(userId);
+  } = await adminClient.auth.admin.getUserById(userId);
 
   if (userError || !user) {
     throw new Error("User not found in auth system");
   }
 
-  // Create audit log entry BEFORE deletion
-  const { error: auditError } = await supabase.from("audit_log").insert({
+  // Create audit log entry BEFORE deletion (use admin client to bypass RLS)
+  const { error: auditError } = await adminClient.from("audit_log").insert({
     user_id: userId,
     action: "user_deleted",
     entity_type: "user",
@@ -76,7 +100,7 @@ export async function deleteUserAccount(supabase: SupabaseClient, userId: string
   }
 
   // Delete user from auth.users (cascades to all related tables)
-  const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
 
   if (deleteError) {
     // eslint-disable-next-line no-console

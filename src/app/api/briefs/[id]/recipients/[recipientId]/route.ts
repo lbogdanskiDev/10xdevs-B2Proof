@@ -1,73 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/db/supabase.server";
 import { RevokeRecipientSchema } from "@/lib/schemas/brief.schema";
 import { revokeBriefRecipient } from "@/lib/services/brief.service";
-import { ApiError, UnauthorizedError } from "@/lib/errors/api-errors";
+import {
+  validateInput,
+  getAuthContext,
+  handleApiError,
+  errorResponse,
+  logValidationError,
+} from "@/lib/utils/api-handler.utils";
 import type { ErrorReturn } from "@/types";
 
 /**
  * DELETE /api/briefs/:id/recipients/:recipientId
- *
  * Revoke recipient access to brief (owner only)
- *
  * Automatically resets brief status to 'draft' if last recipient is removed.
- *
- * Authentication: Required (Bearer token)
- * Authorization: User must be brief owner
- *
- * Success Response: 204 No Content
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string; recipientId: string }> }
 ): Promise<NextResponse<ErrorReturn | null>> {
   try {
-    // Step 1: Await params (Next.js 15 breaking change)
     const { id, recipientId } = await params;
 
-    // Step 2: Validate path parameters
-    const validationResult = RevokeRecipientSchema.safeParse({ id, recipientId });
-
-    // Guard clause: Check validation
-    if (!validationResult.success) {
-      const details = validationResult.error.errors.map((err) => ({
-        field: err.path.join("."),
-        message: err.message,
-      }));
-
-      // eslint-disable-next-line no-console -- API error logging for debugging
-      console.error("[DELETE /api/briefs/:id/recipients/:recipientId] Validation error:", details);
-      return NextResponse.json<ErrorReturn>({ error: "Invalid request parameters", details }, { status: 400 });
+    // Validate path parameters
+    const validation = validateInput(RevokeRecipientSchema, { id, recipientId }, "Invalid request parameters");
+    if (!validation.success) {
+      logValidationError("DELETE /api/briefs/:id/recipients/:recipientId", validation.error.details ?? []);
+      return errorResponse(validation);
     }
 
-    const { id: briefId, recipientId: validRecipientId } = validationResult.data;
+    const { id: briefId, recipientId: validRecipientId } = validation.data;
 
-    // Step 3: Create Supabase client and validate authentication
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // Authenticate
+    const auth = await getAuthContext();
+    if (!auth.success) return errorResponse(auth);
 
-    // Guard clause: Check authentication
-    if (authError || !user) {
-      throw new UnauthorizedError();
-    }
+    const { supabase, userId } = auth.data;
 
-    // Step 4: Revoke recipient access (service handles all business logic)
-    await revokeBriefRecipient(supabase, briefId, validRecipientId, user.id);
+    // Revoke recipient access (service handles all business logic)
+    await revokeBriefRecipient(supabase, briefId, validRecipientId, userId);
 
-    // Happy path: Return 204 No Content
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    // Handle known API errors
-    if (error instanceof ApiError) {
-      return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
-    }
-
-    // Handle unexpected errors
-    // eslint-disable-next-line no-console -- API error logging for debugging
-    console.error("[DELETE /api/briefs/:id/recipients/:recipientId] Unexpected error:", error);
-    return NextResponse.json<ErrorReturn>({ error: "Internal server error" }, { status: 500 });
+    return handleApiError(error, "DELETE /api/briefs/:id/recipients/:recipientId");
   }
 }

@@ -9,9 +9,9 @@ import type {
   UpdateBriefStatusCommand,
   UpdateBriefStatusWithCommentResponseDto,
   CommentDto,
-  BriefStatus,
   BriefRecipientDto,
   ShareBriefResponseDto,
+  BriefEntity,
 } from "@/types";
 import {
   ApiError,
@@ -21,248 +21,155 @@ import {
   DatabaseError,
   ConflictError,
 } from "@/lib/errors/api-errors";
+import { mapBriefToListItem, mapBriefToDetail, mapCommentToDto, mapRecipientToDto } from "@/lib/utils/mappers";
+import { checkBriefAccess, requireBriefOwner, requireRecipientAccess } from "@/lib/utils/authorization.utils";
+import {
+  auditBriefCreated,
+  auditBriefDeleted,
+  auditStatusChanged,
+  auditBriefShared,
+  auditBriefUnshared,
+} from "@/lib/utils/audit.utils";
+import { calculatePagination, calculateOffset, emptyPagination } from "@/lib/utils/query.utils";
+import { getAuthorInfo } from "@/lib/utils/user-lookup.utils";
 
 /**
  * Retrieves paginated list of briefs for a user
  * Includes briefs owned by the user and briefs shared with them
  *
+ * Refactored to use unified approach with filter functions.
+ * Reduces code duplication from ~270 lines to ~100 lines.
+ *
  * @param supabase - Supabase client instance
  * @param userId - Current user's UUID from auth
+ * @param userEmail - Current user's email from auth (for recipient_email matching)
  * @param params - Query parameters for filtering and pagination
  * @returns Paginated response with briefs and metadata
- * @throws Error if database query fails
+ * @throws {DatabaseError} If database query fails
  */
 export async function getBriefs(
   supabase: SupabaseClient,
   userId: string,
+  userEmail: string,
   params: BriefQueryParams
 ): Promise<PaginatedResponse<BriefListItemDto>> {
   const { page = 1, limit = 10, filter, status } = params;
-  const offset = (page - 1) * limit;
+  const offset = calculateOffset(page, limit);
 
-  try {
-    // Build query based on filter parameter
-    if (filter === "owned") {
-      // Only briefs owned by user
-      return await fetchOwnedBriefs(supabase, userId, { page, limit, status });
-    } else if (filter === "shared") {
-      // Only briefs shared with user (not owned by user)
-      return await fetchSharedBriefs(supabase, userId, { page, limit, status });
-    } else {
-      // Both owned and shared briefs - use parallel queries
-      return await fetchAllBriefs(supabase, userId, { page, limit, status, offset });
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Unexpected error:", err);
-    throw err;
-  }
-}
+  // Step 1: Get brief IDs accessible to user based on filter
+  const { ownedIds, sharedIds } = await getBriefIdsForUser(supabase, userId, userEmail, filter);
 
-/**
- * Helper: Fetch only briefs owned by user
- */
-async function fetchOwnedBriefs(
-  supabase: SupabaseClient,
-  userId: string,
-  params: { page: number; limit: number; status?: BriefStatus }
-): Promise<PaginatedResponse<BriefListItemDto>> {
-  const { page, limit, status } = params;
-  const offset = (page - 1) * limit;
-
-  let query = supabase.from("briefs").select("*", { count: "exact" }).eq("owner_id", userId);
-
-  if (status) {
-    query = query.eq("status", status);
-  }
-
-  const { data, error, count } = await query
-    .order("updated_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (error) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Error fetching owned briefs:", error);
-    throw new Error(`Failed to fetch owned briefs: ${error.message}`);
-  }
-
-  if (!data) {
-    return {
-      data: [],
-      pagination: { page, limit, total: 0, totalPages: 0 },
-    };
-  }
-
-  const briefs: BriefListItemDto[] = data.map((brief) => ({
-    id: brief.id,
-    ownerId: brief.owner_id,
-    header: brief.header,
-    footer: brief.footer,
-    status: brief.status,
-    commentCount: brief.comment_count,
-    isOwned: true, // All are owned
-    createdAt: brief.created_at,
-    updatedAt: brief.updated_at,
-  }));
-
-  const totalPages = Math.ceil((count || 0) / limit);
-
-  return {
-    data: briefs,
-    pagination: { page, limit, total: count || 0, totalPages },
-  };
-}
-
-/**
- * Helper: Fetch only briefs shared with user (not owned)
- */
-async function fetchSharedBriefs(
-  supabase: SupabaseClient,
-  userId: string,
-  params: { page: number; limit: number; status?: BriefStatus }
-): Promise<PaginatedResponse<BriefListItemDto>> {
-  const { page, limit, status } = params;
-  const offset = (page - 1) * limit;
-
-  // First, get brief IDs shared with user
-  const { data: sharedBriefIds, error: recipientsError } = await supabase
-    .from("brief_recipients")
-    .select("brief_id")
-    .eq("recipient_id", userId);
-
-  if (recipientsError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Error fetching shared briefs:", recipientsError);
-    throw new Error(`Failed to fetch shared briefs: ${recipientsError.message}`);
-  }
-
-  const briefIds = sharedBriefIds?.map((r) => r.brief_id) || [];
-
-  if (briefIds.length === 0) {
-    return {
-      data: [],
-      pagination: { page, limit, total: 0, totalPages: 0 },
-    };
-  }
-
-  // Fetch briefs that user doesn't own but has access to
-  let query = supabase.from("briefs").select("*", { count: "exact" }).in("id", briefIds).neq("owner_id", userId);
-
-  if (status) {
-    query = query.eq("status", status);
-  }
-
-  const { data, error, count } = await query
-    .order("updated_at", { ascending: false })
-    .range(offset, offset + limit - 1);
-
-  if (error) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Error querying shared briefs:", error);
-    throw new Error(`Failed to query shared briefs: ${error.message}`);
-  }
-
-  if (!data) {
-    return {
-      data: [],
-      pagination: { page, limit, total: 0, totalPages: 0 },
-    };
-  }
-
-  const briefs: BriefListItemDto[] = data.map((brief) => ({
-    id: brief.id,
-    ownerId: brief.owner_id,
-    header: brief.header,
-    footer: brief.footer,
-    status: brief.status,
-    commentCount: brief.comment_count,
-    isOwned: false, // All are shared (not owned)
-    createdAt: brief.created_at,
-    updatedAt: brief.updated_at,
-  }));
-
-  const totalPages = Math.ceil((count || 0) / limit);
-
-  return {
-    data: briefs,
-    pagination: { page, limit, total: count || 0, totalPages },
-  };
-}
-
-/**
- * Helper: Fetch both owned and shared briefs
- * Uses Supabase RPC or manual filtering to combine owned and shared briefs efficiently
- */
-async function fetchAllBriefs(
-  supabase: SupabaseClient,
-  userId: string,
-  params: { page: number; limit: number; status?: BriefStatus; offset: number }
-): Promise<PaginatedResponse<BriefListItemDto>> {
-  const { page, limit, status, offset } = params;
-
-  // Get shared brief IDs first
-  const { data: sharedBriefIds } = await supabase
-    .from("brief_recipients")
-    .select("brief_id")
-    .eq("recipient_id", userId);
-
-  const briefIds = sharedBriefIds?.map((r) => r.brief_id) || [];
-
-  // Build query: fetch briefs where user is owner OR brief is in shared IDs
-  let query = supabase.from("briefs").select("*", { count: "exact" });
-
-  if (briefIds.length > 0) {
-    // Fetch owned briefs + shared briefs
-    // Note: This fetches ALL briefs accessible to user, including owned ones
-    const allAccessibleIds = [...new Set([...briefIds])]; // Deduplicate
-    query = query.or(`owner_id.eq.${userId},id.in.(${allAccessibleIds.join(",")})`);
+  // Combine IDs based on filter
+  let briefIds: string[];
+  if (filter === "owned") {
+    briefIds = ownedIds;
+  } else if (filter === "shared") {
+    briefIds = sharedIds;
   } else {
-    // User has no shared briefs - only owned
-    query = query.eq("owner_id", userId);
+    briefIds = [...new Set([...ownedIds, ...sharedIds])];
   }
 
-  // Apply status filter if provided
+  // Early return if no accessible briefs
+  if (briefIds.length === 0) {
+    return { data: [], pagination: emptyPagination(page, limit) };
+  }
+
+  // Step 2: Build and execute query
+  let query = supabase.from("briefs").select("*", { count: "exact" }).in("id", briefIds);
+
   if (status) {
     query = query.eq("status", status);
   }
 
-  // Apply ordering and pagination
   const { data, error, count } = await query
     .order("updated_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (error) {
     // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Error fetching all briefs:", error);
-    throw new Error(`Failed to fetch briefs: ${error.message}`);
+    console.error("[brief.service] Error fetching briefs:", error);
+    throw new DatabaseError("brief fetch", error.message);
   }
 
   if (!data) {
-    return {
-      data: [],
-      pagination: { page, limit, total: 0, totalPages: 0 },
-    };
+    return { data: [], pagination: emptyPagination(page, limit) };
   }
 
-  // Transform to DTOs
-  const briefs: BriefListItemDto[] = data.map((brief) => ({
-    id: brief.id,
-    ownerId: brief.owner_id,
-    header: brief.header,
-    footer: brief.footer,
-    status: brief.status,
-    commentCount: brief.comment_count,
-    isOwned: brief.owner_id === userId,
-    createdAt: brief.created_at,
-    updatedAt: brief.updated_at,
-  }));
+  // Step 3: Create ownership set for isOwned flag
+  const ownedSet = new Set(ownedIds);
 
-  const totalPages = Math.ceil((count || 0) / limit);
+  // Step 4: Transform to DTOs
+  const briefs: BriefListItemDto[] = data.map((brief) =>
+    mapBriefToListItem(brief as BriefEntity, ownedSet.has(brief.id))
+  );
 
   return {
     data: briefs,
-    pagination: { page, limit, total: count || 0, totalPages },
+    pagination: calculatePagination(page, limit, count ?? 0),
   };
+}
+
+/**
+ * Get brief IDs accessible to user based on filter
+ *
+ * Returns separate arrays for owned and shared briefs to allow
+ * flexible filtering without re-querying the database.
+ *
+ * @param supabase - Supabase client instance
+ * @param userId - Current user's UUID
+ * @param userEmail - Current user's email
+ * @param filter - Optional filter ("owned" | "shared")
+ * @returns Object with ownedIds and sharedIds arrays
+ */
+async function getBriefIdsForUser(
+  supabase: SupabaseClient,
+  userId: string,
+  userEmail: string,
+  filter?: "owned" | "shared"
+): Promise<{ ownedIds: string[]; sharedIds: string[] }> {
+  const ownedIds: string[] = [];
+  const sharedIds: string[] = [];
+
+  // Fetch owned brief IDs (skip if filter is "shared")
+  if (filter !== "shared") {
+    const { data: owned, error: ownedError } = await supabase.from("briefs").select("id").eq("owner_id", userId);
+
+    if (ownedError) {
+      // eslint-disable-next-line no-console -- Service layer logging for debugging
+      console.error("[brief.service] Error fetching owned brief IDs:", ownedError);
+      throw new DatabaseError("owned brief fetch", ownedError.message);
+    }
+
+    ownedIds.push(...(owned?.map((b) => b.id) ?? []));
+  }
+
+  // Fetch shared brief IDs (skip if filter is "owned")
+  if (filter !== "owned") {
+    const { data: shared, error: sharedError } = await supabase
+      .from("brief_recipients")
+      .select("brief_id")
+      .or(`recipient_id.eq.${userId},recipient_email.eq.${userEmail}`);
+
+    if (sharedError) {
+      // eslint-disable-next-line no-console -- Service layer logging for debugging
+      console.error("[brief.service] Error fetching shared brief IDs:", sharedError);
+      throw new DatabaseError("shared brief fetch", sharedError.message);
+    }
+
+    // Filter out briefs that user also owns (to avoid duplicates in shared list)
+    const ownedSet = new Set(ownedIds);
+    const sharedBriefIds = shared?.map((r) => r.brief_id) ?? [];
+
+    // For "shared" filter, exclude owned briefs
+    // For "all" filter, they'll be deduplicated in getBriefs
+    if (filter === "shared") {
+      sharedIds.push(...sharedBriefIds.filter((id) => !ownedSet.has(id)));
+    } else {
+      sharedIds.push(...sharedBriefIds);
+    }
+  }
+
+  return { ownedIds, sharedIds };
 }
 
 /**
@@ -272,6 +179,7 @@ async function fetchAllBriefs(
  * @param supabase - Supabase client instance
  * @param briefId - UUID of the brief to retrieve
  * @param userId - Current user's UUID from auth
+ * @param userEmail - Current user's email from auth (for recipient_email matching)
  * @returns Brief detail DTO with full content, or null if not found
  * @throws {ForbiddenError} If user is not authorized to access the brief
  * @throws Error if database query fails
@@ -279,49 +187,24 @@ async function fetchAllBriefs(
 export async function getBriefById(
   supabase: SupabaseClient,
   briefId: string,
-  userId: string
+  userId: string,
+  userEmail: string
 ): Promise<BriefDetailDto | null> {
-  // Fetch brief by ID
-  const { data: brief, error } = await supabase.from("briefs").select("*").eq("id", briefId).single();
+  // Use authorization helper - handles both existence and access checks
+  const accessCheck = await checkBriefAccess(supabase, briefId, userId, userEmail);
 
-  // Handle not found or query error
-  if (error || !brief) {
+  // Brief not found
+  if (!accessCheck) {
     return null;
   }
 
-  // Check authorization: user must be owner OR recipient
-  const isOwner = brief.owner_id === userId;
-
-  if (!isOwner) {
-    // Check if user is a recipient
-    const { data: recipient } = await supabase
-      .from("brief_recipients")
-      .select("id")
-      .eq("brief_id", briefId)
-      .eq("recipient_id", userId)
-      .single();
-
-    if (!recipient) {
-      // User is neither owner nor recipient
-      throw new ForbiddenError("You do not have access to this brief");
-    }
+  // User has no access (not owner, not recipient)
+  if (!accessCheck.hasAccess) {
+    throw new ForbiddenError("You do not have access to this brief");
   }
 
-  // Transform database entity to DTO (snake_case to camelCase)
-  return {
-    id: brief.id,
-    ownerId: brief.owner_id,
-    header: brief.header,
-    content: brief.content,
-    footer: brief.footer,
-    status: brief.status,
-    statusChangedAt: brief.status_changed_at,
-    statusChangedBy: brief.status_changed_by,
-    commentCount: brief.comment_count,
-    isOwned: brief.owner_id === userId,
-    createdAt: brief.created_at,
-    updatedAt: brief.updated_at,
-  };
+  // Transform database entity to DTO using mapper
+  return mapBriefToDetail(accessCheck.brief, accessCheck.isOwner);
 }
 
 /**
@@ -396,40 +279,15 @@ export async function createBrief(
     throw new ApiError("DATABASE_ERROR", "Failed to create brief", 500);
   }
 
-  // 4. Log audit trail (non-blocking - don't throw on failure)
-  const { error: auditError } = await supabase.from("audit_log").insert({
-    user_id: userId,
-    action: "brief_created",
-    entity_type: "brief",
-    entity_id: brief.id,
-    new_data: {
-      header: brief.header,
-      content: brief.content,
-      footer: brief.footer,
-      status: brief.status,
-    },
-  });
-
-  if (auditError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Failed to log audit trail:", auditError);
-    // Don't throw - audit log failure shouldn't break the operation
-  }
-
-  return {
-    id: brief.id,
-    ownerId: brief.owner_id,
+  // 4. Log audit trail (non-blocking)
+  await auditBriefCreated(supabase, userId, brief.id, {
     header: brief.header,
     content: brief.content,
     footer: brief.footer,
     status: brief.status,
-    statusChangedAt: brief.status_changed_at,
-    statusChangedBy: brief.status_changed_by,
-    commentCount: brief.comment_count,
-    isOwned: true,
-    createdAt: brief.created_at,
-    updatedAt: brief.updated_at,
-  };
+  });
+
+  return mapBriefToDetail(brief as BriefEntity, true);
 }
 
 /**
@@ -443,6 +301,7 @@ export async function createBrief(
  *
  * @param supabase - Supabase client instance
  * @param userId - Current user's UUID from auth
+ * @param userEmail - Current user's email from auth (for recipient_email matching)
  * @param briefId - UUID of the brief to update
  * @param data - Update data (header, content, footer) - at least one field required
  * @returns Updated brief with full details
@@ -453,19 +312,12 @@ export async function createBrief(
 export async function updateBriefContent(
   supabase: SupabaseClient,
   userId: string,
+  userEmail: string,
   briefId: string,
   data: UpdateBriefCommand
 ): Promise<BriefDetailDto> {
-  // Check if user is owner
-  const { isOwner, brief } = await checkBriefAccess(supabase, userId, briefId);
-
-  if (!brief) {
-    throw new NotFoundError("Brief", briefId);
-  }
-
-  if (!isOwner) {
-    throw new ForbiddenError("Only the brief owner can update content");
-  }
+  // Require owner access - throws NotFoundError or ForbiddenError if not authorized
+  await requireBriefOwner(supabase, briefId, userId, userEmail);
 
   // Build update object with only provided fields
   const updateData: Record<string, unknown> = {
@@ -504,21 +356,8 @@ export async function updateBriefContent(
     throw new ApiError("DATABASE_ERROR", `Failed to update brief: ${error?.message || "Unknown error"}`, 500);
   }
 
-  // Map to DTO
-  return {
-    id: updatedBrief.id,
-    ownerId: updatedBrief.owner_id,
-    header: updatedBrief.header,
-    content: updatedBrief.content,
-    footer: updatedBrief.footer,
-    status: updatedBrief.status,
-    statusChangedAt: updatedBrief.status_changed_at,
-    statusChangedBy: updatedBrief.status_changed_by,
-    commentCount: updatedBrief.comment_count,
-    isOwned: true,
-    createdAt: updatedBrief.created_at,
-    updatedAt: updatedBrief.updated_at,
-  };
+  // Map to DTO using mapper - updatedBrief has the same shape as BriefEntity
+  return mapBriefToDetail(updatedBrief as unknown as BriefEntity, true);
 }
 
 /**
@@ -533,6 +372,7 @@ export async function updateBriefContent(
  *
  * @param supabase - Supabase client instance
  * @param userId - Current user's UUID from auth
+ * @param userEmail - Current user's email from auth (for recipient_email matching)
  * @param briefId - UUID of the brief to update
  * @param data - Status update data (status, optional comment)
  * @returns Updated brief status with optional comment
@@ -543,19 +383,12 @@ export async function updateBriefContent(
 export async function updateBriefStatus(
   supabase: SupabaseClient,
   userId: string,
+  userEmail: string,
   briefId: string,
   data: UpdateBriefStatusCommand
 ): Promise<UpdateBriefStatusWithCommentResponseDto> {
-  // Check if user has access
-  const { isOwner, brief } = await checkBriefAccess(supabase, userId, briefId);
-
-  if (!brief) {
-    throw new NotFoundError("Brief", briefId);
-  }
-
-  if (isOwner) {
-    throw new ForbiddenError("Brief owners cannot update status directly");
-  }
+  // Require recipient access - throws if user is owner or has no access
+  const { brief } = await requireRecipientAccess(supabase, briefId, userId, userEmail);
 
   // Check if brief status is 'accepted' (cannot change from accepted - final state)
   if (brief.status === "accepted") {
@@ -586,27 +419,11 @@ export async function updateBriefStatus(
     throw new ApiError("DATABASE_ERROR", `Failed to update brief status: ${error?.message || "Unknown error"}`, 500);
   }
 
-  // Log status change to audit trail (non-blocking - don't throw on failure)
-  const { error: auditError } = await supabase.from("audit_log").insert({
-    user_id: userId,
-    action: "brief_status_changed",
-    entity_type: "brief",
-    entity_id: briefId,
-    old_data: {
-      status: brief.status,
-    },
-    new_data: {
-      status: updatedBrief.status,
-      status_changed_at: updatedBrief.status_changed_at,
-      status_changed_by: updatedBrief.status_changed_by,
-    },
+  // Log status change to audit trail (non-blocking)
+  await auditStatusChanged(supabase, userId, briefId, brief.status, updatedBrief.status, {
+    status_changed_at: updatedBrief.status_changed_at,
+    status_changed_by: updatedBrief.status_changed_by,
   });
-
-  if (auditError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Failed to log status change to audit trail:", auditError);
-    // Don't throw - audit log failure shouldn't break the operation
-  }
 
   const response: UpdateBriefStatusWithCommentResponseDto = {
     id: updatedBrief.id,
@@ -655,30 +472,19 @@ export async function deleteBrief(supabase: SupabaseClient, briefId: string, use
   }
 
   // 3. Log audit trail BEFORE deletion (critical for recovery)
-  const { error: auditError } = await supabase.from("audit_log").insert({
-    user_id: userId,
-    action: "brief_deleted",
-    entity_type: "brief",
-    entity_id: brief.id,
-    old_data: {
-      owner_id: brief.owner_id,
-      header: brief.header,
-      content: brief.content,
-      footer: brief.footer,
-      status: brief.status,
-      status_changed_at: brief.status_changed_at,
-      status_changed_by: brief.status_changed_by,
-      comment_count: brief.comment_count,
-      created_at: brief.created_at,
-      updated_at: brief.updated_at,
-    },
+  // Note: For deletion, audit must succeed before proceeding
+  await auditBriefDeleted(supabase, userId, brief.id, {
+    owner_id: brief.owner_id,
+    header: brief.header,
+    content: brief.content,
+    footer: brief.footer,
+    status: brief.status,
+    status_changed_at: brief.status_changed_at,
+    status_changed_by: brief.status_changed_by,
+    comment_count: brief.comment_count,
+    created_at: brief.created_at,
+    updated_at: brief.updated_at,
   });
-
-  if (auditError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Failed to log audit trail:", auditError);
-    throw new ApiError("DATABASE_ERROR", "Failed to log deletion audit trail", 500);
-  }
 
   // 4. Delete brief (cascade will handle brief_recipients and comments)
   const { error: deleteError } = await supabase.from("briefs").delete().eq("id", briefId);
@@ -793,27 +599,15 @@ export async function shareBriefWithRecipient(
     throw new DatabaseError("share brief", insertError.message);
   }
 
-  // Step 6: Log audit trail (non-blocking - don't throw on failure)
-  const { error: auditError } = await supabase.from("audit_log").insert({
-    user_id: ownerId,
-    action: "brief_shared",
-    entity_type: "brief_recipient",
-    entity_id: newRecipient.id,
-    new_data: {
-      brief_id: newRecipient.brief_id,
-      recipient_id: newRecipient.recipient_id,
-      recipient_email: newRecipient.recipient_email,
-      shared_by: newRecipient.shared_by,
-      shared_at: newRecipient.shared_at,
-      user_exists: recipientId !== null,
-    },
+  // Step 6: Log audit trail (non-blocking)
+  await auditBriefShared(supabase, ownerId, newRecipient.id, {
+    brief_id: newRecipient.brief_id,
+    recipient_id: newRecipient.recipient_id,
+    recipient_email: newRecipient.recipient_email,
+    shared_by: newRecipient.shared_by,
+    shared_at: newRecipient.shared_at,
+    user_exists: recipientId !== null,
   });
-
-  if (auditError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Failed to log audit trail:", auditError);
-    // Don't throw - audit log failure shouldn't break the operation
-  }
 
   // Step 7: Return recipient details with email
   return {
@@ -860,15 +654,17 @@ export async function getBriefRecipients(supabase: SupabaseClient, briefId: stri
     return [];
   }
 
-  // Transform to DTOs
-  // recipient_id is null if user hasn't registered yet (pending invitation)
-  return recipients.map((row) => ({
-    id: row.id,
-    recipientId: row.recipient_id || "",
-    recipientEmail: row.recipient_email,
-    sharedBy: row.shared_by,
-    sharedAt: row.shared_at,
-  }));
+  // Transform to DTOs using mapper
+  return recipients.map((row) =>
+    mapRecipientToDto({
+      id: row.id,
+      brief_id: "", // Not needed for DTO, but required by entity type
+      recipient_id: row.recipient_id,
+      recipient_email: row.recipient_email,
+      shared_by: row.shared_by,
+      shared_at: row.shared_at,
+    })
+  );
 }
 
 /**
@@ -882,7 +678,7 @@ export async function getBriefRecipients(supabase: SupabaseClient, briefId: stri
  *
  * @param supabase - Authenticated Supabase client
  * @param briefId - UUID of brief
- * @param recipientId - UUID of recipient to revoke access from
+ * @param recipientRecordId - UUID of the brief_recipients record (primary key)
  * @param ownerId - UUID of authenticated user (must be brief owner)
  *
  * @throws {NotFoundError} Brief not found or user not owner
@@ -892,7 +688,7 @@ export async function getBriefRecipients(supabase: SupabaseClient, briefId: stri
 export async function revokeBriefRecipient(
   supabase: SupabaseClient,
   briefId: string,
-  recipientId: string,
+  recipientRecordId: string,
   ownerId: string
 ): Promise<void> {
   // Guard clause: Verify brief exists and user is owner
@@ -907,16 +703,16 @@ export async function revokeBriefRecipient(
     throw new NotFoundError("Brief", briefId);
   }
 
-  // Guard clause: Verify recipient access exists
+  // Guard clause: Verify recipient access exists (using record ID, not recipient_id)
   const { data: recipientAccess, error: recipientError } = await supabase
     .from("brief_recipients")
-    .select("id, brief_id, recipient_id, shared_by, shared_at")
+    .select("id, brief_id, recipient_id, recipient_email, shared_by, shared_at")
+    .eq("id", recipientRecordId)
     .eq("brief_id", briefId)
-    .eq("recipient_id", recipientId)
     .single();
 
   if (recipientError || !recipientAccess) {
-    throw new NotFoundError("Recipient access", recipientId);
+    throw new NotFoundError("Recipient access", recipientRecordId);
   }
 
   // Count remaining recipients (before deletion)
@@ -933,26 +729,15 @@ export async function revokeBriefRecipient(
 
   const isLastRecipient = count === 1;
 
-  // Log audit trail BEFORE deletion (critical for recovery)
-  const { error: auditError } = await supabase.from("audit_log").insert({
-    user_id: ownerId,
-    action: "brief_unshared",
-    entity_type: "brief_recipient",
-    entity_id: recipientAccess.id,
-    old_data: {
-      brief_id: recipientAccess.brief_id,
-      recipient_id: recipientAccess.recipient_id,
-      shared_by: recipientAccess.shared_by,
-      shared_at: recipientAccess.shared_at,
-      was_last_recipient: isLastRecipient,
-    },
+  // Log audit trail BEFORE deletion (non-blocking for unshare)
+  await auditBriefUnshared(supabase, ownerId, recipientAccess.id, {
+    brief_id: recipientAccess.brief_id,
+    recipient_id: recipientAccess.recipient_id,
+    recipient_email: recipientAccess.recipient_email,
+    shared_by: recipientAccess.shared_by,
+    shared_at: recipientAccess.shared_at,
+    was_last_recipient: isLastRecipient,
   });
-
-  if (auditError) {
-    // eslint-disable-next-line no-console -- Service layer logging for debugging
-    console.error("[brief.service] Failed to log audit trail:", auditError);
-    throw new DatabaseError("log audit trail");
-  }
 
   // Delete recipient access
   const { error: deleteError } = await supabase.from("brief_recipients").delete().eq("id", recipientAccess.id);
@@ -984,53 +769,13 @@ export async function revokeBriefRecipient(
 
   // eslint-disable-next-line no-console -- Service layer logging for debugging
   console.info(
-    `[brief.service] Recipient ${recipientId} access revoked from brief ${briefId} by user ${ownerId}. Last recipient: ${isLastRecipient}`
+    `[brief.service] Recipient record ${recipientRecordId} (${recipientAccess.recipient_email}) revoked from brief ${briefId} by user ${ownerId}. Last recipient: ${isLastRecipient}`
   );
 }
 
 // ============================================================================
 // Helper Functions (Lower-level abstractions)
 // ============================================================================
-
-/**
- * Helper function to check if user has access to a brief (owner or recipient)
- *
- * @param supabase - Supabase client instance
- * @param userId - Current user's UUID from auth
- * @param briefId - UUID of the brief to check
- * @returns Object with isOwner flag and brief data (owner_id, status), or null if not found
- */
-export async function checkBriefAccess(
-  supabase: SupabaseClient,
-  userId: string,
-  briefId: string
-): Promise<{ isOwner: boolean; brief: { owner_id: string; status: string } | null }> {
-  // Check if user is owner
-  const { data: brief, error } = await supabase.from("briefs").select("owner_id, status").eq("id", briefId).single();
-
-  if (error || !brief) {
-    return { isOwner: false, brief: null };
-  }
-
-  const isOwner = brief.owner_id === userId;
-  if (isOwner) {
-    return { isOwner: true, brief };
-  }
-
-  // Check if user is recipient
-  const { data: recipient } = await supabase
-    .from("brief_recipients")
-    .select("id")
-    .eq("brief_id", briefId)
-    .eq("recipient_id", userId)
-    .single();
-
-  if (recipient) {
-    return { isOwner: false, brief };
-  }
-
-  return { isOwner: false, brief: null };
-}
 
 /**
  * Helper function to create comment for status update
@@ -1065,20 +810,54 @@ export async function createCommentForStatusUpdate(
     throw new ApiError("DATABASE_ERROR", `Failed to create comment: ${commentError?.message || "Unknown error"}`, 500);
   }
 
-  // Get author profile for role
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", authorId).single();
+  // Get author info using utility (email + role in fewer queries)
+  const authorInfo = await getAuthorInfo(supabase, authorId);
 
-  // Get author email from auth.users (via RPC or separate query)
-  const { data: userData } = await supabase.auth.admin.getUserById(authorId);
+  // Use mapper for comment DTO
+  return mapCommentToDto(comment, authorInfo.email, authorInfo.role, authorId);
+}
 
-  return {
-    id: comment.id,
-    briefId: comment.brief_id,
-    authorId: comment.author_id,
-    authorEmail: userData.user?.email || "",
-    authorRole: profile?.role || "client",
-    content: comment.content,
-    isOwn: true,
-    createdAt: comment.created_at,
-  };
+/**
+ * Updates recipient_id for pending invitations matching user's email
+ *
+ * This function should be called after user login to ensure that
+ * any briefs shared with the user's email before registration
+ * have their recipient_id updated.
+ *
+ * This is a fallback mechanism in case the database trigger
+ * (auto_update_recipient_id) didn't fire or doesn't exist.
+ *
+ * @param supabase - Supabase client instance
+ * @param userId - Current user's UUID from auth
+ * @param userEmail - Current user's email from auth
+ * @returns Number of updated recipient records
+ */
+export async function updatePendingRecipients(
+  supabase: SupabaseClient,
+  userId: string,
+  userEmail: string
+): Promise<number> {
+  // Update recipient_id for pending invitations matching user's email
+  const { data, error } = await supabase
+    .from("brief_recipients")
+    .update({ recipient_id: userId })
+    .eq("recipient_email", userEmail)
+    .is("recipient_id", null)
+    .select("id");
+
+  if (error) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.error("[brief.service] Failed to update pending recipients:", error);
+    // Don't throw - this is a non-critical operation
+    return 0;
+  }
+
+  const updatedCount = data?.length || 0;
+
+  if (updatedCount > 0) {
+    // eslint-disable-next-line no-console -- Service layer logging for debugging
+    console.info(`[brief.service] Updated ${updatedCount} pending recipient(s) for user ${userId} (${userEmail})`);
+  }
+
+  return updatedCount;
 }

@@ -739,3 +739,169 @@ CREATE EXTENSION IF NOT EXISTS "moddatetime";    -- Auto-update updated_at
 - Monitor trigger execution time (especially comment count updates)
 - Review RLS policy performance under load
 - Consider materialized view for dashboard metrics (post-MVP)
+
+---
+
+## Implementation Extensions (Migrations 2025-12-20)
+
+The actual database migrations extend the original plan with additional features for pending invitations and performance optimizations. All extensions maintain backward compatibility with the original design.
+
+### Extended Table: brief_recipients
+
+The `brief_recipients` table has been extended to support **pending invitations** - sharing briefs with users who haven't registered yet.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY DEFAULT gen_random_uuid() | Unique recipient record ID |
+| brief_id | UUID | NOT NULL, REFERENCES briefs(id) ON DELETE CASCADE | Brief being shared |
+| recipient_id | UUID | **NULLABLE**, REFERENCES auth.users(id) ON DELETE CASCADE | User receiving access (**NULL for pending invitations**) |
+| **recipient_email** | TEXT | **NOT NULL** | **Email address of recipient (required)** |
+| shared_by | UUID | NOT NULL, REFERENCES auth.users(id) ON DELETE CASCADE | Who shared the brief |
+| shared_at | TIMESTAMPTZ | NOT NULL DEFAULT NOW() | When access was granted |
+
+**Extended Constraints:**
+- UNIQUE: `(brief_id, recipient_email)` - prevents duplicate shares to same email
+- CHECK: `recipient_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'` - email format validation
+
+**Additional Index:**
+- Index on `recipient_email` for finding briefs shared with a specific email
+
+### Additional Helper Functions
+
+#### get_current_user_email()
+```sql
+CREATE FUNCTION get_current_user_email()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  RETURN (SELECT email FROM auth.users WHERE id = auth.uid());
+END;
+$$;
+```
+**Purpose:** Returns the email of the currently authenticated user. Used by RLS policies to check access by email in addition to user ID.
+
+#### Extended user_has_brief_access()
+The original function has been extended to check both `recipient_id` and `recipient_email`:
+```sql
+CREATE FUNCTION user_has_brief_access(brief_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  current_user_id UUID;
+  current_user_email TEXT;
+BEGIN
+  current_user_id := auth.uid();
+  current_user_email := public.get_current_user_email();
+
+  RETURN EXISTS (
+    SELECT 1 FROM public.briefs
+    WHERE id = brief_id AND owner_id = current_user_id
+
+    UNION
+
+    SELECT 1 FROM public.brief_recipients
+    WHERE brief_recipients.brief_id = user_has_brief_access.brief_id
+      AND (recipient_id = current_user_id OR recipient_email = current_user_email)
+  );
+END;
+$$;
+```
+
+### Additional Trigger: auto_update_recipient_id
+
+**Purpose:** Automatically fills `recipient_id` when a user registers with an email that has pending invitations
+**Table:** `auth.users`
+**Timing:** AFTER INSERT
+**Logic:**
+```sql
+CREATE FUNCTION auto_update_recipient_id()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  UPDATE public.brief_recipients
+  SET recipient_id = NEW.id
+  WHERE recipient_email = NEW.email
+    AND recipient_id IS NULL;
+  RETURN NEW;
+END;
+$$;
+```
+
+### Additional RLS Policies
+
+#### brief_recipients_select_as_recipient
+```sql
+CREATE POLICY brief_recipients_select_as_recipient
+  ON brief_recipients
+  FOR SELECT
+  TO authenticated
+  USING (
+    recipient_id = (SELECT auth.uid()) OR
+    recipient_email = get_current_user_email()
+  );
+```
+**Purpose:** Recipients can view their own recipient records by `recipient_id` or `recipient_email`
+
+#### brief_recipients_update_claim_invitation
+```sql
+CREATE POLICY brief_recipients_update_claim_invitation
+  ON brief_recipients
+  FOR UPDATE
+  TO authenticated
+  USING (
+    recipient_email = (SELECT email FROM auth.users WHERE id = (SELECT auth.uid())) AND
+    recipient_id IS NULL
+  )
+  WITH CHECK (
+    recipient_id = (SELECT auth.uid()) AND
+    recipient_email = (SELECT email FROM auth.users WHERE id = (SELECT auth.uid()))
+  );
+```
+**Purpose:** Users can claim pending invitations by setting `recipient_id` when their email matches
+
+### RLS Performance Optimization
+
+All RLS policies use `(SELECT auth.uid())` instead of `auth.uid()` directly. This ensures the authentication function is evaluated only once per query instead of once per row, significantly improving performance for large datasets.
+
+**Example:**
+```sql
+-- Optimized (single evaluation)
+USING ((SELECT auth.uid()) = id)
+
+-- Original (evaluated per row)
+USING (auth.uid() = id)
+```
+
+### Modified audit_log Policy
+
+**Original Plan:**
+- `audit_log_select_admin_only` with rule `FALSE`
+
+**Implementation:**
+- `audit_log_select_own` with rule `user_id = (SELECT auth.uid())`
+
+**Rationale:** Users can view their own audit trail for GDPR compliance (Right to Access), while still preventing access to other users' audit records.
+
+---
+
+## Migration File Structure (Updated)
+
+The migrations use timestamp-based naming for proper ordering:
+
+1. `20251220200000_extensions.sql` - Enable PostgreSQL extensions
+2. `20251220200001_create_enums.sql` - Create all ENUM types
+3. `20251220200002_create_tables.sql` - Create all tables with constraints (includes `recipient_email`)
+4. `20251220200003_create_indexes.sql` - Create all indexes (includes `recipient_email` index)
+5. `20251220200004_create_functions.sql` - Create helper functions (includes extended `user_has_brief_access`)
+6. `20251220200005_create_triggers.sql` - Create all triggers (includes `auto_update_recipient_id`)
+7. `20251220200006_create_rls_policies.sql` - Enable RLS and create policies (includes email-based policies)
+8. `20251220200007_seed_data.sql` (optional) - Initial test data

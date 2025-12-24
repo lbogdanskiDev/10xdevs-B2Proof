@@ -1,28 +1,8 @@
 import type { JSONContent, Editor } from "@tiptap/react";
-import type { BriefDetailDto } from "@/types";
 
-/**
- * Form state for creating a brief
- */
-export interface CreateBriefFormState {
-  header: string;
-  content: JSONContent | null;
-  footer: string;
-  contentCharCount: number;
-  isDirty: boolean;
-  isSubmitting: boolean;
-  errors: FieldErrors;
-}
-
-/**
- * Validation errors for form fields
- */
-export interface FieldErrors {
-  header?: string;
-  content?: string;
-  footer?: string;
-  general?: string;
-}
+// ============================================================================
+// Component Props (Create Brief specific)
+// ============================================================================
 
 /**
  * Props for form header component
@@ -78,14 +58,4 @@ export interface UnsavedChangesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
-}
-
-/**
- * Result of create brief operation
- */
-export interface CreateBriefResult {
-  success: boolean;
-  data?: BriefDetailDto;
-  error?: string;
-  fieldErrors?: FieldErrors;
 }

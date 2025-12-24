@@ -40,8 +40,8 @@ export interface DeleteAccountDialogProps {
 }
 
 /**
- * Props for DangerZoneCard component
+ * Props for DeleteAccountSection component
  */
-export interface DangerZoneCardProps {
+export interface DeleteAccountSectionProps {
   userEmail: string;
 }

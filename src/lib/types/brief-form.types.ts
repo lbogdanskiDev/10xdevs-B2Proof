@@ -1,6 +1,10 @@
 import type { JSONContent } from "@tiptap/react";
 import type { BriefDetailDto, BriefStatus } from "@/types";
 
+// ============================================================================
+// Form Data
+// ============================================================================
+
 /**
  * Form mode for create/edit brief
  */
@@ -15,8 +19,13 @@ export interface BriefFormData {
   footer: string;
 }
 
+// ============================================================================
+// Form Errors (unified)
+// ============================================================================
+
 /**
- * Field validation errors
+ * Field-level validation errors for brief forms
+ * Used by both create and edit forms
  */
 export interface BriefFormErrors {
   header?: string;
@@ -24,6 +33,10 @@ export interface BriefFormErrors {
   footer?: string;
   general?: string;
 }
+
+// ============================================================================
+// Form State
+// ============================================================================
 
 /**
  * Form state with validation
@@ -36,6 +49,10 @@ export interface BriefFormState {
   errors: BriefFormErrors;
 }
 
+// ============================================================================
+// Initial Data
+// ============================================================================
+
 /**
  * Initial data for editing a brief
  */
@@ -47,15 +64,24 @@ export interface EditBriefInitialData {
   status: BriefStatus;
 }
 
+// ============================================================================
+// Form Results (unified)
+// ============================================================================
+
 /**
- * Result of brief save operation (create or update)
+ * Result of brief form submission (create or update)
+ * Unified type for consistent result handling across create and edit flows
  */
-export interface BriefSaveResult {
+export interface BriefFormResult {
   success: boolean;
   data?: BriefDetailDto;
   error?: string;
   fieldErrors?: BriefFormErrors;
 }
+
+// ============================================================================
+// Component Props
+// ============================================================================
 
 /**
  * Props for StatusResetAlertDialog component
@@ -73,6 +99,10 @@ export interface StatusResetAlertDialogProps {
 export interface EditBriefClientProps {
   brief: BriefDetailDto;
 }
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
 
 /**
  * Convert BriefDetailDto to EditBriefInitialData

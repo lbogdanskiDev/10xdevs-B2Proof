@@ -130,6 +130,55 @@ const { data: { user } } = await supabase.auth.getUser()
 
 ---
 
+### 3.3 Advanced Authentication Features
+
+#### Single Session Enforcement
+
+**Implementation**: Enforces single active session per user account
+
+**How it works:**
+- When user logs in, all other sessions are automatically invalidated
+- Implemented via `signOut({ scope: 'others' })` in Server Actions
+- Prevents concurrent sessions from multiple devices/browsers
+- Ensures security and proper session management
+
+**Implementation Details:**
+```typescript
+// In auth.actions.ts
+await adminClient.auth.signOut({ scope: 'others' })
+```
+
+#### Pending Invitations Auto-Update
+
+**Implementation**: Automatically links pending invitations when invited user registers
+
+**How it works:**
+1. Brief can be shared with unregistered user via email (`recipient_email` field)
+2. When user with that email registers, trigger `update_pending_recipients` runs
+3. System automatically populates `recipient_id` for all pending invitations
+4. User immediately gets access to briefs shared with them before registration
+
+**Implementation Details:**
+- Database trigger: `update_pending_recipients` on `profiles` table insert
+- Updates `brief_recipients` where `recipient_email` matches new user's email
+- Logs update to audit trail
+
+#### Admin Supabase Client
+
+**Implementation**: Service role client for privileged operations
+
+**Usage:**
+- Account deletion operations
+- Session management (signOut with scope: 'others')
+- Bypassing RLS for administrative tasks
+
+**Security:**
+- Uses `SUPABASE_SERVICE_ROLE_KEY` (server-side only, never exposed to client)
+- Created in `supabase.server.ts` as `createSupabaseAdminClient()`
+- Used only for operations that require elevated privileges
+
+---
+
 ## 4. User Profile Endpoints
 
 ### 4.1 Get Current User Profile ✅ IMPLEMENTED
@@ -142,10 +191,10 @@ Retrieve authenticated user's profile.
 - ✅ Route Handler: [src/app/api/users/me/route.ts](../src/app/api/users/me/route.ts)
 - ✅ Service Layer: [src/lib/services/user.service.ts](../src/lib/services/user.service.ts)
 - ✅ Error Handling: Custom ApiError classes in [src/lib/errors/](../src/lib/errors/)
-- ⚠️ **Development Mode**: Currently returns DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Success Response (200 OK):**
 ```json
@@ -216,10 +265,10 @@ Retrieve paginated list of briefs (owned and shared with user).
 - ✅ Route Handler: [src/app/api/briefs/route.ts](../src/app/api/briefs/route.ts)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefs`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefQuerySchema`)
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Query Parameters:**
 - `page`: Number (default: 1) - Page number
@@ -274,10 +323,10 @@ Retrieve full details of a specific brief.
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefById`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
 - ✅ Authorization: Enforces owner or recipient access
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -339,10 +388,10 @@ Create a new brief (creators only).
 - ✅ Error Handling: Custom ApiError classes with proper status codes
 - ✅ Business Rules: Role verification (creators only), 20 brief limit enforcement
 - ✅ Audit Trail: Logs `brief_created` action to audit_log table
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Request Body:**
 ```json
@@ -423,10 +472,10 @@ Update brief content and metadata (owner only). Automatically resets status to '
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`updateBrief`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`UpdateBriefSchema`)
 - ✅ Authorization: Enforces owner-only access
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -524,10 +573,10 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`updateBriefStatus`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`UpdateBriefStatusSchema`)
 - ✅ Authorization: Enforces client access (recipient only, not owner)
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -634,10 +683,10 @@ Permanently delete a brief (owner only).
 - ✅ Authorization: Enforces owner-only access
 - ✅ Audit Trail: Creates audit log entry before deletion
 - ✅ Cascade Deletion: Automatically removes comments and recipients via database constraints
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -671,7 +720,7 @@ Retrieve list of users with access to the brief (owner only).
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
 - ✅ Authorization: Enforces owner-only access in route handler
 - ✅ Email Retrieval: Uses `supabase.auth.admin.getUserById()` with parallel execution
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
 - Authorization check performed in route handler (not service layer)
@@ -681,7 +730,7 @@ Retrieve list of users with access to the brief (owner only).
 - Results ordered by `shared_at DESC` (most recent first)
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -732,8 +781,14 @@ Retrieve list of users with access to the brief (owner only).
 
 Share brief with a user by email (owner only, max 10 recipients, changes status to 'sent').
 
+**Implementation Status:**
+- ✅ Route Handler: [src/app/api/briefs/[id]/recipients/route.ts](../src/app/api/briefs/[id]/recipients/route.ts)
+- ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`shareBriefWithRecipient`)
+- ✅ Pending Invitations: Supports sharing with unregistered users via `recipient_email`
+- ✅ Auto-Update: When invited user registers, `recipient_id` is automatically populated
+
 **Headers:**
-- `Authorization: Bearer {token}`
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -746,7 +801,8 @@ Share brief with a user by email (owner only, max 10 recipients, changes status 
 ```
 
 **Validation:**
-- `email`: Required, valid email format, user must exist in system
+- `email`: Required, valid email format
+- User does not need to exist in system (supports pending invitations)
 
 **Success Response (201 Created):**
 ```json
@@ -761,10 +817,10 @@ Share brief with a user by email (owner only, max 10 recipients, changes status 
 ```
 
 **Error Responses:**
-- `400 Bad Request`: Invalid email or user not found
+- `400 Bad Request`: Invalid email format
   ```json
   {
-    "error": "User with email 'client@example.com' not found"
+    "error": "Invalid email format"
   }
   ```
 - `401 Unauthorized`: Invalid or expired token
@@ -863,7 +919,7 @@ Retrieve paginated comments for a brief (users with access only).
 - ✅ Validation Schema: [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts) (`getCommentsQuerySchema`)
 - ✅ Authorization: Enforces owner or recipient access (checked in service layer)
 - ✅ Pagination: Supports custom page/limit with denormalized comment_count
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
 - Access control performed in service layer (verifies ownership or recipient status via database queries)
@@ -873,7 +929,7 @@ Retrieve paginated comments for a brief (users with access only).
 - `isOwn` flag indicates if comment belongs to requesting user
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -954,7 +1010,7 @@ Add a comment to a brief (users with access only).
 - ✅ Authorization: Enforces owner or recipient access (checked in service layer)
 - ✅ Comment Count Increment: Automatically increments `comment_count` on brief
 - ✅ Audit Trail: Creates audit log entry with `comment_created` action
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
 - Access control performed in service layer (verifies ownership or recipient status via database queries)
@@ -964,7 +1020,7 @@ Add a comment to a brief (users with access only).
 - Email and role fetched from `auth.users` and `profiles` tables for response DTO
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Brief identifier
@@ -1046,7 +1102,7 @@ Delete own comment (author only). Updates brief's comment_count and creates audi
 - ✅ Authorization: Enforces author-only deletion (checked in service layer)
 - ✅ Comment Count Decrement: Automatically decrements `comment_count` on brief
 - ✅ Audit Trail: Creates audit log entry with `delete` action and old_data
-- ⚠️ **Development Mode**: Currently uses DEFAULT_USER_PROFILE (auth not implemented yet)
+- ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
 - Authorization check performed in service layer (verifies authorship via database query)
@@ -1057,7 +1113,7 @@ Delete own comment (author only). Updates brief's comment_count and creates audi
 - Non-critical errors (audit log, comment count) are logged but don't fail the operation
 
 **Headers:**
-- `Authorization: Bearer {token}` (not validated in development mode)
+- `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
 - `id`: UUID - Comment identifier
@@ -1522,7 +1578,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
      - `DatabaseError` (500) - Database operations
      - `ConflictError` (409) - Resource conflicts
    - ✅ `userService.ts` - User profile operations
-     - `getUserProfile()` - Development mode with DEFAULT_USER_PROFILE
+     - `getUserProfile()` - Fully implemented with Supabase Auth
      - `deleteUserAccount()` - Account deletion with audit trail and cascading deletes
    - ✅ `briefService.ts` - Brief read operations (`getBriefs`, `getBriefById`) implemented
    - ✅ `briefService.ts` - Brief create operation (`createBrief`) implemented with role check and limit enforcement

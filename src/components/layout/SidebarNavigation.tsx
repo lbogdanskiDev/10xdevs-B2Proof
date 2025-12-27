@@ -29,7 +29,10 @@ export function SidebarNavigation({ items, userRole, briefCount, maxBriefs, onNa
     <nav aria-label="Main navigation">
       <ul className="flex flex-col gap-1">
         {visibleItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive =
+            pathname === item.href ||
+            (pathname.startsWith(`${item.href}/`) &&
+              !visibleItems.some((other) => other !== item && pathname.startsWith(other.href)));
           const isNewBrief = item.name === "New Brief";
 
           return (

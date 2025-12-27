@@ -191,7 +191,7 @@ Title: Deleting Brief
 Description: As a creator I want to be able to delete a brief to free up space for new briefs within the limit
 Acceptance Criteria:
 
-- Delete button available on brief list and in detail view
+- Delete button available in detail view
 - System displays confirmation modal before deletion
 - Brief is permanently deleted from system (hard delete)
 - Brief deletion also deletes all related comments
@@ -209,7 +209,6 @@ Acceptance Criteria:
 - Visual distinction between own and shared briefs (label)
 - Ability to navigate to brief details by clicking
 - Create brief button available on brief list
-- Edit and Delete specific brief buttons available on brief list
 
 ### US-007
 
@@ -354,7 +353,6 @@ Acceptance Criteria:
 
 - Navigation menu with options: Brief List, New Brief (for creators), Profile, Logout
 - Logo/application name leads to brief list
-- Breadcrumbs showing current location
 - Responsive menu for mobile devices
 
 ### US-019

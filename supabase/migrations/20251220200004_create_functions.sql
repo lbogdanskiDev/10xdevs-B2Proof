@@ -98,6 +98,30 @@ comment on function get_user_by_email is 'Looks up user by email from auth.users
 -- grant execute to authenticated users
 grant execute on function get_user_by_email(text) to authenticated;
 
+-- ----------------------------------------------------------------------------
+-- is_current_user_creator
+-- checks if the current authenticated user has the 'creator' role
+-- security definer to bypass rls on profiles table during policy evaluation
+-- ----------------------------------------------------------------------------
+create or replace function is_current_user_creator()
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  return exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'creator'
+  );
+end;
+$$;
+
+comment on function is_current_user_creator is 'Returns true if current user has creator role (SECURITY DEFINER to bypass RLS)';
+
+-- grant execute to authenticated users
+grant execute on function is_current_user_creator() to authenticated;
+
 -- ============================================================================
 -- trigger functions
 -- ============================================================================

@@ -68,23 +68,28 @@ comment on policy profiles_delete_own on profiles is 'Users can delete their own
 -- ============================================================================
 
 -- users can view briefs they own or have been granted access to
--- uses user_has_brief_access function which checks both owner_id and recipient access
+-- direct owner check first (for INSERT...RETURNING), then falls back to user_has_brief_access
 create policy briefs_select_accessible
   on briefs
   for select
   to authenticated
-  using (user_has_brief_access(id));
+  using (
+    owner_id = (select auth.uid())
+    or
+    user_has_brief_access(id)
+  );
 
 comment on policy briefs_select_accessible on briefs is 'Users can view briefs they own or have access to (via recipient_id or recipient_email)';
 
 -- only creators can insert briefs
+-- uses is_current_user_creator() which is SECURITY DEFINER to bypass RLS on profiles
 create policy briefs_insert_creators_only
   on briefs
   for insert
   to authenticated
   with check (
-    (select auth.uid()) = owner_id and
-    (select role from profiles where id = (select auth.uid())) = 'creator'
+    owner_id = (select auth.uid()) and
+    is_current_user_creator()
   );
 
 comment on policy briefs_insert_creators_only on briefs is 'Only users with creator role can create new briefs';

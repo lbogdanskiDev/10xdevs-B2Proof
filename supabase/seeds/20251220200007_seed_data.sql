@@ -116,10 +116,18 @@ values
   )
 on conflict (id) do nothing;
 
--- update profiles for test users
--- note: profiles are created automatically by trigger from raw_user_meta_data
--- but we need to ensure correct roles are set (trigger reads from metadata)
-update profiles set role = 'creator' where id = '00000000-0000-0000-0000-000000000000'::uuid;
+-- ============================================================================
+-- test profiles
+-- ============================================================================
+
+-- insert profiles for test users
+-- note: trigger may not fire with ON CONFLICT DO NOTHING, so we insert explicitly
+insert into profiles (id, role, created_at, updated_at)
+values
+  ('00000000-0000-0000-0000-000000000000'::uuid, 'creator', now(), now()),
+  ('11111111-1111-1111-1111-111111111111'::uuid, 'client', now(), now()),
+  ('22222222-2222-2222-2222-222222222222'::uuid, 'client', now(), now())
+on conflict (id) do update set role = excluded.role;
 
 -- ============================================================================
 -- test briefs

@@ -83,3 +83,53 @@ Native integration with GitHub repo (zero setup). Pipeline: Lint → Type Check 
 
 ### Vercel
 Best Next.js integration (framework creators). Global Edge Network CDN, instant deployments (~30s), preview URLs for each PR, automatic HTTPS, Web Vitals monitoring. Free tier sufficient for MVP.
+
+---
+
+## Testing
+
+### Unit & Integration Testing
+
+#### Vitest (v4.0+)
+Fast test runner with native TypeScript support. Compatible with Jest API, built-in code coverage (v8), watch mode, parallel test execution. Preferred over Jest for Vite/Next.js projects due to faster execution and better ESM support.
+
+**Configuration:** Uses `vmThreads` pool and `v8` coverage provider for stable execution on Windows with ESM modules.
+
+#### @testing-library/react
+Component testing utilities focused on user behavior. Encourages accessible queries (getByRole, getByLabelText), avoids testing implementation details, works with React 19 and Server Components.
+
+#### msw (Mock Service Worker)
+API mocking at the network level. Intercepts requests in browser and Node.js, realistic testing without backend dependencies, reusable handlers for integration tests.
+
+### End-to-End Testing
+
+#### Playwright
+Cross-browser E2E testing framework by Microsoft. Supports Chromium, Firefox, WebKit (Safari), auto-waiting for elements, parallel test execution, built-in test runner (@playwright/test), trace viewer for debugging, screenshot/video recording.
+
+**E2E Test Coverage:**
+- All 22 user stories from PRD
+- Critical user journeys (authentication, brief management, sharing)
+- Role-specific workflows (Creator vs Client)
+
+### Accessibility Testing
+
+#### axe-core
+Automated accessibility testing engine. WCAG 2.1 AA compliance checking, integrates with Playwright and Testing Library, catches common accessibility issues.
+
+#### @testing-library/jest-dom
+Custom Jest/Vitest matchers for DOM assertions. Readable assertions (toBeVisible, toHaveAccessibleName), accessibility-focused matchers.
+
+### Coverage Reporting
+
+#### c8 / istanbul
+Code coverage metrics collection. Statement, branch, function, and line coverage, integrates with Vitest, generates HTML/LCOV reports.
+
+#### Codecov
+Coverage reporting in CI/CD. PR comments with coverage changes, historical tracking, coverage badges.
+
+**Coverage Targets:**
+| Metric | Target |
+|--------|--------|
+| Unit Test Coverage | ≥80% for services and utilities |
+| Integration Test Coverage | 100% of API endpoints |
+| Critical Path E2E Coverage | 100% of user stories |

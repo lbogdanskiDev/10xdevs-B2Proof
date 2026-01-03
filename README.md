@@ -118,6 +118,127 @@ The project uses:
 - **Husky + lint-staged** for pre-commit checks
 - **TypeScript** strict mode for type safety
 
+### Testing
+
+This project uses a comprehensive testing stack with Vitest 4.x and Playwright for ensuring code quality and reliability.
+
+#### Testing Stack
+
+- **Vitest 4.0+** - Unit & integration testing (using `vmThreads` pool for Windows compatibility)
+- **@testing-library/react** - Component testing utilities
+- **Playwright** - Cross-browser E2E testing framework
+- **MSW** (Mock Service Worker) - API mocking for integration tests
+- **axe-core** - Automated accessibility testing
+- **@testing-library/jest-dom** - DOM assertions
+
+#### Test Commands
+
+```bash
+# Unit tests
+npm run test                # Run once
+npm run test:watch          # Watch mode
+npm run test:ui             # UI mode
+npm run test:coverage       # With coverage report
+
+# E2E tests
+npm run test:e2e            # Run once
+npm run test:e2e:ui         # UI mode
+npm run test:e2e:debug      # Debug mode
+npm run test:e2e:report     # Show report
+
+# All tests
+npm run test:all            # Run both unit and E2E
+```
+
+#### Test File Structure
+
+```
+.
+├── src/
+│   ├── test/                          # Test utilities
+│   │   ├── setup.ts                   # Global test setup
+│   │   ├── mocks/                     # MSW handlers
+│   │   └── utils/                     # Test helpers
+│   ├── **/*.test.ts(x)                # Unit tests
+│   └── components/ui/*.test.tsx       # Component tests
+├── e2e/                               # E2E tests
+│   ├── fixtures/                      # Playwright fixtures
+│   └── **/*.spec.ts                   # E2E test files
+├── vitest.config.ts                   # Vitest configuration
+└── playwright.config.ts               # Playwright configuration
+```
+
+#### Coverage Targets
+
+| Type | Target |
+|------|--------|
+| Unit Tests | ≥80% for services and utilities |
+| Integration Tests | 100% of API endpoints |
+| E2E Tests | 100% of user stories |
+
+#### Example Tests
+
+**Unit Test:**
+```typescript
+import { describe, it, expect } from 'vitest';
+import { myFunction } from './utils';
+
+describe('myFunction', () => {
+  it('should return expected result', () => {
+    expect(myFunction(input)).toBe(expected);
+  });
+});
+```
+
+**Component Test:**
+```typescript
+import { render, screen } from '@/test/utils/test-utils';
+import { MyComponent } from './MyComponent';
+
+describe('MyComponent', () => {
+  it('should render correctly', async () => {
+    const { user } = render(<MyComponent />);
+
+    await user.click(screen.getByRole('button'));
+
+    expect(screen.getByText('Success')).toBeVisible();
+  });
+});
+```
+
+**E2E Test:**
+```typescript
+import { test, expect } from './fixtures/base';
+
+test('should complete user flow', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Start' }).click();
+
+  await expect(page).toHaveURL('/success');
+});
+```
+
+#### Important Notes
+
+This project uses **Vitest 4.x** with the `vmThreads` pool for optimal compatibility with Windows and ESM modules:
+
+```typescript
+test: {
+  pool: 'vmThreads',  // Stable execution on Windows
+  isolate: true,      // Test isolation
+  globals: true,      // Global test APIs
+}
+```
+
+#### Troubleshooting
+
+- **Tests Not Running**: Ensure Vitest 4.x is installed and `pool: 'vmThreads'` is set in vitest.config.ts
+- **E2E Tests Timeout**: Increase timeout in playwright.config.ts or check if dev server is running on port 3000
+- **Coverage Not Generated**: Run `npm run test:coverage` and check reports in `./coverage/` directory
+
+For comprehensive testing guidelines, see [.docs/testing-guide.md](.docs/testing-guide.md)
+
 Pre-commit hooks automatically run on staged files:
 - `*.{ts,tsx,js,jsx}`: ESLint fix + Prettier
 - `*.{json,css,md,mdx}`: Prettier

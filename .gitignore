@@ -23,6 +23,13 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
+# test coverage
+coverage/
+.nyc_output/
+
+# test reports
+playwright-report/
+test-results/
 
 tsconfig.tsbuildinfo
 .claude/settings.local.json

@@ -1,6 +1,6 @@
-import { render, RenderOptions } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { ReactElement, ReactNode } from 'react';
+import { render, RenderOptions } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { ReactElement, ReactNode } from "react";
 
 /**
  * Custom render function with providers
@@ -17,10 +17,7 @@ function AllProviders({ children }: AllProvidersProps) {
 /**
  * Custom render method that includes all providers and user-event
  */
-function customRender(
-  ui: ReactElement,
-  options?: Omit<RenderOptions, 'wrapper'>
-) {
+function customRender(ui: ReactElement, options?: Omit<RenderOptions, "wrapper">) {
   return {
     user: userEvent.setup(),
     ...render(ui, { wrapper: AllProviders, ...options }),
@@ -28,5 +25,5 @@ function customRender(
 }
 
 // Re-export everything from testing-library
-export * from '@testing-library/react';
+export * from "@testing-library/react";
 export { customRender as render };

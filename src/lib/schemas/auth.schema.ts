@@ -7,8 +7,16 @@ import { AUTH_CONSTANTS } from "@/lib/constants/auth.constants";
  * Used by loginAction Server Action
  */
 export const loginSchema = z.object({
-  email: z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT),
-  password: z.string().min(1, AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRED),
+  email: z
+    .string({ required_error: AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED })
+    .nullable()
+    .transform((val) => val ?? "")
+    .pipe(z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT)),
+  password: z
+    .string({ required_error: AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRED })
+    .nullable()
+    .transform((val) => val ?? "")
+    .pipe(z.string().min(1, AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRED)),
 });
 
 /**
@@ -22,14 +30,29 @@ export type LoginInput = z.infer<typeof loginSchema>;
  * Note: confirmPassword is validated client-side only, not sent to server
  */
 export const registerSchema = z.object({
-  email: z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT),
+  email: z
+    .string({ required_error: AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED })
+    .nullable()
+    .transform((val) => val ?? "")
+    .pipe(z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT)),
   password: z
-    .string()
-    .min(AUTH_CONSTANTS.PASSWORD_MIN_LENGTH, AUTH_CONSTANTS.MESSAGES.PASSWORD_MIN_LENGTH)
-    .regex(/\d/, AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRE_DIGIT),
-  role: z.enum(["creator", "client"], {
-    required_error: AUTH_CONSTANTS.MESSAGES.SELECT_ACCOUNT_TYPE,
-  }),
+    .string({ required_error: AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRED })
+    .nullable()
+    .transform((val) => val ?? "")
+    .pipe(
+      z
+        .string()
+        .min(AUTH_CONSTANTS.PASSWORD_MIN_LENGTH, AUTH_CONSTANTS.MESSAGES.PASSWORD_MIN_LENGTH)
+        .regex(/\d/, AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRE_DIGIT)
+    ),
+  role: z
+    .enum(["creator", "client"], {
+      errorMap: () => ({ message: AUTH_CONSTANTS.MESSAGES.SELECT_ACCOUNT_TYPE }),
+    })
+    .nullable()
+    .refine((val) => val !== null, {
+      message: AUTH_CONSTANTS.MESSAGES.SELECT_ACCOUNT_TYPE,
+    }),
 });
 
 /**

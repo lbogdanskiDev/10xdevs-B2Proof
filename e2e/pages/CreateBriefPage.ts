@@ -56,8 +56,10 @@ export class CreateBriefPage {
   async fillContent(content: string) {
     // Click to focus the editor first
     await this.contentEditor.click();
-    // Type the content
-    await this.contentEditor.fill(content);
+    // Clear existing content
+    await this.contentEditor.clear();
+    // Type the content (use type instead of fill for contenteditable)
+    await this.contentEditor.type(content);
   }
 
   /**
@@ -88,7 +90,8 @@ export class CreateBriefPage {
   async clickSave() {
     await this.saveButton.click();
     // Wait for redirect to brief detail page after successful creation
-    await this.page.waitForURL("**/briefs/*", { waitUntil: "networkidle" });
+    // Use regex to match UUID pattern and exclude /briefs/new
+    await this.page.waitForURL(/\/briefs\/[a-f0-9-]+$/, { waitUntil: "networkidle" });
   }
 
   /**

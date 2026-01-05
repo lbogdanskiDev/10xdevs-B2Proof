@@ -228,16 +228,17 @@ flowchart TD
 
 ## Legend
 
-| Color | Component Type |
-|-------|----------------|
-| 🟢 Green | Layout Components |
-| 🔵 Blue | Server Components |
-| 🟠 Orange | Client Components |
+| Color     | Component Type                   |
+| --------- | -------------------------------- |
+| 🟢 Green  | Layout Components                |
+| 🔵 Blue   | Server Components                |
+| 🟠 Orange | Client Components                |
 | 🟣 Purple | Shared UI Components (Shadcn/ui) |
 
 ## Component Descriptions
 
 ### Authentication Module
+
 - **AuthLayout**: Server layout for public auth pages without main navigation
 - **LoginForm**: Client component handling email/password login with validation
 - **RegisterForm**: Client component with role selection (creator/client)
@@ -246,6 +247,7 @@ flowchart TD
 - **RoleSelector**: Radio button group for role selection
 
 ### Brief Management
+
 - **BriefList**: Server component displaying paginated brief cards
 - **BriefCard**: Server component showing brief summary with status badge
 - **BriefForm**: Client component with TipTap WYSIWYG editor
@@ -253,15 +255,18 @@ flowchart TD
 - **StatusResetWarning**: Modal warning about status reset on edit
 
 ### Sharing System
+
 - **ShareSection**: Container for sharing functionality (creator only)
 - **ShareDialog**: Modal for adding recipients by email
 - **RecipientsList**: List of current recipients with remove access option
 
 ### Comment System
+
 - **CommentSection**: Container for comments with form and list
 - **CommentForm**: Client component for adding new comments
 - **CommentItem**: Comment display with author role label and delete option
 
 ### Profile Management
+
 - **PasswordChangeForm**: Form for changing password with validation
 - **DeleteAccountDialog**: Confirmation modal for account deletion

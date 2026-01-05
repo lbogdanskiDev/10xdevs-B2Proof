@@ -377,7 +377,7 @@ export default function BriefDetailsLayout({ children }: BriefDetailsLayoutProps
 
 ```typescript
 if (response.status === 403) {
-  redirect('/briefs?error=no-access');
+  redirect("/briefs?error=no-access");
 }
 ```
 
@@ -385,25 +385,25 @@ Na stronie `/briefs` można wyświetlić toast na podstawie query param:
 
 ```typescript
 // src/app/(dashboard)/briefs/page.tsx
-'use client';
+"use client";
 
-import { useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function BriefsPage() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (searchParams.get('error') === 'no-access') {
+    if (searchParams.get("error") === "no-access") {
       toast({
-        title: 'Access denied',
+        title: "Access denied",
         description: "You don't have permission to view this brief.",
-        variant: 'destructive',
+        variant: "destructive",
       });
       // Clean up URL
-      window.history.replaceState({}, '', '/briefs');
+      window.history.replaceState({}, "", "/briefs");
     }
   }, [searchParams, toast]);
 
@@ -428,7 +428,7 @@ if (!brief) {
 
 ```typescript
 if (!response.ok) {
-  throw new Error('Failed to fetch brief details');
+  throw new Error("Failed to fetch brief details");
 }
 ```
 
@@ -438,13 +438,13 @@ Błąd zostanie przechwycony przez `error.tsx`.
 
 ## Warunki renderowania
 
-| Sekcja | Warunek |
-|--------|---------|
-| `BriefHeader` | Zawsze |
-| `BriefContentSection` | Zawsze |
-| `BriefFooterSection` | `brief.footer !== null` |
+| Sekcja                   | Warunek                  |
+| ------------------------ | ------------------------ |
+| `BriefHeader`            | Zawsze                   |
+| `BriefContentSection`    | Zawsze                   |
+| `BriefFooterSection`     | `brief.footer !== null`  |
 | `BriefRecipientsSection` | `brief.isOwned === true` |
-| `BriefCommentsSection` | Zawsze |
+| `BriefCommentsSection`   | Zawsze                   |
 
 ---
 
@@ -547,12 +547,11 @@ const [comments, recipients] = await Promise.all([
 ### Lazy Loading Dialogs
 
 ```typescript
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
 
-const ShareBriefDialog = dynamic(
-  () => import('./ShareBriefDialog').then(mod => mod.ShareBriefDialog),
-  { ssr: false }
-);
+const ShareBriefDialog = dynamic(() => import("./ShareBriefDialog").then((mod) => mod.ShareBriefDialog), {
+  ssr: false,
+});
 ```
 
 ### Streaming (opcjonalne)
@@ -618,21 +617,21 @@ export default async function BriefDetailsPage({ params }: BriefDetailsPageProps
 
 ### Kluczowe komponenty
 
-| Komponent | Typ | Opis |
-|-----------|-----|------|
-| `BriefDetailsPage` | Server | Główny komponent strony |
-| `BriefHeader` | Client | Nagłówek z akcjami |
-| `BriefContentRenderer` | Client | TipTap read-only |
-| `BriefRecipientsSection` | Client | Zarządzanie odbiorcami |
-| `BriefCommentsSection` | Client | Komentarze z polling |
+| Komponent                | Typ    | Opis                    |
+| ------------------------ | ------ | ----------------------- |
+| `BriefDetailsPage`       | Server | Główny komponent strony |
+| `BriefHeader`            | Client | Nagłówek z akcjami      |
+| `BriefContentRenderer`   | Client | TipTap read-only        |
+| `BriefRecipientsSection` | Client | Zarządzanie odbiorcami  |
+| `BriefCommentsSection`   | Client | Komentarze z polling    |
 
 ### Custom Hooks
 
-| Hook | Cel |
-|------|-----|
-| `useBriefComments` | State + polling dla komentarzy |
-| `useBriefRecipients` | State dla odbiorców |
-| `useBriefStatusChange` | Zmiana statusu przez odbiorcę |
+| Hook                   | Cel                            |
+| ---------------------- | ------------------------------ |
+| `useBriefComments`     | State + polling dla komentarzy |
+| `useBriefRecipients`   | State dla odbiorców            |
+| `useBriefStatusChange` | Zmiana statusu przez odbiorcę  |
 
 ### Testowanie
 

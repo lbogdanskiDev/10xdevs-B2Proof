@@ -3,6 +3,7 @@
 ## 1. Przegląd
 
 Widok profilu użytkownika (`/profile`) umożliwia zalogowanemu użytkownikowi zarządzanie swoim kontem. Składa się z trzech głównych sekcji:
+
 1. **Account Information** - wyświetlenie informacji o koncie (read-only)
 2. **Change Password** - formularz zmiany hasła z walidacją
 3. **Danger Zone** - sekcja usunięcia konta z podwójnym potwierdzeniem
@@ -41,6 +42,7 @@ ProfilePage (Server Component)
 ## 4. Szczegóły komponentów
 
 ### ProfilePage (Server Component)
+
 - **Opis:** Komponent strony serwera, który pobiera dane użytkownika i przekazuje je do komponentu klienta.
 - **Główne elementy:** Wrapper przekazujący `UserProfileDto` do `ProfilePageClient`.
 - **Obsługiwane interakcje:** Brak (Server Component).
@@ -49,6 +51,7 @@ ProfilePage (Server Component)
 - **Propsy:** Brak (page component).
 
 ### ProfilePageClient
+
 - **Opis:** Główny komponent klienta zawierający wszystkie trzy sekcje profilu. Zarządza stanem formularzy i komunikacją z API.
 - **Główne elementy:**
   - `div` z `max-w-3xl mx-auto` dla centrowania
@@ -63,6 +66,7 @@ ProfilePage (Server Component)
   - `user: UserProfileDto` - dane zalogowanego użytkownika
 
 ### AccountInfoCard
+
 - **Opis:** Karta wyświetlająca informacje o koncie użytkownika w trybie tylko do odczytu.
 - **Główne elementy:**
   - `Card`, `CardHeader`, `CardTitle`, `CardContent`
@@ -78,6 +82,7 @@ ProfilePage (Server Component)
   - `createdAt: string`
 
 ### ChangePasswordCard
+
 - **Opis:** Karta z formularzem zmiany hasła. Zawiera walidację po stronie klienta i komunikację z Supabase Auth.
 - **Główne elementy:**
   - `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`
@@ -101,6 +106,7 @@ ProfilePage (Server Component)
 - **Propsy:** Brak (stan wewnętrzny).
 
 ### PasswordRequirements
+
 - **Opis:** Komponent wyświetlający checklistę wymagań hasła z wizualnym feedbackiem.
 - **Główne elementy:**
   - `ul` z listą wymagań
@@ -114,6 +120,7 @@ ProfilePage (Server Component)
   - `validation: PasswordValidationState` - stan walidacji
 
 ### DangerZoneCard
+
 - **Opis:** Karta z ostrzeżeniem i przyciskiem usunięcia konta. Otwiera dialog potwierdzenia.
 - **Główne elementy:**
   - `Card` z `border-destructive` styling
@@ -129,6 +136,7 @@ ProfilePage (Server Component)
   - `userEmail: string` - email użytkownika do weryfikacji
 
 ### DeleteAccountDialog
+
 - **Opis:** Dialog podwójnego potwierdzenia usunięcia konta z weryfikacją email.
 - **Główne elementy:**
   - `AlertDialog`, `AlertDialogContent`
@@ -187,8 +195,8 @@ interface ChangePasswordFormData {
 
 // Stan walidacji hasła dla checklisty
 interface PasswordValidationState {
-  minLength: boolean;      // min. 8 znaków
-  hasDigit: boolean;       // min. 1 cyfra
+  minLength: boolean; // min. 8 znaków
+  hasDigit: boolean; // min. 1 cyfra
   passwordsMatch: boolean; // newPassword === confirmPassword
 }
 
@@ -237,21 +245,19 @@ interface DeleteAccountDialogProps {
 import { z } from "zod";
 
 // Schema walidacji zmiany hasła
-export const changePasswordSchema = z.object({
-  currentPassword: z
-    .string()
-    .min(1, "Current password is required"),
-  newPassword: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/\d/, "Password must contain at least one digit"),
-  confirmPassword: z
-    .string()
-    .min(1, "Password confirmation is required"),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/\d/, "Password must contain at least one digit"),
+    confirmPassword: z.string().min(1, "Password confirmation is required"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 ```
@@ -279,6 +285,7 @@ interface UseChangePasswordReturn {
 ```
 
 **Odpowiedzialności:**
+
 - Zarządzanie stanem formularza zmiany hasła
 - Walidacja w czasie rzeczywistym (dla checklisty)
 - Walidacja przy submit (pełna walidacja Zod)
@@ -311,6 +318,7 @@ interface UseDeleteAccountReturn {
 ```
 
 **Odpowiedzialności:**
+
 - Zarządzanie stanem dialogu
 - Walidacja emaila potwierdzającego
 - Wywołanie API `DELETE /api/users/me`
@@ -319,6 +327,7 @@ interface UseDeleteAccountReturn {
 ### Wykorzystanie istniejącego kontekstu `AuthContext`
 
 Hook `useAuth` z `src/components/hooks/use-auth.tsx` dostarcza:
+
 - `user: UserProfileDto | null` - dane zalogowanego użytkownika
 - `logout: () => Promise<void>` - funkcja wylogowania
 
@@ -329,10 +338,12 @@ Hook `useAuth` z `src/components/hooks/use-auth.tsx` dostarcza:
 **Wykorzystanie:** Pobieranie danych użytkownika (jeśli nie przekazane z Server Component).
 
 **Request:**
+
 - Method: `GET`
 - Headers: `Authorization: Bearer {token}` (automatycznie przez Supabase)
 
 **Response (200 OK):**
+
 ```typescript
 UserProfileDto {
   id: string;
@@ -344,6 +355,7 @@ UserProfileDto {
 ```
 
 **Błędy:**
+
 - `401 Unauthorized`
 - `404 Not Found`
 - `500 Internal Server Error`
@@ -353,13 +365,16 @@ UserProfileDto {
 **Wykorzystanie:** Usunięcie konta użytkownika.
 
 **Request:**
+
 - Method: `DELETE`
 - Headers: `Authorization: Bearer {token}`
 
 **Response:**
+
 - `204 No Content` - sukces
 
 **Błędy:**
+
 - `401 Unauthorized` - nieprawidłowy token
 - `404 Not Found` - użytkownik nie istnieje
 - `500 Internal Server Error` - błąd serwera
@@ -373,7 +388,7 @@ const supabase = createSupabaseBrowserClient();
 
 // Zmiana hasła
 const { data, error } = await supabase.auth.updateUser({
-  password: newPassword
+  password: newPassword,
 });
 
 // Możliwe błędy:
@@ -387,10 +402,12 @@ const { data, error } = await supabase.auth.updateUser({
 ## 8. Interakcje użytkownika
 
 ### Sekcja Account Information
+
 1. Użytkownik widzi swój email, rolę (Badge) i datę rejestracji.
 2. Wszystkie pola są read-only - brak interakcji.
 
 ### Sekcja Change Password
+
 1. Użytkownik wpisuje aktualne hasło.
 2. Użytkownik wpisuje nowe hasło:
    - Checklista wymagań aktualizuje się w czasie rzeczywistym
@@ -405,6 +422,7 @@ const { data, error } = await supabase.auth.updateUser({
    - Błąd: inline error message
 
 ### Sekcja Danger Zone
+
 1. Użytkownik klika "Delete My Account".
 2. Otwiera się dialog potwierdzenia:
    - Tytuł: "Delete Account?"
@@ -423,44 +441,45 @@ const { data, error } = await supabase.auth.updateUser({
 
 ### Walidacja zmiany hasła
 
-| Pole | Warunek | Komunikat błędu | Wpływ na UI |
-|------|---------|-----------------|-------------|
-| currentPassword | Niepuste | "Current password is required" | Inline error pod polem |
-| newPassword | Min. 8 znaków | "Password must be at least 8 characters" | Checklista + inline error |
-| newPassword | Min. 1 cyfra | "Password must contain at least one digit" | Checklista + inline error |
-| confirmPassword | Równe newPassword | "Passwords do not match" | Inline error pod polem |
+| Pole            | Warunek           | Komunikat błędu                            | Wpływ na UI               |
+| --------------- | ----------------- | ------------------------------------------ | ------------------------- |
+| currentPassword | Niepuste          | "Current password is required"             | Inline error pod polem    |
+| newPassword     | Min. 8 znaków     | "Password must be at least 8 characters"   | Checklista + inline error |
+| newPassword     | Min. 1 cyfra      | "Password must contain at least one digit" | Checklista + inline error |
+| confirmPassword | Równe newPassword | "Passwords do not match"                   | Inline error pod polem    |
 
 **Checklista wymagań (real-time):**
+
 - ✓/✗ At least 8 characters
 - ✓/✗ Contains at least one number
 - ✓/✗ Passwords match (wyświetlane gdy confirmPassword niepuste)
 
 ### Walidacja usunięcia konta
 
-| Pole | Warunek | Wpływ na UI |
-|------|---------|-------------|
+| Pole         | Warunek          | Wpływ na UI                                       |
+| ------------ | ---------------- | ------------------------------------------------- |
 | confirmEmail | Równe user.email | Przycisk "Delete Account" disabled gdy nie pasuje |
 
 ## 10. Obsługa błędów
 
 ### Błędy zmiany hasła
 
-| Błąd | Źródło | Obsługa |
-|------|--------|---------|
-| Walidacja formularza | Client-side Zod | Inline errors przy polach |
-| "New password should be different" | Supabase Auth | Inline error przy newPassword |
-| "Password too weak" | Supabase Auth | Inline error przy newPassword |
-| Błąd sieci | Fetch/Supabase | Toast error + możliwość ponowienia |
-| Nieznany błąd | Supabase Auth | Toast error z ogólnym komunikatem |
+| Błąd                               | Źródło          | Obsługa                            |
+| ---------------------------------- | --------------- | ---------------------------------- |
+| Walidacja formularza               | Client-side Zod | Inline errors przy polach          |
+| "New password should be different" | Supabase Auth   | Inline error przy newPassword      |
+| "Password too weak"                | Supabase Auth   | Inline error przy newPassword      |
+| Błąd sieci                         | Fetch/Supabase  | Toast error + możliwość ponowienia |
+| Nieznany błąd                      | Supabase Auth   | Toast error z ogólnym komunikatem  |
 
 ### Błędy usunięcia konta
 
-| Błąd | Kod HTTP | Obsługa |
-|------|----------|---------|
-| Unauthorized | 401 | Toast error, redirect do /login |
-| User not found | 404 | Toast error "Account not found" |
-| Server error | 500 | Toast error "Failed to delete account. Please try again." |
-| Network error | - | Toast error + dialog pozostaje otwarty |
+| Błąd           | Kod HTTP | Obsługa                                                   |
+| -------------- | -------- | --------------------------------------------------------- |
+| Unauthorized   | 401      | Toast error, redirect do /login                           |
+| User not found | 404      | Toast error "Account not found"                           |
+| Server error   | 500      | Toast error "Failed to delete account. Please try again." |
+| Network error  | -        | Toast error + dialog pozostaje otwarty                    |
 
 ### Obsługa stanów ładowania
 
@@ -476,10 +495,12 @@ const { data, error } = await supabase.auth.updateUser({
 ## 11. Kroki implementacji
 
 ### Krok 1: Utworzenie typów i schematów
+
 1. Utworzyć plik `src/lib/types/profile.types.ts` z typami dla widoku profilu.
 2. Utworzyć plik `src/lib/schemas/profile.schema.ts` ze schematem Zod dla walidacji hasła.
 
 ### Krok 2: Utworzenie custom hooków
+
 1. Utworzyć `src/components/hooks/useChangePassword.ts`:
    - Zarządzanie stanem formularza
    - Walidacja real-time i przy submit
@@ -490,11 +511,13 @@ const { data, error } = await supabase.auth.updateUser({
    - Integracja z API delete
 
 ### Krok 3: Utworzenie komponentów pomocniczych
+
 1. Utworzyć `src/components/profile/PasswordRequirements.tsx`:
    - Checklista wymagań hasła
    - Wizualne oznaczenie spełnionych/niespełnionych wymagań
 
 ### Krok 4: Utworzenie komponentów kart
+
 1. Utworzyć `src/components/profile/AccountInfoCard.tsx`:
    - Wyświetlanie email, roli (Badge), daty rejestracji
 2. Utworzyć `src/components/profile/ChangePasswordCard.tsx`:
@@ -505,12 +528,14 @@ const { data, error } = await supabase.auth.updateUser({
    - Przycisk otwierający dialog
 
 ### Krok 5: Utworzenie dialogu usunięcia konta
+
 1. Utworzyć `src/components/profile/DeleteAccountDialog.tsx`:
    - AlertDialog z podwójnym potwierdzeniem
    - Pole weryfikacji emaila
    - Integracja z `useDeleteAccount`
 
 ### Krok 6: Utworzenie głównych komponentów strony
+
 1. Utworzyć `src/app/(dashboard)/profile/page.tsx` (Server Component):
    - Pobieranie danych użytkownika
    - Przekazanie do ProfilePageClient
@@ -519,12 +544,14 @@ const { data, error } = await supabase.auth.updateUser({
    - Layout z max-width i centrowaniem
 
 ### Krok 7: Utworzenie plików pomocniczych
+
 1. Utworzyć `src/app/(dashboard)/profile/loading.tsx`:
    - Skeleton loading state
 2. Utworzyć `src/app/(dashboard)/profile/error.tsx`:
    - Error boundary dla błędów strony
 
 ### Krok 8: Testowanie
+
 1. Przetestować wyświetlanie danych użytkownika.
 2. Przetestować walidację formularza zmiany hasła.
 3. Przetestować zmianę hasła przez Supabase Auth.
@@ -535,5 +562,6 @@ const { data, error } = await supabase.auth.updateUser({
 8. Przetestować dostępność (keyboard navigation, ARIA).
 
 ### Krok 9: Aktualizacja nawigacji
+
 1. Upewnić się, że link do `/profile` jest dostępny w nawigacji (Sidebar, MobileNav).
 2. Dodać odpowiednią ikonę (User lub Settings) jeśli brak.

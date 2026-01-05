@@ -6,9 +6,9 @@ Previously, every service had to duplicate code to create the `SupabaseClient` t
 
 ```typescript
 // ❌ Duplicated code in every service
-import type { createSupabaseServerClient } from '@/db/supabase.server'
+import type { createSupabaseServerClient } from "@/db/supabase.server";
 
-type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
+type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 ```
 
 ## Solution
@@ -17,7 +17,7 @@ The `SupabaseClient` type has been centralized in [src/types.ts](../src/types.ts
 
 ```typescript
 // ✅ Single import, no duplication
-import type { SupabaseClient } from '@/types'
+import type { SupabaseClient } from "@/types";
 ```
 
 ## Implementation
@@ -47,33 +47,30 @@ export type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClien
 
 ```typescript
 // src/lib/services/user.service.ts
-import type { SupabaseClient, UserProfileDto } from '@/types'
+import type { SupabaseClient, UserProfileDto } from "@/types";
 
 /**
  * Retrieves a user's profile by their ID
  */
-export async function getUserProfile(
-  supabase: SupabaseClient,
-  userId: string
-): Promise<UserProfileDto | null> {
+export async function getUserProfile(supabase: SupabaseClient, userId: string): Promise<UserProfileDto | null> {
   const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('id, role, created_at, updated_at')
-    .eq('id', userId)
-    .single()
+    .from("profiles")
+    .select("id, role, created_at, updated_at")
+    .eq("id", userId)
+    .single();
 
   if (error || !profile) {
-    return null
+    return null;
   }
 
   // Transform to DTO...
   return {
     id: profile.id,
     role: profile.role,
-    email: user.email || '',
+    email: user.email || "",
     createdAt: profile.created_at,
-    updatedAt: profile.updated_at
-  }
+    updatedAt: profile.updated_at,
+  };
 }
 ```
 
@@ -81,12 +78,7 @@ export async function getUserProfile(
 
 ```typescript
 // src/lib/services/brief.service.ts
-import type {
-  SupabaseClient,
-  BriefListItemDto,
-  PaginatedResponse,
-  BriefQueryParams
-} from '@/types'
+import type { SupabaseClient, BriefListItemDto, PaginatedResponse, BriefQueryParams } from "@/types";
 
 /**
  * Retrieves paginated list of briefs accessible to user
@@ -122,11 +114,12 @@ According to [.claude/rules/backend.mdc](../.claude/rules/backend.mdc):
 If you have existing code with a duplicated type:
 
 **Before:**
-```typescript
-import type { createSupabaseServerClient } from '@/db/supabase.server'
-import type { Database } from '@/db/database.types'
 
-type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
+```typescript
+import type { createSupabaseServerClient } from "@/db/supabase.server";
+import type { Database } from "@/db/database.types";
+
+type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
 export async function myFunction(supabase: SupabaseClient) {
   // ...
@@ -134,8 +127,9 @@ export async function myFunction(supabase: SupabaseClient) {
 ```
 
 **After:**
+
 ```typescript
-import type { SupabaseClient } from '@/types'
+import type { SupabaseClient } from "@/types";
 
 export async function myFunction(supabase: SupabaseClient) {
   // ...

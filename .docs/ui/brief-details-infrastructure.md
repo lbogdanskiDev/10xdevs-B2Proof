@@ -53,7 +53,7 @@ interface BriefDetailDto {
   id: string;
   ownerId: string;
   header: string;
-  content: BriefEntity['content']; // TipTap JSON
+  content: BriefEntity["content"]; // TipTap JSON
   footer: string | null;
   status: BriefStatus;
   statusChangedAt: string | null;
@@ -64,7 +64,7 @@ interface BriefDetailDto {
   updatedAt: string;
 }
 
-type BriefStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'needs_modification';
+type BriefStatus = "draft" | "sent" | "accepted" | "rejected" | "needs_modification";
 
 interface UpdateBriefStatusCommand {
   status: BriefStatus;
@@ -125,7 +125,7 @@ interface ErrorResponse {
 Utwórz plik `src/lib/types/brief-details.types.ts`:
 
 ```typescript
-import type { CommentDto, BriefRecipientDto, PaginationMetadata, BriefStatus } from '@/types';
+import type { CommentDto, BriefRecipientDto, PaginationMetadata, BriefStatus } from "@/types";
 
 /**
  * ViewModel dla sekcji komentarzy z zarządzaniem stanem
@@ -174,8 +174,8 @@ export interface CommentPollingConfig {
 **Cel:** Zarządzanie stanem komentarzy z automatycznym odświeżaniem i paginacją.
 
 ```typescript
-import { useState, useEffect, useCallback } from 'react';
-import type { CommentDto, PaginatedResponse, PaginationMetadata } from '@/types';
+import { useState, useEffect, useCallback } from "react";
+import type { CommentDto, PaginatedResponse, PaginationMetadata } from "@/types";
 
 interface UseBriefCommentsProps {
   briefId: string;
@@ -200,79 +200,91 @@ interface UseBriefCommentsReturn {
 export function useBriefComments({
   briefId,
   initialData,
-  pollingInterval = 30000
+  pollingInterval = 30000,
 }: UseBriefCommentsProps): UseBriefCommentsReturn {
   const [data, setData] = useState(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const fetchComments = useCallback(async (page: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/briefs/${briefId}/comments?page=${page}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch comments');
+  const fetchComments = useCallback(
+    async (page: number) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/briefs/${briefId}/comments?page=${page}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch comments");
+        }
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setIsLoading(false);
       }
-      const result = await response.json();
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [briefId]);
+    },
+    [briefId]
+  );
 
   const refresh = useCallback(async () => {
     await fetchComments(currentPage);
   }, [fetchComments, currentPage]);
 
-  const changePage = useCallback(async (page: number) => {
-    setCurrentPage(page);
-    await fetchComments(page);
-  }, [fetchComments]);
+  const changePage = useCallback(
+    async (page: number) => {
+      setCurrentPage(page);
+      await fetchComments(page);
+    },
+    [fetchComments]
+  );
 
-  const addComment = useCallback(async (content: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/briefs/${briefId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add comment');
+  const addComment = useCallback(
+    async (content: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/briefs/${briefId}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to add comment");
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [briefId, refresh]);
+    },
+    [briefId, refresh]
+  );
 
-  const deleteComment = useCallback(async (commentId: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/comments/${commentId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete comment');
+  const deleteComment = useCallback(
+    async (commentId: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/comments/${commentId}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          throw new Error("Failed to delete comment");
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [refresh]);
+    },
+    [refresh]
+  );
 
   // Auto-refresh every 30s
   useEffect(() => {
@@ -304,8 +316,8 @@ export function useBriefComments({
 **Cel:** Zarządzanie stanem odbiorców briefu.
 
 ```typescript
-import { useState, useCallback } from 'react';
-import type { BriefRecipientDto } from '@/types';
+import { useState, useCallback } from "react";
+import type { BriefRecipientDto } from "@/types";
 
 interface UseBriefRecipientsProps {
   briefId: string;
@@ -324,10 +336,7 @@ interface UseBriefRecipientsReturn {
   removeRecipient: (recipientId: string) => Promise<void>;
 }
 
-export function useBriefRecipients({
-  briefId,
-  initialRecipients
-}: UseBriefRecipientsProps): UseBriefRecipientsReturn {
+export function useBriefRecipients({ briefId, initialRecipients }: UseBriefRecipientsProps): UseBriefRecipientsReturn {
   const [recipients, setRecipients] = useState(initialRecipients);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -340,57 +349,63 @@ export function useBriefRecipients({
     try {
       const response = await fetch(`/api/briefs/${briefId}/recipients`);
       if (!response.ok) {
-        throw new Error('Failed to fetch recipients');
+        throw new Error("Failed to fetch recipients");
       }
       const result = await response.json();
       setRecipients(result.data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsLoading(false);
     }
   }, [briefId]);
 
-  const addRecipient = useCallback(async (email: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/briefs/${briefId}/recipients`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add recipient');
+  const addRecipient = useCallback(
+    async (email: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/briefs/${briefId}/recipients`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to add recipient");
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [briefId, refresh]);
+    },
+    [briefId, refresh]
+  );
 
-  const removeRecipient = useCallback(async (recipientId: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/briefs/${briefId}/recipients/${recipientId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to remove recipient');
+  const removeRecipient = useCallback(
+    async (recipientId: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/briefs/${briefId}/recipients/${recipientId}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          throw new Error("Failed to remove recipient");
+        }
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        throw err;
+      } finally {
+        setIsLoading(false);
       }
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [briefId, refresh]);
+    },
+    [briefId, refresh]
+  );
 
   return {
     recipients,
@@ -411,9 +426,9 @@ export function useBriefRecipients({
 **Cel:** Zarządzanie zmianą statusu briefu przez odbiorcę.
 
 ```typescript
-import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import type { BriefStatus } from '@/types';
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import type { BriefStatus } from "@/types";
 
 interface UseBriefStatusChangeProps {
   briefId: string;
@@ -430,48 +445,51 @@ interface UseBriefStatusChangeReturn {
   requestModification: (comment: string) => Promise<void>;
 }
 
-export function useBriefStatusChange({
-  briefId,
-  onSuccess
-}: UseBriefStatusChangeProps): UseBriefStatusChangeReturn {
+export function useBriefStatusChange({ briefId, onSuccess }: UseBriefStatusChangeProps): UseBriefStatusChangeReturn {
   const [isChanging, setIsChanging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const changeStatus = useCallback(async (status: BriefStatus, comment?: string) => {
-    setIsChanging(true);
-    setError(null);
-    try {
-      const response = await fetch(`/api/briefs/${briefId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, comment }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to change status');
+  const changeStatus = useCallback(
+    async (status: BriefStatus, comment?: string) => {
+      setIsChanging(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/briefs/${briefId}/status`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, comment }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to change status");
+        }
+        onSuccess?.();
+        router.refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        throw err;
+      } finally {
+        setIsChanging(false);
       }
-      onSuccess?.();
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      throw err;
-    } finally {
-      setIsChanging(false);
-    }
-  }, [briefId, onSuccess, router]);
+    },
+    [briefId, onSuccess, router]
+  );
 
   const acceptBrief = useCallback(async () => {
-    await changeStatus('accepted');
+    await changeStatus("accepted");
   }, [changeStatus]);
 
   const rejectBrief = useCallback(async () => {
-    await changeStatus('rejected');
+    await changeStatus("rejected");
   }, [changeStatus]);
 
-  const requestModification = useCallback(async (comment: string) => {
-    await changeStatus('needs_modification', comment);
-  }, [changeStatus]);
+  const requestModification = useCallback(
+    async (comment: string) => {
+      await changeStatus("needs_modification", comment);
+    },
+    [changeStatus]
+  );
 
   return {
     isChanging,
@@ -517,4 +535,5 @@ export const BRIEF_CONSTANTS = {
 ## Następne kroki
 
 Po zakończeniu tej części, przejdź do:
+
 - [Part 2: Brief Header & Status](./brief-details-header.md)

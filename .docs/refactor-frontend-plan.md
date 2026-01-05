@@ -5,6 +5,7 @@
 This document outlines a comprehensive frontend refactoring plan for the B2Proof application. The analysis identified several areas of code duplication and opportunities for improved code organization while maintaining the existing clean architecture.
 
 **Key Areas Identified:**
+
 1. Brief Form Hooks Consolidation (~80% code similarity)
 2. Brief DTO Mapping Function Extraction (repeated 3x in service)
 3. API Route Error Handling Utilities
@@ -18,12 +19,14 @@ This document outlines a comprehensive frontend refactoring plan for the B2Proof
 ### Problem
 
 The `useCreateBriefForm` and `useEditBriefForm` hooks share approximately 80% identical code:
+
 - Same field setters (`setHeader`, `setContent`, `setContentCharCount`, `setFooter`)
 - Same validation logic
 - Same `canSubmit` calculation
 - Same error handling patterns
 
 **Current Files:**
+
 - [useCreateBriefForm.ts](src/components/hooks/useCreateBriefForm.ts)
 - [useEditBriefForm.ts](src/components/hooks/useEditBriefForm.ts)
 
@@ -163,6 +166,7 @@ export function useEditBriefForm({ initialData }: { initialData: EditBriefInitia
 ```
 
 ### Benefits
+
 - Eliminates ~150 lines of duplicated code
 - Single source of truth for form validation logic
 - Easier maintenance and bug fixes
@@ -175,6 +179,7 @@ export function useEditBriefForm({ initialData }: { initialData: EditBriefInitia
 ### Problem
 
 The brief entity to DTO transformation is repeated 3 times in [brief.service.ts](src/lib/services/brief.service.ts):
+
 - Lines 98-108 (`fetchOwnedBriefs`)
 - Lines 176-186 (`fetchSharedBriefs`)
 - Lines 254-264 (`fetchAllBriefs`)
@@ -200,10 +205,7 @@ Add to `src/lib/services/brief.service.ts` (helper section):
  * @param userId - Current user's ID (for isOwned calculation)
  * @returns BriefListItemDto
  */
-function mapBriefToListItemDto(
-  brief: BriefEntity,
-  userId: string
-): BriefListItemDto {
+function mapBriefToListItemDto(brief: BriefEntity, userId: string): BriefListItemDto {
   return {
     id: brief.id,
     ownerId: brief.owner_id,
@@ -225,10 +227,7 @@ function mapBriefToListItemDto(
  * @param userId - Current user's ID (for isOwned calculation)
  * @returns BriefDetailDto
  */
-function mapBriefToDetailDto(
-  brief: BriefEntity,
-  userId: string
-): BriefDetailDto {
+function mapBriefToDetailDto(brief: BriefEntity, userId: string): BriefDetailDto {
   return {
     ...mapBriefToListItemDto(brief, userId),
     content: brief.content,
@@ -255,6 +254,7 @@ const briefs = data.map((brief) => mapBriefToListItemDto(brief, userId));
 ```
 
 ### Benefits
+
 - Single source of truth for DTO mapping
 - Easier to update when schema changes
 - Reduces risk of inconsistencies between views
@@ -267,6 +267,7 @@ const briefs = data.map((brief) => mapBriefToListItemDto(brief, userId));
 ### Problem
 
 API route handlers repeat the same error handling patterns:
+
 1. Zod validation error extraction (lines 41-48, 79-86 in routes)
 2. Authentication check pattern
 3. ApiError handling pattern
@@ -304,10 +305,7 @@ export function extractZodErrors(error: ZodError): ValidationErrorDetail[] {
  * @param message - Top-level error message
  * @returns NextResponse with 400 status
  */
-export function validationErrorResponse(
-  error: ZodError,
-  message = "Validation failed"
-): NextResponse<ErrorReturn> {
+export function validationErrorResponse(error: ZodError, message = "Validation failed"): NextResponse<ErrorReturn> {
   const details = extractZodErrors(error);
   return NextResponse.json<ErrorReturn>({ error: message, details }, { status: 400 });
 }
@@ -318,10 +316,7 @@ export function validationErrorResponse(
  * @returns NextResponse with appropriate status
  */
 export function apiErrorResponse(error: ApiError): NextResponse<ErrorReturn> {
-  return NextResponse.json<ErrorReturn>(
-    { error: error.message },
-    { status: error.statusCode }
-  );
+  return NextResponse.json<ErrorReturn>({ error: error.message }, { status: error.statusCode });
 }
 
 /**
@@ -344,7 +339,10 @@ export function serverErrorResponse(): NextResponse<ErrorReturn> {
  */
 export async function getAuthenticatedUser() {
   const supabase = await createSupabaseServerClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   if (error || !user) {
     return { user: null, supabase, response: unauthorizedResponse() };
@@ -373,6 +371,7 @@ if (!validationResult.success) {
 ```
 
 ### Benefits
+
 - Consistent error response format across all routes
 - Reduces boilerplate in route handlers
 - Easier to update error format globally
@@ -385,6 +384,7 @@ if (!validationResult.success) {
 ### Problem
 
 The recipient access check pattern is repeated multiple times in [brief.service.ts](src/lib/services/brief.service.ts):
+
 - Lines 305-311 (`getBriefById`)
 - Lines 1036-1042 (`checkBriefAccess`)
 - Lines 132-135 (`fetchSharedBriefs`)
@@ -435,11 +435,7 @@ async function isUserRecipient(
  * @param userEmail - User's email from auth
  * @returns Array of brief IDs
  */
-async function getSharedBriefIds(
-  supabase: SupabaseClient,
-  userId: string,
-  userEmail: string
-): Promise<string[]> {
+async function getSharedBriefIds(supabase: SupabaseClient, userId: string, userEmail: string): Promise<string[]> {
   const { data, error } = await supabase
     .from("brief_recipients")
     .select("brief_id")
@@ -455,6 +451,7 @@ async function getSharedBriefIds(
 ```
 
 ### Benefits
+
 - Single source of truth for recipient matching logic
 - Easier to update matching criteria (e.g., add new fields)
 - Reduces cognitive load when reading service code
@@ -467,6 +464,7 @@ async function getSharedBriefIds(
 ### Problem
 
 Similar type definitions exist in multiple files:
+
 - `FieldErrors` in [create-brief.types.ts](src/lib/types/create-brief.types.ts)
 - `BriefFormErrors` in [brief-form.types.ts](src/lib/types/brief-form.types.ts)
 - `CreateBriefResult` vs `BriefSaveResult` (same structure)
@@ -540,6 +538,7 @@ export type BriefSaveResult = BriefFormResult;
 Re-export necessary types from brief-form.types.ts and deprecate create-brief.types.ts.
 
 ### Benefits
+
 - Single source of truth for form-related types
 - Reduces confusion about which type to use
 - Easier onboarding for new developers
@@ -573,11 +572,7 @@ import type { PaginationMetadata } from "@/types";
  * @param limit - Items per page
  * @returns PaginationMetadata object
  */
-export function calculatePagination(
-  total: number,
-  page: number,
-  limit: number
-): PaginationMetadata {
+export function calculatePagination(total: number, page: number, limit: number): PaginationMetadata {
   return {
     page,
     limit,
@@ -601,6 +596,7 @@ export function calculateOffset(page: number, limit: number): number {
 ```
 
 ### Benefits
+
 - Consistent pagination calculation
 - Reduces risk of off-by-one errors
 - Single source of truth for pagination logic
@@ -612,6 +608,7 @@ export function calculateOffset(page: number, limit: number): number {
 ### Problem
 
 Empty paginated response is constructed repeatedly in service:
+
 ```typescript
 return {
   data: [],
@@ -637,10 +634,7 @@ Add to pagination.ts or brief.service.ts:
  * @param limit - Items per page
  * @returns Empty PaginatedResponse
  */
-export function emptyPaginatedResponse<T>(
-  page: number,
-  limit: number
-): PaginatedResponse<T> {
+export function emptyPaginatedResponse<T>(page: number, limit: number): PaginatedResponse<T> {
   return {
     data: [],
     pagination: { page, limit, total: 0, totalPages: 0 },
@@ -649,6 +643,7 @@ export function emptyPaginatedResponse<T>(
 ```
 
 ### Benefits
+
 - Consistent empty response structure
 - Reduces boilerplate
 - Easier to add default values in the future
@@ -657,29 +652,29 @@ export function emptyPaginatedResponse<T>(
 
 ## Implementation Priority
 
-| Priority | Task | Impact | Effort | Files Affected |
-|----------|------|--------|--------|----------------|
-| **P1** | Brief Form Hooks Consolidation | High | Medium | 2 hooks + 1 new file |
-| **P1** | API Route Error Handling Utilities | High | Low | 8 route files + 1 new utility |
-| **P2** | Brief DTO Mapping Extraction | Medium | Low | 1 service file |
-| **P2** | Recipient Access Check Helper | Medium | Low | 1 service file |
-| **P3** | Type Definitions Consolidation | Low | Low | 2 type files |
-| **P3** | Pagination Helper Extension | Low | Low | 1 utility file |
-| **P3** | Empty Paginated Response Helper | Low | Low | 1 utility file |
+| Priority | Task                               | Impact | Effort | Files Affected                |
+| -------- | ---------------------------------- | ------ | ------ | ----------------------------- |
+| **P1**   | Brief Form Hooks Consolidation     | High   | Medium | 2 hooks + 1 new file          |
+| **P1**   | API Route Error Handling Utilities | High   | Low    | 8 route files + 1 new utility |
+| **P2**   | Brief DTO Mapping Extraction       | Medium | Low    | 1 service file                |
+| **P2**   | Recipient Access Check Helper      | Medium | Low    | 1 service file                |
+| **P3**   | Type Definitions Consolidation     | Low    | Low    | 2 type files                  |
+| **P3**   | Pagination Helper Extension        | Low    | Low    | 1 utility file                |
+| **P3**   | Empty Paginated Response Helper    | Low    | Low    | 1 utility file                |
 
 ---
 
 ## Estimated Code Reduction
 
-| Refactoring | Lines Removed | Lines Added | Net Reduction |
-|-------------|---------------|-------------|---------------|
-| Form Hooks Consolidation | ~200 | ~80 | ~120 |
-| API Error Utilities | ~80 | ~50 | ~30 |
-| DTO Mapping Helpers | ~40 | ~25 | ~15 |
-| Recipient Check Helper | ~30 | ~20 | ~10 |
-| Type Consolidation | ~50 | ~10 | ~40 |
-| Pagination Helpers | ~15 | ~20 | -5 |
-| **Total** | **~415** | **~205** | **~210** |
+| Refactoring              | Lines Removed | Lines Added | Net Reduction |
+| ------------------------ | ------------- | ----------- | ------------- |
+| Form Hooks Consolidation | ~200          | ~80         | ~120          |
+| API Error Utilities      | ~80           | ~50         | ~30           |
+| DTO Mapping Helpers      | ~40           | ~25         | ~15           |
+| Recipient Check Helper   | ~30           | ~20         | ~10           |
+| Type Consolidation       | ~50           | ~10         | ~40           |
+| Pagination Helpers       | ~15           | ~20         | -5            |
+| **Total**                | **~415**      | **~205**    | **~210**      |
 
 ---
 
@@ -728,14 +723,15 @@ The codebase has inconsistent file naming conventions in two directories:
 
 **Current State:** 8 hooks use camelCase, 2 hooks use kebab-case
 
-| File (Incorrect) | Should Be |
-|------------------|-----------|
-| `use-auth.tsx` | `useAuth.ts` |
+| File (Incorrect)      | Should Be          |
+| --------------------- | ------------------ |
+| `use-auth.tsx`        | `useAuth.ts`       |
 | `use-brief-count.tsx` | `useBriefCount.ts` |
 
 **Additional Issue:** These files use `.tsx` extension but hooks typically don't contain JSX - should be `.ts`.
 
 **Files with Correct Convention (for reference):**
+
 - `useBriefComments.ts`
 - `useBriefRecipients.ts`
 - `useBriefStatusChange.ts`
@@ -749,12 +745,13 @@ The codebase has inconsistent file naming conventions in two directories:
 
 **Current State:** 3 files have `.constants.ts` suffix, 2 files don't
 
-| File (Incorrect) | Should Be |
-|------------------|-----------|
+| File (Incorrect)  | Should Be                   |
+| ----------------- | --------------------------- |
 | `brief-status.ts` | `brief-status.constants.ts` |
-| `navigation.ts` | `navigation.constants.ts` |
+| `navigation.ts`   | `navigation.constants.ts`   |
 
 **Files with Correct Convention (for reference):**
+
 - `auth.constants.ts`
 - `brief.constants.ts`
 - `create-brief.constants.ts`
@@ -776,6 +773,7 @@ git mv use-brief-count.tsx useBriefCount.ts
 #### Step 2: Update imports for hooks
 
 Files that import `use-auth.tsx`:
+
 - `src/components/layout/DashboardLayoutClient.tsx`
 - `src/components/layout/UserMenu.tsx`
 - `src/components/profile/ProfilePageClient.tsx`
@@ -791,6 +789,7 @@ import { useAuth } from "@/components/hooks/useAuth";
 ```
 
 Files that import `use-brief-count.tsx`:
+
 - `src/components/layout/Sidebar.tsx`
 - `src/components/layout/MobileNav.tsx`
 - `src/components/briefs/list/BriefListHeader.tsx`
@@ -814,6 +813,7 @@ git mv navigation.ts navigation.constants.ts
 #### Step 4: Update imports for constants
 
 Files that import `brief-status.ts`:
+
 - Components using `BRIEF_STATUS_CONFIG`
 
 ```typescript
@@ -825,6 +825,7 @@ import { BRIEF_STATUS_CONFIG } from "@/lib/constants/brief-status.constants";
 ```
 
 Files that import `navigation.ts`:
+
 - `src/components/layout/Sidebar.tsx`
 - `src/components/layout/MobileNav.tsx`
 
@@ -837,6 +838,7 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 ```
 
 ### Benefits
+
 - Consistent naming convention across entire codebase
 - Easier to find files by pattern
 - Clear distinction between file types
@@ -844,27 +846,27 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 
 ### Priority
 
-| Priority | Task | Files Affected |
-|----------|------|----------------|
-| **P0** | Rename `use-auth.tsx` → `useAuth.ts` | ~5-10 imports |
-| **P0** | Rename `use-brief-count.tsx` → `useBriefCount.ts` | ~3-5 imports |
-| **P0** | Rename `brief-status.ts` → `brief-status.constants.ts` | ~2-3 imports |
-| **P0** | Rename `navigation.ts` → `navigation.constants.ts` | ~2-3 imports |
+| Priority | Task                                                   | Files Affected |
+| -------- | ------------------------------------------------------ | -------------- |
+| **P0**   | Rename `use-auth.tsx` → `useAuth.ts`                   | ~5-10 imports  |
+| **P0**   | Rename `use-brief-count.tsx` → `useBriefCount.ts`      | ~3-5 imports   |
+| **P0**   | Rename `brief-status.ts` → `brief-status.constants.ts` | ~2-3 imports   |
+| **P0**   | Rename `navigation.ts` → `navigation.constants.ts`     | ~2-3 imports   |
 
 ---
 
 ## Updated Implementation Priority
 
-| Priority | Task | Impact | Effort | Files Affected |
-|----------|------|--------|--------|----------------|
-| **P0** | File Naming Convention Fixes | High | Low | 4 files + ~15 imports |
-| **P1** | Brief Form Hooks Consolidation | High | Medium | 2 hooks + 1 new file |
-| **P1** | API Route Error Handling Utilities | High | Low | 8 route files + 1 new utility |
-| **P2** | Brief DTO Mapping Extraction | Medium | Low | 1 service file |
-| **P2** | Recipient Access Check Helper | Medium | Low | 1 service file |
-| **P3** | Type Definitions Consolidation | Low | Low | 2 type files |
-| **P3** | Pagination Helper Extension | Low | Low | 1 utility file |
-| **P3** | Empty Paginated Response Helper | Low | Low | 1 utility file |
+| Priority | Task                               | Impact | Effort | Files Affected                |
+| -------- | ---------------------------------- | ------ | ------ | ----------------------------- |
+| **P0**   | File Naming Convention Fixes       | High   | Low    | 4 files + ~15 imports         |
+| **P1**   | Brief Form Hooks Consolidation     | High   | Medium | 2 hooks + 1 new file          |
+| **P1**   | API Route Error Handling Utilities | High   | Low    | 8 route files + 1 new utility |
+| **P2**   | Brief DTO Mapping Extraction       | Medium | Low    | 1 service file                |
+| **P2**   | Recipient Access Check Helper      | Medium | Low    | 1 service file                |
+| **P3**   | Type Definitions Consolidation     | Low    | Low    | 2 type files                  |
+| **P3**   | Pagination Helper Extension        | Low    | Low    | 1 utility file                |
+| **P3**   | Empty Paginated Response Helper    | Low    | Low    | 1 utility file                |
 
 ---
 
@@ -882,30 +884,32 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 
 ### Completed Tasks
 
-| Task | Status | Date | Notes |
-|------|--------|------|-------|
-| **P1: Brief Form Hooks Consolidation** | ✅ Done | 2025-12-23 | Created `useBriefForm.ts` base hook, refactored `useCreateBriefForm.ts` and `useEditBriefForm.ts` |
-| **P1: API Route Error Handling Utilities** | ✅ Done | 2025-12-23 | Added `validateRequestBody` helper, refactored 4 API routes to use consolidated utilities |
-| **P0: File Naming Convention Fixes** | ✅ Done | 2025-12-23 | Renamed 4 files to follow conventions, updated 10 imports |
-| **P2: Brief DTO Mapping Extraction** | ✅ Done | 2025-12-24 | Created `mappers.ts` with 5 mapping functions, eliminated ~40 lines of duplicated code |
-| **P2: Recipient Access Check Helper** | ✅ Done | 2025-12-24 | Created `authorization.utils.ts` with 6 authorization functions, eliminated ~30 lines of duplicated access checks |
-| **P3: Type Definitions Consolidation** | ✅ Done | 2025-12-24 | Unified form types in `brief-form.types.ts`, added deprecated aliases in `create-brief.types.ts` |
+| Task                                                    | Status  | Date       | Notes                                                                                                                                                      |
+| ------------------------------------------------------- | ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P1: Brief Form Hooks Consolidation**                  | ✅ Done | 2025-12-23 | Created `useBriefForm.ts` base hook, refactored `useCreateBriefForm.ts` and `useEditBriefForm.ts`                                                          |
+| **P1: API Route Error Handling Utilities**              | ✅ Done | 2025-12-23 | Added `validateRequestBody` helper, refactored 4 API routes to use consolidated utilities                                                                  |
+| **P0: File Naming Convention Fixes**                    | ✅ Done | 2025-12-23 | Renamed 4 files to follow conventions, updated 10 imports                                                                                                  |
+| **P2: Brief DTO Mapping Extraction**                    | ✅ Done | 2025-12-24 | Created `mappers.ts` with 5 mapping functions, eliminated ~40 lines of duplicated code                                                                     |
+| **P2: Recipient Access Check Helper**                   | ✅ Done | 2025-12-24 | Created `authorization.utils.ts` with 6 authorization functions, eliminated ~30 lines of duplicated access checks                                          |
+| **P3: Type Definitions Consolidation**                  | ✅ Done | 2025-12-24 | Unified form types in `brief-form.types.ts`, added deprecated aliases in `create-brief.types.ts`                                                           |
 | **P3: Pagination Helpers (Extension + Empty Response)** | ✅ Done | 2025-12-24 | Extended `query.utils.ts` with `emptyPaginatedResponse`, refactored `comments.service.ts` to use helpers, removed duplicate functions from `pagination.ts` |
 
 ### Pending Tasks
 
-| Priority | Task | Status |
-|----------|------|--------|
-| **ALL** | All refactoring tasks completed | ✅ Done (2025-12-24) |
+| Priority | Task                            | Status               |
+| -------- | ------------------------------- | -------------------- |
+| **ALL**  | All refactoring tasks completed | ✅ Done (2025-12-24) |
 
 ### Summary
 
 **Total code reduction across all completed tasks:**
+
 - **Lines removed**: ~365 (form hooks + API routes + DTO mappers + authorization + types + pagination)
 - **Lines added**: ~405 (base hook + utilities + mappers + authorization helpers + organized types + pagination helpers)
 - **Net impact**: +40 lines but with significantly better organization and maintainability
 
 **Key achievements:**
+
 - Single source of truth for form logic, API error handling, DTO mapping, authorization, type definitions, and pagination
 - Eliminated code duplication across 16+ files
 - Improved code organization with clear separation of concerns
@@ -915,6 +919,7 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 - Better separation between backend utilities (`query.utils.ts`) and frontend utilities (`pagination.ts`)
 
 **Files impacted by refactoring:**
+
 1. **Created**: `useBriefForm.ts`, `mappers.ts`, `authorization.utils.ts`
 2. **Extended**: `api-handler.utils.ts`, `query.utils.ts`
 3. **Modified**: `useCreateBriefForm.ts`, `useEditBriefForm.ts`, `brief.service.ts`, `comments.service.ts`, `brief-form.types.ts`, `create-brief.types.ts`, `pagination.ts`
@@ -924,6 +929,7 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 ### Etap 2 Details
 
 **Files modified:**
+
 - `src/lib/utils/api-handler.utils.ts` - Added `validateRequestBody` helper
 - `src/app/api/briefs/[id]/route.ts` - Simplified validation, removed duplicate `logValidationError` calls
 - `src/app/api/briefs/[id]/status/route.ts` - Refactored to use `validateRequestBody`
@@ -935,12 +941,14 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 ### Etap 3 Details (P0: File Naming Convention Fixes)
 
 **Files renamed:**
+
 - `src/components/hooks/use-auth.tsx` → `useAuth.tsx` (camelCase convention)
 - `src/components/hooks/use-brief-count.tsx` → `useBriefCount.ts` (camelCase + no JSX)
 - `src/lib/constants/brief-status.ts` → `brief-status.constants.ts` (added `.constants` suffix)
 - `src/lib/constants/navigation.ts` → `navigation.constants.ts` (added `.constants` suffix)
 
 **Files with updated imports (10 total):**
+
 - `src/components/layout/DashboardLayoutClient.tsx`
 - `src/components/briefs/shared/BriefStatusBadge.tsx`
 - `src/components/briefs/list/BriefListHeader.tsx`
@@ -954,9 +962,11 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 ### Etap 4 Details (P2: Brief DTO Mapping Extraction)
 
 **Files created:**
+
 - `src/lib/utils/mappers.ts` - Centralized DTO mapping functions
 
 **Functions added:**
+
 - `mapBriefToListItem()` - Maps BriefEntity to BriefListItemDto
 - `mapBriefToDetail()` - Maps BriefEntity to BriefDetailDto (includes content)
 - `mapPartialBriefToDetail()` - Maps partial brief record to BriefDetailDto
@@ -964,9 +974,11 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 - `mapRecipientToDto()` - Maps BriefRecipientEntity to BriefRecipientDto
 
 **Files modified:**
+
 - `src/lib/services/brief.service.ts` - Replaced inline mapping with mapper functions
 
 **Code reduction:**
+
 - ~40 lines of duplicated mapping logic eliminated
 - Single source of truth for DTO transformations
 - Consistent snake_case to camelCase conversion
@@ -974,9 +986,11 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 ### Etap 5 Details (P2: Recipient Access Check Helper)
 
 **Files created:**
+
 - `src/lib/utils/authorization.utils.ts` - Centralized authorization helpers
 
 **Functions added:**
+
 - `checkBriefAccess()` - Checks if user has access to brief (owner OR recipient)
 - `requireBriefOwner()` - Requires user to be brief owner (throws if not)
 - `requireBriefAccess()` - Requires user to have access (throws if not)
@@ -985,13 +999,16 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 - `requireCommentAuthor()` - Requires user to be comment author
 
 **Files modified:**
+
 - `src/lib/services/brief.service.ts` - Uses authorization helpers instead of inline checks
 
 **Additional improvements:**
+
 - `getBriefIdsForUser()` helper in `brief.service.ts` handles shared brief IDs retrieval
 - Better separation of concerns - authorization logic separated from business logic
 
 **Code reduction:**
+
 - ~30 lines of duplicated access check logic eliminated
 - Consistent error handling across all authorization checks
 - Single source of truth for recipient matching (by ID or email)
@@ -999,17 +1016,20 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 ### Etap 6 Details (P3: Type Definitions Consolidation)
 
 **Files modified:**
+
 - `src/lib/types/brief-form.types.ts` - Consolidated and organized all form-related types
 - `src/lib/types/create-brief.types.ts` - Removed duplicate types and re-exports (breaking change acceptable for MVP)
 - `src/components/hooks/useCreateBriefForm.ts` - Updated to use `BriefFormResult` instead of local `CreateBriefResult`
 - `src/components/hooks/useEditBriefForm.ts` - Updated to use `BriefFormResult` instead of `BriefSaveResult`
 
 **Type consolidation:**
+
 - `BriefFormErrors` ← unified type (replaced `FieldErrors`, `CreateBriefResult.fieldErrors`, `BriefSaveResult.fieldErrors`)
 - `BriefFormResult` ← unified type (replaced `CreateBriefResult` and `BriefSaveResult`)
 - **No deprecated aliases** - clean breaking change acceptable for MVP reset before launch
 
 **Organization improvements:**
+
 - Added clear section headers in `brief-form.types.ts`:
   - Form Data
   - Form Errors (unified)
@@ -1022,6 +1042,7 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 - Clean separation between shared types and component-specific props
 
 **Code reduction:**
+
 - ~60 lines eliminated (50 duplicate types + 10 deprecated aliases)
 - Single source of truth for form-related types
 - Better type organization and discoverability
@@ -1030,26 +1051,31 @@ import { NAVIGATION_ITEMS } from "@/lib/constants/navigation.constants";
 ### Etap 7 Details (P3: Pagination Helpers)
 
 **Design Decision:**
+
 - Decided to consolidate pagination helpers in `query.utils.ts` instead of `pagination.ts`
 - Rationale: `query.utils.ts` already contained pagination calculation functions and is better suited for database query-related utilities
 - `pagination.ts` now only contains UI-specific helper (`generatePageNumbers`)
 
 **Files modified:**
+
 - `src/lib/utils/query.utils.ts` - Added `emptyPaginatedResponse<T>()` function
 - `src/lib/utils/pagination.ts` - Removed duplicate pagination calculation functions, kept only UI helper
 - `src/lib/services/comments.service.ts` - Refactored to use helpers from `query.utils.ts`
 
 **Functions consolidated in `query.utils.ts`:**
+
 - `calculateOffset(page, limit)` - Calculate database query offset (already existed)
 - `calculatePagination(page, limit, total)` - Calculate full pagination metadata (already existed)
 - `emptyPagination(page, limit)` - Create empty pagination metadata (already existed)
 - `emptyPaginatedResponse<T>(page, limit)` - Create empty paginated response with data array (newly added)
 
 **Refactoring in `comments.service.ts`:**
+
 - Replaced `(page - 1) * limit` with `calculateOffset(page, limit)` (line 125)
 - Replaced manual `Math.ceil(total / limit)` calculation with `calculatePagination(page, limit, total)` (line 160)
 
 **Code reduction:**
+
 - ~15 lines of duplicated pagination logic eliminated
 - Single source of truth for pagination calculations in `query.utils.ts`
 - Consistent pagination handling across all services

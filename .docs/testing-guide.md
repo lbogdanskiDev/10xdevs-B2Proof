@@ -23,11 +23,11 @@ B2Proof uses a comprehensive testing strategy with:
 
 ### Coverage Targets
 
-| Metric | Target |
-|--------|--------|
-| Unit Test Coverage | ≥80% for services and utilities |
-| Integration Test Coverage | 100% of API endpoints |
-| Critical Path E2E Coverage | 100% of user stories |
+| Metric                     | Target                          |
+| -------------------------- | ------------------------------- |
+| Unit Test Coverage         | ≥80% for services and utilities |
+| Integration Test Coverage  | 100% of API endpoints           |
+| Critical Path E2E Coverage | 100% of user stories            |
 
 ## Unit & Integration Testing (Vitest)
 
@@ -68,26 +68,30 @@ describe('ComponentName', () => {
 ### Key Guidelines
 
 1. **Use `vi` object for mocks**
+
    ```typescript
    const mockFn = vi.fn();
-   vi.spyOn(module, 'method');
-   vi.stubGlobal('fetch', mockFetch);
+   vi.spyOn(module, "method");
+   vi.stubGlobal("fetch", mockFetch);
    ```
 
 2. **Place mock factories at top level**
+
    ```typescript
-   vi.mock('@/lib/services/auth', () => ({
+   vi.mock("@/lib/services/auth", () => ({
      login: vi.fn(),
      logout: vi.fn(),
    }));
    ```
 
 3. **Use custom render from test-utils**
+
    ```typescript
-   import { render, screen } from '@/test/utils/test-utils';
+   import { render, screen } from "@/test/utils/test-utils";
    ```
 
 4. **Follow Arrange-Act-Assert pattern**
+
    ```typescript
    // Arrange - Set up test data
    const user = { name: 'John' };
@@ -104,13 +108,13 @@ describe('ComponentName', () => {
 Use MSW for network request mocking:
 
 ```typescript
-import { http, HttpResponse } from 'msw';
-import { server } from '@/test/mocks/server';
+import { http, HttpResponse } from "msw";
+import { server } from "@/test/mocks/server";
 
 // In your test
 server.use(
-  http.get('/api/users', () => {
-    return HttpResponse.json([{ id: 1, name: 'John' }]);
+  http.get("/api/users", () => {
+    return HttpResponse.json([{ id: 1, name: "John" }]);
   })
 );
 ```
@@ -130,18 +134,18 @@ Playwright is configured in [playwright.config.ts](../playwright.config.ts) with
 ### Test Structure
 
 ```typescript
-import { test, expect } from './fixtures/base';
+import { test, expect } from "./fixtures/base";
 
-test.describe('Feature Name', () => {
-  test('should perform user action', async ({ page }) => {
+test.describe("Feature Name", () => {
+  test("should perform user action", async ({ page }) => {
     // Navigate to page
-    await page.goto('/feature');
+    await page.goto("/feature");
 
     // Interact with page
-    await page.getByRole('button', { name: 'Submit' }).click();
+    await page.getByRole("button", { name: "Submit" }).click();
 
     // Assert outcome
-    await expect(page.getByText('Success')).toBeVisible();
+    await expect(page.getByText("Success")).toBeVisible();
   });
 });
 ```
@@ -156,19 +160,19 @@ export class LoginPage {
   constructor(private page: Page) {}
 
   async login(email: string, password: string) {
-    await this.page.getByLabel('Email').fill(email);
-    await this.page.getByLabel('Password').fill(password);
-    await this.page.getByRole('button', { name: 'Login' }).click();
+    await this.page.getByLabel("Email").fill(email);
+    await this.page.getByLabel("Password").fill(password);
+    await this.page.getByRole("button", { name: "Login" }).click();
   }
 
   async expectLoginSuccess() {
-    await expect(this.page).toHaveURL('/dashboard');
+    await expect(this.page).toHaveURL("/dashboard");
   }
 }
 
 // In test
 const loginPage = new LoginPage(page);
-await loginPage.login('test@example.com', 'password');
+await loginPage.login("test@example.com", "password");
 await loginPage.expectLoginSuccess();
 ```
 
@@ -177,10 +181,10 @@ await loginPage.expectLoginSuccess();
 Use the extended test fixture for accessibility checks:
 
 ```typescript
-import { test, expect } from './fixtures/base';
+import { test, expect } from "./fixtures/base";
 
-test('should have no accessibility violations', async ({ page, makeAxeBuilder }) => {
-  await page.goto('/');
+test("should have no accessibility violations", async ({ page, makeAxeBuilder }) => {
+  await page.goto("/");
 
   const results = await makeAxeBuilder().analyze();
 
@@ -191,30 +195,33 @@ test('should have no accessibility violations', async ({ page, makeAxeBuilder })
 ### Key Guidelines
 
 1. **Use semantic locators**
+
    ```typescript
    // Good
-   page.getByRole('button', { name: 'Submit' })
-   page.getByLabel('Email')
-   page.getByText('Welcome')
+   page.getByRole("button", { name: "Submit" });
+   page.getByLabel("Email");
+   page.getByText("Welcome");
 
    // Avoid
-   page.locator('#submit-btn')
-   page.locator('.email-input')
+   page.locator("#submit-btn");
+   page.locator(".email-input");
    ```
 
 2. **Wait for elements automatically**
+
    ```typescript
    // Playwright auto-waits
-   await page.getByRole('button').click();
+   await page.getByRole("button").click();
 
    // Manual wait only when needed
-   await page.waitForLoadState('networkidle');
+   await page.waitForLoadState("networkidle");
    ```
 
 3. **Use test hooks for setup/teardown**
+
    ```typescript
    test.beforeEach(async ({ page }) => {
-     await page.goto('/');
+     await page.goto("/");
    });
 
    test.afterEach(async ({ page }) => {
@@ -269,13 +276,13 @@ npm run test:all
 
 ```typescript
 // src/lib/utils.test.ts
-import { describe, it, expect } from 'vitest';
-import { cn } from './utils';
+import { describe, it, expect } from "vitest";
+import { cn } from "./utils";
 
-describe('cn utility', () => {
-  it('should merge class names correctly', () => {
-    const result = cn('text-red-500', 'bg-blue-500');
-    expect(result).toBe('text-red-500 bg-blue-500');
+describe("cn utility", () => {
+  it("should merge class names correctly", () => {
+    const result = cn("text-red-500", "bg-blue-500");
+    expect(result).toBe("text-red-500 bg-blue-500");
   });
 });
 ```
@@ -304,18 +311,18 @@ describe('Button', () => {
 
 ```typescript
 // e2e/auth/login.spec.ts
-import { test, expect } from '../fixtures/base';
+import { test, expect } from "../fixtures/base";
 
-test.describe('Login', () => {
-  test('should login successfully with valid credentials', async ({ page }) => {
-    await page.goto('/auth/login');
+test.describe("Login", () => {
+  test("should login successfully with valid credentials", async ({ page }) => {
+    await page.goto("/auth/login");
 
-    await page.getByLabel('Email').fill('test@example.com');
-    await page.getByLabel('Password').fill('password123');
-    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByLabel("Email").fill("test@example.com");
+    await page.getByLabel("Password").fill("password123");
+    await page.getByRole("button", { name: "Login" }).click();
 
-    await expect(page).toHaveURL('/dashboard');
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expect(page).toHaveURL("/dashboard");
+    await expect(page.getByText("Welcome")).toBeVisible();
   });
 });
 ```
@@ -375,16 +382,16 @@ it('should call validateEmail function', () => {
 
 ```typescript
 // Priority order (from highest to lowest):
-screen.getByRole('button', { name: 'Submit' })
-screen.getByLabelText('Email')
-screen.getByPlaceholderText('Enter email')
-screen.getByText('Welcome')
-screen.getByDisplayValue('current value')
-screen.getByAltText('Profile picture')
-screen.getByTitle('Close')
+screen.getByRole("button", { name: "Submit" });
+screen.getByLabelText("Email");
+screen.getByPlaceholderText("Enter email");
+screen.getByText("Welcome");
+screen.getByDisplayValue("current value");
+screen.getByAltText("Profile picture");
+screen.getByTitle("Close");
 
 // Avoid:
-screen.getByTestId('submit-btn') // Only as last resort
+screen.getByTestId("submit-btn"); // Only as last resort
 ```
 
 ### 3. Write Maintainable Tests

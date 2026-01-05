@@ -5,6 +5,7 @@
 The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the authenticated user has access to. This includes briefs they own (created) and briefs that have been shared with them by other users.
 
 **Purpose:**
+
 - Provide authenticated access to user's briefs collection
 - Support pagination for efficient data loading
 - Enable filtering by ownership (owned vs. shared)
@@ -12,6 +13,7 @@ The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the aut
 - Return summary view without full content for performance
 
 **Key Features:**
+
 - JWT-based authentication via Supabase Auth
 - Flexible filtering (ownership and status)
 - Pagination with configurable page size
@@ -21,27 +23,31 @@ The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the aut
 ## 2. Request Details
 
 ### HTTP Method
+
 `GET`
 
 ### URL Structure
+
 ```
 /api/briefs?page={page}&limit={limit}&filter={filter}&status={status}
 ```
 
 ### Headers
+
 **Required:**
+
 - `Authorization: Bearer {jwt_token}` - Supabase JWT token
 
 ### Parameters
 
 **Query Parameters:**
 
-| Parameter | Type | Required | Default | Validation | Description |
-|-----------|------|----------|---------|------------|-------------|
-| `page` | Number | No | 1 | Integer ≥ 1 | Page number for pagination |
-| `limit` | Number | No | 10 | Integer 1-50 | Number of items per page |
-| `filter` | String | No | - | "owned" \| "shared" | Filter by ownership type |
-| `status` | String | No | - | Valid BriefStatus | Filter by brief status |
+| Parameter | Type   | Required | Default | Validation          | Description                |
+| --------- | ------ | -------- | ------- | ------------------- | -------------------------- |
+| `page`    | Number | No       | 1       | Integer ≥ 1         | Page number for pagination |
+| `limit`   | Number | No       | 10      | Integer 1-50        | Number of items per page   |
+| `filter`  | String | No       | -       | "owned" \| "shared" | Filter by ownership type   |
+| `status`  | String | No       | -       | Valid BriefStatus   | Filter by brief status     |
 
 **Valid Status Values:**
 `"draft"`, `"sent"`, `"accepted"`, `"rejected"`, `"needs_modification"`
@@ -82,43 +88,47 @@ The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the aut
 
 ### Error Responses
 
-| Status | Error | When |
-|--------|-------|------|
-| 400 | Invalid query parameters | Page < 1, limit not in 1-50, invalid filter/status |
-| 401 | Unauthorized | No Authorization header or malformed |
-| 401 | Invalid or expired token | JWT token invalid, expired, or cannot be verified |
-| 500 | Internal server error | Database failure or unexpected exception |
+| Status | Error                    | When                                               |
+| ------ | ------------------------ | -------------------------------------------------- |
+| 400    | Invalid query parameters | Page < 1, limit not in 1-50, invalid filter/status |
+| 401    | Unauthorized             | No Authorization header or malformed               |
+| 401    | Invalid or expired token | JWT token invalid, expired, or cannot be verified  |
+| 500    | Internal server error    | Database failure or unexpected exception           |
 
 ## 5. Authorization
 
 **Access Control:**
+
 - User can see briefs they own (`briefs.owner_id = userId`)
 - User can see briefs shared with them (`brief_recipients.recipient_id = userId`)
 - No risk of horizontal privilege escalation (user ID from session)
 
 **Implementation:**
+
 - Authorization logic in service layer via query filtering
 - No explicit 403 responses (empty result set if no access)
 
 ## 6. Security Considerations
 
 ### Authentication & Authorization
+
 - Use `supabase.auth.getUser()` for server-side token validation
 - User ID from session only (never from request params)
 - Queries filter by ownership/sharing automatically
 
 ### Threat Mitigation
 
-| Threat | Mitigation |
-|--------|-----------|
-| Token theft | HTTPS only, httpOnly cookies |
-| Token expiration | Return 401, client refreshes token |
-| SQL injection | Supabase SDK parameterized queries |
-| XSS attacks | Next.js auto-escaping, CSP headers |
-| Horizontal privilege escalation | User ID from session, explicit WHERE clauses |
-| Performance DoS | Rate limiting (100 req/min), max page size (50) |
+| Threat                          | Mitigation                                      |
+| ------------------------------- | ----------------------------------------------- |
+| Token theft                     | HTTPS only, httpOnly cookies                    |
+| Token expiration                | Return 401, client refreshes token              |
+| SQL injection                   | Supabase SDK parameterized queries              |
+| XSS attacks                     | Next.js auto-escaping, CSP headers              |
+| Horizontal privilege escalation | User ID from session, explicit WHERE clauses    |
+| Performance DoS                 | Rate limiting (100 req/min), max page size (50) |
 
 ### Input Validation
+
 - Use Zod for query parameter validation
 - Coerce strings to numbers for page/limit
 - Validate enums for filter/status
@@ -127,12 +137,14 @@ The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the aut
 ## 7. Error Handling
 
 **Error Handling Strategy:**
+
 - Use guard clauses for early returns on validation and authentication failures
 - Throw descriptive errors from service layer for database failures
 - Return appropriate HTTP status codes and error details via NextResponse
 - Use Zod error formatting for validation errors
 
 **Logging Strategy:**
+
 - Development: `console.error()` with full error context (user ID, query params, error stack)
 - Production: structured logging to error tracking service (Sentry)
 - Log levels:
@@ -147,16 +159,16 @@ The `GET /api/briefs` endpoint retrieves a paginated list of briefs that the aut
 **File:** `src/lib/schemas/brief.schema.ts`
 
 ```typescript
-import { z } from 'zod'
+import { z } from "zod";
 
 export const BriefQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
-  filter: z.enum(['owned', 'shared']).optional(),
-  status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'needs_modification']).optional()
-})
+  filter: z.enum(["owned", "shared"]).optional(),
+  status: z.enum(["draft", "sent", "accepted", "rejected", "needs_modification"]).optional(),
+});
 
-export type BriefQueryInput = z.infer<typeof BriefQuerySchema>
+export type BriefQueryInput = z.infer<typeof BriefQuerySchema>;
 ```
 
 ### Step 2: Create Brief Service
@@ -164,6 +176,7 @@ export type BriefQueryInput = z.infer<typeof BriefQuerySchema>
 **File:** `src/lib/services/brief.service.ts`
 
 **Implementation:**
+
 1. Build query based on filter (owned/shared/all)
 2. Apply status filter if provided
 3. Apply pagination with `range()`
@@ -174,32 +187,29 @@ export type BriefQueryInput = z.infer<typeof BriefQuerySchema>
 8. Return `PaginatedResponse<BriefListItemDto>`
 
 **Function signature:**
+
 ```typescript
 export async function getBriefs(
   supabase: SupabaseClient,
   userId: string,
   params: BriefQueryParams
-): Promise<PaginatedResponse<BriefListItemDto>>
+): Promise<PaginatedResponse<BriefListItemDto>>;
 ```
 
 **Query construction:**
+
 ```typescript
 // For owned briefs
-query = query.eq('owner_id', userId)
+query = query.eq("owner_id", userId);
 
 // For shared briefs
-const { data: sharedBriefIds } = await supabase
-  .from('brief_recipients')
-  .select('brief_id')
-  .eq('recipient_id', userId)
+const { data: sharedBriefIds } = await supabase.from("brief_recipients").select("brief_id").eq("recipient_id", userId);
 
-query = query.in('id', briefIds).neq('owner_id', userId)
+query = query.in("id", briefIds).neq("owner_id", userId);
 
 // Apply pagination
-const offset = (page - 1) * limit
-query = query
-  .order('updated_at', { ascending: false })
-  .range(offset, offset + limit - 1)
+const offset = (page - 1) * limit;
+query = query.order("updated_at", { ascending: false }).range(offset, offset + limit - 1);
 ```
 
 ### Step 3: Implement Route Handler
@@ -207,29 +217,33 @@ query = query
 **File:** `src/app/api/briefs/route.ts`
 
 **Implementation flow:**
+
 1. Authenticate user with `supabase.auth.getUser()` (401 if failed)
 2. Parse and validate query parameters with Zod (400 if invalid)
 3. Call `getBriefs()` service
 4. Return success response with paginated data (200)
 
 **Error handling:**
+
 ```typescript
 try {
   // Authenticate, validate, fetch
 } catch (error) {
-  console.error('[GET /api/briefs] Error:', error)
-  return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  console.error("[GET /api/briefs] Error:", error);
+  return NextResponse.json({ error: "Internal server error" }, { status: 500 });
 }
 ```
 
 **Configuration:**
+
 ```typescript
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 ```
 
 ### Step 4: Testing
 
 **Manual testing with curl:**
+
 ```bash
 # Get owned briefs
 curl -H "Authorization: Bearer {token}" \
@@ -249,6 +263,7 @@ curl -H "Authorization: Bearer {token}" \
 ```
 
 **Test scenarios:**
+
 - ✅ Get all briefs
 - ✅ Pagination (different page/limit)
 - ✅ Filter by ownership (owned, shared)
@@ -260,6 +275,7 @@ curl -H "Authorization: Bearer {token}" \
 ### Step 5: Deploy
 
 **Pre-deployment:**
+
 ```bash
 npm run lint
 npm run type-check
@@ -267,6 +283,7 @@ npm run build
 ```
 
 **Commit and deploy:**
+
 ```bash
 git add .
 git commit -m "feat(api): implement GET /api/briefs endpoint with pagination and filtering"
@@ -274,6 +291,7 @@ git push origin main
 ```
 
 **Monitoring:**
+
 - Configure error tracking (Sentry)
 - Set up performance monitoring
 - Alert on error rates > 1%
@@ -282,15 +300,18 @@ git push origin main
 ## 9. Performance
 
 **Expected Performance:**
+
 - Target response time: < 300ms (p95)
 
 **Indexes:**
+
 - `briefs(owner_id, updated_at DESC)` - Owned briefs with ordering
 - `briefs(status, updated_at DESC)` - Status filtering
 - `brief_recipients(recipient_id)` - Shared briefs lookup
 - `brief_recipients(brief_id, recipient_id)` UNIQUE - Prevents duplicates
 
 **Optimization:**
+
 - Exclude `content` field from list view (reduces payload size by ~95%)
 - Use denormalized `comment_count` (no JOIN needed)
 - Single query for count and data (combined in Supabase)

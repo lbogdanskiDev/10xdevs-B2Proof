@@ -5,10 +5,12 @@
 This endpoint retrieves the list of users who have been granted access to a specific brief. It's an owner-only operation that returns recipient metadata including email addresses and sharing timestamps. The endpoint enforces strict authorization to prevent unauthorized users from discovering who has access to briefs.
 
 **Purpose:**
+
 - Allow brief owners to view who they've shared briefs with
 - Provide sharing audit trail with timestamps and sharer information
 
 **Key Features:**
+
 - Owner-only access (403 if user is not brief owner)
 - Returns recipient email addresses via JOIN with auth.users
 - Includes sharing metadata (sharer, timestamp)
@@ -24,12 +26,15 @@ This endpoint retrieves the list of users who have been granted access to a spec
 **URL Structure:** `/api/briefs/:id/recipients`
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (required) - JWT authentication token
 
 **Path Parameters:**
+
 - `id` (UUID, required) - Brief identifier
 
 **Validation Rules:**
+
 - `id` must be valid UUID format
 - Authorization token must be present and valid
 - User must be authenticated via Supabase session
@@ -39,31 +44,36 @@ This endpoint retrieves the list of users who have been granted access to a spec
 ## 3. Types Used
 
 **Response DTO:**
+
 - `BriefRecipientDto` ([src/types.ts:231-237](src/types.ts#L231-L237)) - Individual recipient record
 
 ```typescript
 export interface BriefRecipientDto {
-  id: string;                    // brief_recipients.id
-  recipientId: string;           // brief_recipients.recipient_id
-  recipientEmail: string;        // auth.users.email (from JOIN)
-  sharedBy: string;              // brief_recipients.shared_by
-  sharedAt: string;              // brief_recipients.shared_at (ISO datetime)
+  id: string; // brief_recipients.id
+  recipientId: string; // brief_recipients.recipient_id
+  recipientEmail: string; // auth.users.email (from JOIN)
+  sharedBy: string; // brief_recipients.shared_by
+  sharedAt: string; // brief_recipients.shared_at (ISO datetime)
 }
 ```
 
 **Response Wrapper:**
+
 ```typescript
 { data: BriefRecipientDto[] }  // Simple array wrapper (not paginated)
 ```
 
 **Error Response:**
+
 - `ErrorResponse` ([src/types.ts:301-305](src/types.ts#L301-L305))
 
 **Supporting Types:**
+
 - `SupabaseClient` ([src/types.ts:27](src/types.ts#L27)) - Supabase client type
 - `BriefRecipientEntity` ([src/types.ts:49](src/types.ts#L49)) - Database entity type
 
 **Zod Schemas (existing):**
+
 - `BriefIdSchema` ([src/lib/schemas/brief.schema.ts:64-66](src/lib/schemas/brief.schema.ts#L64-L66)) - UUID validation
 
 ```typescript
@@ -96,13 +106,13 @@ export const BriefIdSchema = z.object({
 
 **Error Responses:**
 
-| Status | Error | When |
-|--------|-------|------|
-| 400 | Invalid brief ID format | Path parameter is not valid UUID |
-| 401 | Unauthorized | Missing or invalid authentication token |
-| 403 | Forbidden | User is not the brief owner |
-| 404 | Not Found | Brief does not exist |
-| 500 | Internal server error | Database query fails unexpectedly |
+| Status | Error                   | When                                    |
+| ------ | ----------------------- | --------------------------------------- |
+| 400    | Invalid brief ID format | Path parameter is not valid UUID        |
+| 401    | Unauthorized            | Missing or invalid authentication token |
+| 403    | Forbidden               | User is not the brief owner             |
+| 404    | Not Found               | Brief does not exist                    |
+| 500    | Internal server error   | Database query fails unexpectedly       |
 
 ---
 
@@ -111,34 +121,38 @@ export const BriefIdSchema = z.object({
 ### Authentication & Authorization
 
 **User Validation:**
+
 - Authenticate via Supabase JWT token from Authorization header
 - Extract user ID from Supabase session (NEVER from request parameters)
 - Current implementation uses `DEFAULT_USER_PROFILE.id` as placeholder until auth is complete
 
 **Authorization Check:**
+
 - Verify user is brief owner via `briefs.owner_id === userId`
 - Perform authorization in service layer (not route handler)
 - Return 403 Forbidden if user is not owner (even if they're a recipient)
 
 ### Threat Mitigation
 
-| Threat | Mitigation |
-|--------|------------|
-| Token theft | Use httpOnly cookies, short token expiry, HTTPS only |
-| SQL injection | Zod UUID validation + Supabase parameterized queries |
-| Resource enumeration | Return 404 if brief doesn't exist, 403 if not owner |
-| Email disclosure | Owner-only access ensures only authorized users see emails |
+| Threat               | Mitigation                                                           |
+| -------------------- | -------------------------------------------------------------------- |
+| Token theft          | Use httpOnly cookies, short token expiry, HTTPS only                 |
+| SQL injection        | Zod UUID validation + Supabase parameterized queries                 |
+| Resource enumeration | Return 404 if brief doesn't exist, 403 if not owner                  |
+| Email disclosure     | Owner-only access ensures only authorized users see emails           |
 | Privilege escalation | Strict owner check prevents recipients from listing other recipients |
 
 ### Input Validation
 
 **Validation Strategy:**
+
 - Use Zod `safeParse()` for UUID validation before database queries
 - Validate path parameter format (UUID) with `BriefIdSchema`
 - Supabase handles authentication token validation
 - Service layer validates ownership before returning data
 
 **What to Validate:**
+
 - Path parameter `id` is valid UUID
 - Brief exists in database
 - Current user is brief owner
@@ -152,6 +166,7 @@ export const BriefIdSchema = z.object({
 Follow guard clause pattern with early returns for error conditions. Use ApiError subclasses (`ForbiddenError`, `NotFoundError`, `DatabaseError`) for business logic errors. Handle ApiError instances in route handler catch block to return appropriate status codes.
 
 **Logging Strategy:**
+
 - Development: `console.error()` for all errors before throwing
 - Production: Structured logging (Sentry, Winston) for 500 errors
 - Log levels:
@@ -172,6 +187,7 @@ Follow guard clause pattern with early returns for error conditions. Use ApiErro
 ### Indexes Used
 
 **Existing indexes utilized:**
+
 - `brief_recipients(brief_id)` - WHERE clause filter (existing index)
 - `auth.users(id)` - JOIN to get recipient email (primary key)
 - `briefs(id)` - Ownership check (primary key)
@@ -181,11 +197,13 @@ Follow guard clause pattern with early returns for error conditions. Use ApiErro
 ### Optimization Opportunities
 
 **Current optimizations:**
+
 - Single query with JOIN instead of multiple round-trips
 - Indexed columns for WHERE and JOIN clauses
 - No pagination overhead (briefs typically have few recipients)
 
 **Future optimizations (if needed):**
+
 - Cache recipient list if changes are infrequent
 - Add `ORDER BY shared_at DESC` index if sorting becomes slow (unlikely with small result sets)
 
@@ -198,6 +216,7 @@ Follow guard clause pattern with early returns for error conditions. Use ApiErro
 **File:** `src/lib/services/brief.service.ts`
 
 **Tasks:**
+
 - ✅ Add `getBriefRecipients()` function to brief service
 - ✅ Query brief_recipients table for recipient data
 - ✅ Fetch email addresses using admin API (parallel execution)
@@ -223,10 +242,7 @@ Follow guard clause pattern with early returns for error conditions. Use ApiErro
  * @returns Array of recipients with email and sharing metadata
  * @throws {DatabaseError} If database query fails
  */
-export async function getBriefRecipients(
-  supabase: SupabaseClient,
-  briefId: string
-): Promise<BriefRecipientDto[]> {
+export async function getBriefRecipients(supabase: SupabaseClient, briefId: string): Promise<BriefRecipientDto[]> {
   // Step 1: Query recipients from brief_recipients table
   const { data: recipients, error: recipientsError } = await supabase
     .from("brief_recipients")
@@ -269,6 +285,7 @@ export async function getBriefRecipients(
 ```
 
 **Implementation Notes:**
+
 - Service layer does NOT perform authorization checks (moved to route handler)
 - Email retrieval uses `supabase.auth.admin.getUserById()` with `Promise.all()` for parallel execution
 - Fallback email `"unknown@example.com"` used when user data is unavailable
@@ -281,6 +298,7 @@ export async function getBriefRecipients(
 **File:** `src/app/api/briefs/[id]/recipients/route.ts`
 
 **Tasks:**
+
 - ✅ Create new route file for GET handler
 - ✅ Await params (Next.js 15 requirement)
 - ✅ Validate brief ID with BriefIdSchema
@@ -319,10 +337,7 @@ export const dynamic = "force-dynamic";
  * @param params - Route parameters { id: string }
  * @returns 200 OK with recipients array or error response
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Step 1: Await params (Next.js 15 breaking change)
     const { id } = await params;
@@ -338,10 +353,7 @@ export async function GET(
       }));
 
       console.error("[GET /api/briefs/:id/recipients] Validation error:", details);
-      return NextResponse.json<ErrorResponse>(
-        { error: "Invalid brief ID format", details },
-        { status: 400 }
-      );
+      return NextResponse.json<ErrorResponse>({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     // Step 3: Get Supabase admin client and mock user
@@ -370,30 +382,22 @@ export async function GET(
     const recipients = await getBriefRecipients(supabase, briefId);
 
     // Happy path: Return success response
-    return NextResponse.json<{ data: BriefRecipientDto[] }>(
-      { data: recipients },
-      { status: 200 }
-    );
+    return NextResponse.json<{ data: BriefRecipientDto[] }>({ data: recipients }, { status: 200 });
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json<ErrorResponse>(
-        { error: error.message },
-        { status: error.statusCode }
-      );
+      return NextResponse.json<ErrorResponse>({ error: error.message }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     console.error("[GET /api/briefs/:id/recipients] Unexpected error:", error);
-    return NextResponse.json<ErrorResponse>(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json<ErrorResponse>({ error: "Internal server error" }, { status: 500 });
   }
 }
 ```
 
 **Implementation Notes:**
+
 - Authorization checks (brief exists, user is owner) are performed in route handler
 - Uses guard clause pattern with early returns for error conditions
 - Mock authentication with `DEFAULT_USER_PROFILE.id` (to be replaced with real auth)
@@ -405,15 +409,16 @@ export async function GET(
 
 **Manual testing results (server running on port 3001):**
 
-| Test Scenario | Expected | Actual | Status |
-|--------------|----------|--------|--------|
-| Owner retrieves empty recipient list | 200 OK + `{"data":[]}` | ✅ 200 OK + `{"data":[]}` | ✅ PASS |
-| Non-owner attempts to list recipients | 403 Forbidden | ✅ 403 + `{"error":"Only the brief owner can view recipients"}` | ✅ PASS |
-| Invalid UUID format | 400 Bad Request | ✅ 400 + validation details | ✅ PASS |
-| Brief does not exist | 404 Not Found | ✅ 404 + `{"error":"Brief with ID ... not found"}` | ✅ PASS |
-| Recipients ordered by shared_at DESC | Ordered correctly | ✅ Implemented in query | ✅ PASS |
+| Test Scenario                         | Expected               | Actual                                                          | Status  |
+| ------------------------------------- | ---------------------- | --------------------------------------------------------------- | ------- |
+| Owner retrieves empty recipient list  | 200 OK + `{"data":[]}` | ✅ 200 OK + `{"data":[]}`                                       | ✅ PASS |
+| Non-owner attempts to list recipients | 403 Forbidden          | ✅ 403 + `{"error":"Only the brief owner can view recipients"}` | ✅ PASS |
+| Invalid UUID format                   | 400 Bad Request        | ✅ 400 + validation details                                     | ✅ PASS |
+| Brief does not exist                  | 404 Not Found          | ✅ 404 + `{"error":"Brief with ID ... not found"}`              | ✅ PASS |
+| Recipients ordered by shared_at DESC  | Ordered correctly      | ✅ Implemented in query                                         | ✅ PASS |
 
 **Test commands used:**
+
 ```bash
 # Test 1: Owner with empty recipient list (200 OK)
 curl http://localhost:3001/api/briefs/aaaaaaaa-0002-0000-0000-000000000002/recipients
@@ -429,6 +434,7 @@ curl http://localhost:3001/api/briefs/99999999-9999-9999-9999-999999999999/recip
 ```
 
 **Code quality checks:**
+
 - ✅ TypeScript type-check: **PASSED** (`npm run type-check`)
 - ✅ ESLint: **PASSED** (`npm run lint`)
 
@@ -437,6 +443,7 @@ curl http://localhost:3001/api/briefs/99999999-9999-9999-9999-999999999999/recip
 ### Step 4: Deploy ✅
 
 **Pre-deployment checks completed:**
+
 ```bash
 ✅ npm run type-check  # No TypeScript errors
 ✅ npm run lint        # No ESLint errors
@@ -444,11 +451,13 @@ curl http://localhost:3001/api/briefs/99999999-9999-9999-9999-999999999999/recip
 ```
 
 **Files modified:**
+
 - `src/lib/services/brief.service.ts` - Added `getBriefRecipients()` function
 - `src/app/api/briefs/[id]/recipients/route.ts` - New route handler (GET endpoint)
 - `.docs/endpoints/get-brief-recipients-implementation-plan.md` - Updated documentation
 
 **Ready for commit:**
+
 ```bash
 git add .
 git commit -m "feat: implement GET /api/briefs/:id/recipients endpoint"
@@ -462,18 +471,21 @@ git push
 ### Architecture Decisions
 
 **1. Authorization Layer Separation**
+
 - ✅ Authorization checks moved to route handler (not service layer)
 - Rationale: Service layer should focus on data retrieval, not business rules
 - Route handler performs: brief existence check + ownership verification
 - Service function performs: data fetching + email enrichment
 
 **2. Email Retrieval Strategy**
+
 - ✅ Uses `supabase.auth.admin.getUserById()` with `Promise.all()` for parallel execution
 - Rationale: `profiles` table doesn't contain `email` column (only `id`, `role`, timestamps)
 - Alternative considered: JOIN with `auth.users` - not feasible without RLS adjustments
 - Performance: Parallel execution vs sequential (N+1 problem avoided)
 
 **3. Error Handling Pattern**
+
 - ✅ Guard clause pattern with early returns
 - ✅ Custom ApiError classes (NotFoundError, ForbiddenError, DatabaseError)
 - ✅ Proper HTTP status codes (400, 403, 404, 500)
@@ -483,6 +495,7 @@ git push
 
 **Database Schema Enhancement:**
 Add `email` column to `profiles` table with trigger synchronization:
+
 ```sql
 -- Add email column to profiles
 ALTER TABLE profiles ADD COLUMN email TEXT;
@@ -503,13 +516,16 @@ EXECUTE FUNCTION sync_user_email();
 ```
 
 This would enable single-query retrieval:
+
 ```typescript
 const { data } = await supabase
   .from("brief_recipients")
-  .select(`
+  .select(
+    `
     id, recipient_id, shared_by, shared_at,
     profiles!recipient_id(email)
-  `)
+  `
+  )
   .eq("brief_id", briefId)
   .order("shared_at", { ascending: false });
 ```

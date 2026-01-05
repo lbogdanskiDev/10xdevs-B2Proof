@@ -5,10 +5,12 @@
 This endpoint allows creator users to create new project briefs with rich text content. The endpoint enforces role-based access control (creators only) and business rules (maximum 20 briefs per creator). All created briefs start in 'draft' status and include audit trail logging.
 
 **Purpose:**
+
 - Enable creators to store project briefs with structured rich text content
 - Enforce business constraints and authorization rules at the API layer
 
 **Key Features:**
+
 - Role-based access control (creators only)
 - TipTap JSON content support for rich text editing
 - Business rule enforcement (20 brief limit per creator)
@@ -24,6 +26,7 @@ This endpoint allows creator users to create new project briefs with rich text c
 **URL Structure:** `/api/briefs`
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (Required)
 - `Content-Type: application/json` (Required)
 
@@ -51,6 +54,7 @@ This endpoint allows creator users to create new project briefs with rich text c
 ```
 
 **Validation Rules:**
+
 - `header`: Required, string, must be trimmed, 1-200 characters after trimming
 - `content`: Required, must be valid JSON object (TipTap document structure)
 - `footer`: Optional, string or null, max 200 characters if provided
@@ -60,12 +64,15 @@ This endpoint allows creator users to create new project briefs with rich text c
 ## 3. Types Used
 
 **Response DTOs:**
+
 - `BriefDetailDto` ([src/types.ts:134-139](src/types.ts#L134-L139)) - Full brief details with content
 
 **Command Models:**
+
 - `CreateBriefCommand` ([src/types.ts:157-161](src/types.ts#L157-L161)) - Request body structure
 
 **Supporting Types:**
+
 - `BriefStatus` ([src/types.ts:65](src/types.ts#L65)) - Brief status enum
 - `BriefInsert` ([src/types.ts:45](src/types.ts#L45)) - Database insert type
 - `UserRole` ([src/types.ts:64](src/types.ts#L64)) - User role enum
@@ -93,11 +100,7 @@ function countTipTapTextLength(node: unknown): number {
 }
 
 const createBriefSchema = z.object({
-  header: z
-    .string()
-    .trim()
-    .min(1, "Header is required")
-    .max(200, "Header must be 200 characters or less"),
+  header: z.string().trim().min(1, "Header is required").max(200, "Header must be 200 characters or less"),
   content: z
     .record(z.unknown())
     .refine((val) => typeof val === "object" && val !== null, {
@@ -112,11 +115,7 @@ const createBriefSchema = z.object({
         message: "Content must not exceed 10,000 characters",
       }
     ),
-  footer: z
-    .string()
-    .max(200, "Footer must be 200 characters or less")
-    .optional()
-    .nullable(),
+  footer: z.string().max(200, "Footer must be 200 characters or less").optional().nullable(),
 });
 ```
 
@@ -160,13 +159,13 @@ const createBriefSchema = z.object({
 
 **Error Responses:**
 
-| Status | Error                 | When                                                                 |
-| ------ | --------------------- | -------------------------------------------------------------------- |
+| Status | Error                 | When                                                                |
+| ------ | --------------------- | ------------------------------------------------------------------- |
 | 400    | Validation failed     | Invalid request body (header length, missing content, invalid JSON) |
-| 401    | Unauthorized          | Missing, invalid, or expired Bearer token                            |
-| 403    | Forbidden (role)      | User role is 'client' instead of 'creator'                           |
-| 403    | Forbidden (limit)     | Creator has reached the 20 brief limit                               |
-| 500    | Internal server error | Database connection failure, unexpected errors                       |
+| 401    | Unauthorized          | Missing, invalid, or expired Bearer token                           |
+| 403    | Forbidden (role)      | User role is 'client' instead of 'creator'                          |
+| 403    | Forbidden (limit)     | Creator has reached the 20 brief limit                              |
+| 500    | Internal server error | Database connection failure, unexpected errors                      |
 
 ---
 
@@ -175,35 +174,39 @@ const createBriefSchema = z.object({
 ### Authentication & Authorization
 
 **User Identification:**
+
 - Extract user ID from authenticated Supabase session using `supabase.auth.getUser()`
 - **NEVER** accept user ID from request parameters, headers, or body
 - Validate JWT token automatically through Supabase SDK
 
 **Authorization Checks:**
+
 - Query `profiles` table to verify user role is 'creator'
 - Perform authorization in service layer before any database mutations
 - Return 403 if user role is 'client'
 
 ### Threat Mitigation
 
-| Threat                 | Mitigation                                                           |
-| ---------------------- | -------------------------------------------------------------------- |
-| Token theft            | Use HTTPS only, validate token server-side via Supabase SDK          |
-| SQL injection          | Use Supabase SDK parameterized queries (no raw SQL)                  |
-| XSS attacks            | Store TipTap content as JSONB; sanitize when rendering on frontend   |
-| Privilege escalation   | Always verify role from database, never trust client-provided claims |
-| Resource exhaustion    | Enforce 20 brief limit per creator in service layer                  |
-| Authorization bypass   | Extract user ID from authenticated session only                      |
+| Threat               | Mitigation                                                           |
+| -------------------- | -------------------------------------------------------------------- |
+| Token theft          | Use HTTPS only, validate token server-side via Supabase SDK          |
+| SQL injection        | Use Supabase SDK parameterized queries (no raw SQL)                  |
+| XSS attacks          | Store TipTap content as JSONB; sanitize when rendering on frontend   |
+| Privilege escalation | Always verify role from database, never trust client-provided claims |
+| Resource exhaustion  | Enforce 20 brief limit per creator in service layer                  |
+| Authorization bypass | Extract user ID from authenticated session only                      |
 
 ### Input Validation
 
 **Strategy:**
+
 - Validate all inputs using Zod schema before calling service layer
 - Use strict validation rules matching database constraints
 - Trim whitespace from string inputs (header, footer)
 - Validate content is a valid JSON object (TipTap structure)
 
 **Validation Timing:**
+
 - Route Handler: Validate request body structure and data types
 - Service Layer: Enforce business rules (brief limit, role check)
 - Database Layer: Final constraint checks (handled by PostgreSQL)
@@ -247,15 +250,18 @@ Use guard clause pattern to handle errors early. All error conditions are checke
 ### Optimization Opportunities
 
 **Query Optimization:**
+
 - Combine role check and brief count into a single query using CTE (Common Table Expression)
 - Example: `WITH user_profile AS (SELECT role FROM profiles WHERE id = $1)`
 
 **Async Processing:**
+
 - Move audit log insertion to background job/queue (fire-and-forget pattern)
 - Reduces critical path latency by ~20-30ms
 - Trade-off: Audit entries may be delayed by a few seconds
 
 **Caching:**
+
 - Cache user role in JWT claims during authentication to avoid profile lookup
 - Requires custom JWT claim injection in Supabase Auth hooks
 
@@ -268,6 +274,7 @@ Use guard clause pattern to handle errors early. All error conditions are checke
 **File:** `src/lib/services/briefs.service.ts`
 
 **Tasks:**
+
 - Create new service file for brief-related business logic
 - Implement `createBrief` function with role check, limit enforcement, and audit logging
 - Map database entity to BriefDetailDto response
@@ -319,9 +326,7 @@ export async function createBrief(
   }
 
   if (count !== null && count >= 20) {
-    throw new ForbiddenError(
-      "Brief limit of 20 reached. Please delete old briefs to create new ones."
-    );
+    throw new ForbiddenError("Brief limit of 20 reached. Please delete old briefs to create new ones.");
   }
 
   // 3. Insert brief
@@ -368,10 +373,7 @@ export async function createBrief(
 /**
  * Maps BriefEntity to BriefDetailDto
  */
-function mapBriefEntityToDetailDto(
-  brief: BriefEntity,
-  isOwned: boolean
-): BriefDetailDto {
+function mapBriefEntityToDetailDto(brief: BriefEntity, isOwned: boolean): BriefDetailDto {
   return {
     id: brief.id,
     ownerId: brief.owner_id,
@@ -396,6 +398,7 @@ function mapBriefEntityToDetailDto(
 **File:** `src/lib/errors/api-errors.ts`
 
 **Tasks:**
+
 - Create custom error classes for consistent API error responses
 - Export UnauthorizedError, ForbiddenError, ValidationError, ApiError
 
@@ -449,6 +452,7 @@ export class NotFoundError extends ApiError {
 **File:** `src/app/api/briefs/route.ts`
 
 **Tasks:**
+
 - Implement POST handler with Zod validation
 - Extract user from authenticated session
 - Call briefs service
@@ -466,21 +470,11 @@ import type { CreateBriefCommand } from "@/types";
 
 // Validation schema
 const createBriefSchema = z.object({
-  header: z
-    .string()
-    .trim()
-    .min(1, "Header is required")
-    .max(200, "Header must be 200 characters or less"),
-  content: z
-    .record(z.unknown())
-    .refine((val) => typeof val === "object" && val !== null, {
-      message: "Content must be a valid TipTap JSON object",
-    }),
-  footer: z
-    .string()
-    .max(200, "Footer must be 200 characters or less")
-    .optional()
-    .nullable(),
+  header: z.string().trim().min(1, "Header is required").max(200, "Header must be 200 characters or less"),
+  content: z.record(z.unknown()).refine((val) => typeof val === "object" && val !== null, {
+    message: "Content must be a valid TipTap JSON object",
+  }),
+  footer: z.string().max(200, "Footer must be 200 characters or less").optional().nullable(),
 });
 
 export async function POST(request: Request) {
@@ -495,10 +489,7 @@ export async function POST(request: Request) {
         field: err.path.join("."),
         message: err.message,
       }));
-      return NextResponse.json(
-        { error: "Validation failed", details },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Validation failed", details }, { status: 400 });
     }
 
     const data: CreateBriefCommand = validationResult.data;
@@ -511,10 +502,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // 4. Create brief
@@ -525,18 +513,12 @@ export async function POST(request: Request) {
   } catch (error) {
     // Handle known API errors
     if (error instanceof ApiError) {
-      return NextResponse.json(
-        { error: error.message, details: error.details },
-        { status: error.statusCode }
-      );
+      return NextResponse.json({ error: error.message, details: error.details }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     console.error("Unexpected error in POST /api/briefs:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 ```

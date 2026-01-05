@@ -3,6 +3,7 @@
 ## 1. Przegląd
 
 System nawigacji B2Proof to zestaw komponentów odpowiedzialnych za umożliwienie użytkownikom poruszania się po aplikacji. Nawigacja obsługuje dwa layouty:
+
 - **Desktop (>1024px)**: Stały sidebar po lewej stronie ekranu
 - **Mobile (<640px)**: Hamburger menu otwierające Sheet z nawigacją
 
@@ -15,17 +16,21 @@ Nawigacja uwzględnia rolę użytkownika (creator/client) i dynamicznie pokazuje
 Strona główna (`/`) pełni rolę punktu wejścia do aplikacji. Nie wyświetla własnej zawartości - zamiast tego przekierowuje użytkownika w zależności od stanu autentykacji:
 
 **Logika przekierowań:**
+
 - **Użytkownik zalogowany** → przekierowanie do `/briefs`
 - **Użytkownik niezalogowany** → przekierowanie do `/login`
 
 **Implementacja w `src/app/page.tsx`:**
+
 ```typescript
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/db/supabase.client";
 
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (user) {
     redirect("/briefs");
@@ -36,12 +41,15 @@ export default async function HomePage() {
 ```
 
 **Alternatywnie - implementacja w middleware (`src/middleware.ts`):**
+
 ```typescript
 // Dodać do istniejącego middleware
 const { pathname } = request.nextUrl;
 
 // Sprawdź sesję użytkownika
-const { data: { user } } = await supabase.auth.getUser();
+const {
+  data: { user },
+} = await supabase.auth.getUser();
 
 // Przekierowanie ze strony głównej
 if (pathname === "/") {
@@ -74,14 +82,14 @@ src/app/(dashboard)/layout.tsx - Główny layout z nawigacją
 
 ### 2.3 Ścieżki aplikacji
 
-| Ścieżka | Dostęp | Opis |
-|---------|--------|------|
-| `/` | Publiczna | Przekierowanie: zalogowany → `/briefs`, niezalogowany → `/login` |
-| `/login` | Tylko niezalogowani | Strona logowania (zalogowani są przekierowywani do `/briefs`) |
-| `/briefs` | Tylko zalogowani | Lista briefów (domyślna strona po zalogowaniu) |
-| `/briefs/new` | Tylko creator | Tworzenie nowego briefu |
-| `/briefs/[id]` | Tylko zalogowani | Szczegóły briefu |
-| `/profile` | Tylko zalogowani | Profil użytkownika |
+| Ścieżka        | Dostęp              | Opis                                                             |
+| -------------- | ------------------- | ---------------------------------------------------------------- |
+| `/`            | Publiczna           | Przekierowanie: zalogowany → `/briefs`, niezalogowany → `/login` |
+| `/login`       | Tylko niezalogowani | Strona logowania (zalogowani są przekierowywani do `/briefs`)    |
+| `/briefs`      | Tylko zalogowani    | Lista briefów (domyślna strona po zalogowaniu)                   |
+| `/briefs/new`  | Tylko creator       | Tworzenie nowego briefu                                          |
+| `/briefs/[id]` | Tylko zalogowani    | Szczegóły briefu                                                 |
+| `/profile`     | Tylko zalogowani    | Profil użytkownika                                               |
 
 ## 3. Struktura komponentów
 
@@ -117,6 +125,7 @@ src/app/(dashboard)/layout.tsx
 **Opis:** Client Component wrapper dla layoutu dashboard. Odpowiada za pobieranie danych użytkownika i renderowanie nawigacji.
 
 **Główne elementy:**
+
 - `AuthProvider` - context z danymi użytkownika
 - `ThemeProvider` - obsługa dark/light mode
 - `Sidebar` - nawigacja desktop
@@ -125,12 +134,15 @@ src/app/(dashboard)/layout.tsx
 - `main` - kontener na zawartość strony
 
 **Obsługiwane interakcje:**
+
 - Brak bezpośrednich - deleguje do komponentów dzieci
 
 **Obsługiwana walidacja:**
+
 - Sprawdzenie czy użytkownik jest zalogowany (redirect do /login jeśli nie)
 
 **Typy:**
+
 ```typescript
 interface DashboardLayoutClientProps {
   children: React.ReactNode;
@@ -140,6 +152,7 @@ interface DashboardLayoutClientProps {
 ```
 
 **Propsy:**
+
 - `children: React.ReactNode` - zawartość strony
 - `user: UserProfileDto | null` - dane zalogowanego użytkownika
 - `briefCount: number` - aktualna liczba briefów użytkownika
@@ -151,16 +164,20 @@ interface DashboardLayoutClientProps {
 **Opis:** Context provider dostarczający dane użytkownika do całej aplikacji. Przechowuje informacje o zalogowanym użytkowniku i udostępnia metodę logout.
 
 **Główne elementy:**
+
 - `AuthContext.Provider` - wrapper context
 - `children` - komponenty dzieci
 
 **Obsługiwane interakcje:**
+
 - `logout()` - wylogowanie użytkownika via Supabase Auth
 
 **Obsługiwana walidacja:**
+
 - Brak
 
 **Typy:**
+
 ```typescript
 interface AuthContextValue {
   user: UserProfileDto | null;
@@ -170,6 +187,7 @@ interface AuthContextValue {
 ```
 
 **Propsy:**
+
 - `children: React.ReactNode`
 - `initialUser: UserProfileDto | null`
 
@@ -180,6 +198,7 @@ interface AuthContextValue {
 **Opis:** Stały panel nawigacyjny widoczny na desktop (>1024px). Zawiera logo, linki nawigacyjne, licznik briefów i przycisk logout.
 
 **Główne elementy:**
+
 - `aside` (fixed, left, h-full, w-64)
 - `SidebarHeader` - logo i nazwa aplikacji
 - `nav` - kontener nawigacji
@@ -188,15 +207,18 @@ interface AuthContextValue {
 - `SidebarFooter` - przycisk logout
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie logo → nawigacja do `/briefs`
 - Kliknięcie linku → nawigacja do odpowiedniej strony
 - Kliknięcie "Logout" → wywołanie `logout()` z AuthContext
 
 **Obsługiwana walidacja:**
+
 - Warunkowe renderowanie "New Brief" tylko dla role === "creator"
 - Disabled state dla "New Brief" gdy briefCount >= 20
 
 **Typy:**
+
 ```typescript
 interface SidebarProps {
   user: UserProfileDto;
@@ -206,6 +228,7 @@ interface SidebarProps {
 ```
 
 **Propsy:**
+
 - `user: UserProfileDto` - dane użytkownika
 - `briefCount: number` - liczba briefów
 - `navigation: NavigationItem[]` - lista elementów nawigacji
@@ -217,17 +240,21 @@ interface SidebarProps {
 **Opis:** Lista linków nawigacyjnych w sidebarze. Renderuje linki warunkowe zależnie od roli użytkownika.
 
 **Główne elementy:**
+
 - `ul` - lista linków
 - `NavLink` - pojedynczy link nawigacyjny
 - `BriefCountBadge` - badge z licznikiem briefów (tylko dla creatorów)
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie linku → nawigacja
 
 **Obsługiwana walidacja:**
+
 - Sprawdzenie `disabled` dla linku "New Brief"
 
 **Typy:**
+
 ```typescript
 interface SidebarNavigationProps {
   items: NavigationItem[];
@@ -238,6 +265,7 @@ interface SidebarNavigationProps {
 ```
 
 **Propsy:**
+
 - `items: NavigationItem[]` - elementy nawigacji
 - `currentPath: string` - aktualna ścieżka (do podświetlenia)
 - `briefCount: number` - liczba briefów
@@ -250,19 +278,23 @@ interface SidebarNavigationProps {
 **Opis:** Pojedynczy link nawigacyjny z ikoną, tekstem i opcjonalnym badge.
 
 **Główne elementy:**
+
 - `Link` (next/link) lub `button` (jeśli disabled)
 - `LucideIcon` - ikona linku
 - `span` - tekst linku
 - `Badge` (opcjonalny) - np. licznik briefów
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie → nawigacja do `href` (jeśli nie disabled)
 - Focus visible → outline dla dostępności
 
 **Obsługiwana walidacja:**
+
 - `disabled` prop blokuje nawigację i zmienia styl
 
 **Typy:**
+
 ```typescript
 interface NavLinkProps {
   href: string;
@@ -275,6 +307,7 @@ interface NavLinkProps {
 ```
 
 **Propsy:**
+
 - `href: string` - ścieżka docelowa
 - `icon: LucideIcon` - ikona z lucide-react
 - `label: string` - tekst linku
@@ -289,17 +322,21 @@ interface NavLinkProps {
 **Opis:** Badge wyświetlający aktualną liczbę briefów użytkownika w formacie "15/20".
 
 **Główne elementy:**
+
 - `Badge` (Shadcn/ui)
 - `span` - tekst licznika
 
 **Obsługiwane interakcje:**
+
 - Brak (komponent prezentacyjny)
 
 **Obsługiwana walidacja:**
+
 - Zmiana koloru gdy briefCount >= 18 (warning)
 - Zmiana koloru gdy briefCount >= 20 (destructive)
 
 **Typy:**
+
 ```typescript
 interface BriefCountBadgeProps {
   current: number;
@@ -308,6 +345,7 @@ interface BriefCountBadgeProps {
 ```
 
 **Propsy:**
+
 - `current: number` - aktualna liczba briefów
 - `max: number` - maksymalna liczba briefów (20)
 
@@ -318,19 +356,23 @@ interface BriefCountBadgeProps {
 **Opis:** Górny pasek widoczny na mobile (<640px). Zawiera hamburger menu, logo i akcje użytkownika.
 
 **Główne elementy:**
+
 - `header` (sticky top-0, h-16)
 - `MobileMenuTrigger` - przycisk hamburger
 - `Logo` - nazwa/logo aplikacji
 - `div` - kontener akcji (ThemeToggle, UserMenu)
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie hamburger → otwarcie MobileNav
 - Kliknięcie logo → nawigacja do `/briefs`
 
 **Obsługiwana walidacja:**
+
 - Brak
 
 **Typy:**
+
 ```typescript
 interface TopBarProps {
   onMenuClick: () => void;
@@ -339,6 +381,7 @@ interface TopBarProps {
 ```
 
 **Propsy:**
+
 - `onMenuClick: () => void` - callback do otwarcia mobile menu
 - `user: UserProfileDto` - dane użytkownika
 
@@ -349,16 +392,20 @@ interface TopBarProps {
 **Opis:** Przycisk hamburger otwierający mobilną nawigację.
 
 **Główne elementy:**
+
 - `Button` (variant="ghost", size="icon")
 - `Menu` icon (lucide-react)
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie → wywołanie `onClick`
 
 **Obsługiwana walidacja:**
+
 - Brak
 
 **Typy:**
+
 ```typescript
 interface MobileMenuTriggerProps {
   onClick: () => void;
@@ -366,6 +413,7 @@ interface MobileMenuTriggerProps {
 ```
 
 **Propsy:**
+
 - `onClick: () => void` - callback
 
 ---
@@ -375,16 +423,20 @@ interface MobileMenuTriggerProps {
 **Opis:** Przełącznik motywu dark/light mode.
 
 **Główne elementy:**
+
 - `Button` (variant="ghost", size="icon")
 - `Sun` / `Moon` icon (lucide-react)
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie → przełączenie motywu via `setTheme()` z next-themes
 
 **Obsługiwana walidacja:**
+
 - Brak
 
 **Typy:**
+
 ```typescript
 interface ThemeToggleProps {
   className?: string;
@@ -392,6 +444,7 @@ interface ThemeToggleProps {
 ```
 
 **Propsy:**
+
 - `className?: string` - dodatkowe klasy CSS
 
 ---
@@ -401,20 +454,24 @@ interface ThemeToggleProps {
 **Opis:** Menu użytkownika z avatarem/inicjałem i dropdown z opcjami.
 
 **Główne elementy:**
+
 - `DropdownMenu` (Shadcn/ui)
 - `DropdownMenuTrigger` - przycisk z avatarem
 - `DropdownMenuContent` - lista opcji
 - `DropdownMenuItem` - opcje: Profile, Logout
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie avatara → otwarcie dropdown
 - Kliknięcie "Profile" → nawigacja do `/profile`
 - Kliknięcie "Logout" → wywołanie `logout()` i redirect do `/login`
 
 **Obsługiwana walidacja:**
+
 - Brak
 
 **Typy:**
+
 ```typescript
 interface UserMenuProps {
   user: UserProfileDto;
@@ -423,6 +480,7 @@ interface UserMenuProps {
 ```
 
 **Propsy:**
+
 - `user: UserProfileDto` - dane użytkownika
 - `onLogout: () => Promise<void>` - callback logout
 
@@ -433,6 +491,7 @@ interface UserMenuProps {
 **Opis:** Mobilna nawigacja jako Sheet (sliding panel) otwierana z lewej strony.
 
 **Główne elementy:**
+
 - `Sheet` (Shadcn/ui)
 - `SheetContent` (side="left")
 - `SheetHeader` - logo aplikacji
@@ -440,15 +499,18 @@ interface UserMenuProps {
 - `SheetFooter` - przycisk logout
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie linku → nawigacja + zamknięcie sheet
 - Kliknięcie "Logout" → logout + redirect
 - Kliknięcie poza sheet → zamknięcie
 - Swipe left → zamknięcie
 
 **Obsługiwana walidacja:**
+
 - Identyczne jak Sidebar (warunkowe "New Brief", disabled state)
 
 **Typy:**
+
 ```typescript
 interface MobileNavProps {
   open: boolean;
@@ -461,6 +523,7 @@ interface MobileNavProps {
 ```
 
 **Propsy:**
+
 - `open: boolean` - stan otwarcia
 - `onOpenChange: (open: boolean) => void` - callback zmiany stanu
 - `user: UserProfileDto` - dane użytkownika
@@ -475,16 +538,20 @@ interface MobileNavProps {
 **Opis:** Logo/nazwa aplikacji B2Proof jako link do strony głównej.
 
 **Główne elementy:**
+
 - `Link` (href="/briefs")
 - `span` - tekst "B2Proof"
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie → nawigacja do `/briefs`
 
 **Obsługiwana walidacja:**
+
 - Brak
 
 **Typy:**
+
 ```typescript
 interface LogoProps {
   className?: string;
@@ -493,6 +560,7 @@ interface LogoProps {
 ```
 
 **Propsy:**
+
 - `className?: string` - dodatkowe klasy
 - `size?: "sm" | "md" | "lg"` - rozmiar tekstu
 
@@ -674,6 +742,7 @@ const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 **Request:** Brak body (autoryzacja via cookies)
 
 **Response:**
+
 ```typescript
 // Success (200)
 interface UserProfileDto {
@@ -691,6 +760,7 @@ interface ErrorReturn {
 ```
 
 **Implementacja w layout:**
+
 ```typescript
 // src/app/(dashboard)/layout.tsx
 
@@ -724,13 +794,14 @@ export default async function DashboardLayout({ children }) {
 **Endpoint:** `GET /api/briefs?limit=1`
 
 **Response:**
+
 ```typescript
 interface PaginatedResponse<BriefListItemDto> {
   data: BriefListItemDto[];
   pagination: {
     page: number;
     limit: number;
-    total: number;      // <-- używamy tej wartości
+    total: number; // <-- używamy tej wartości
     totalPages: number;
   };
 }
@@ -747,31 +818,31 @@ await supabase.auth.signOut();
 
 ## 8. Interakcje użytkownika
 
-| Interakcja | Komponent | Rezultat |
-|------------|-----------|----------|
-| Kliknięcie logo | Logo | Nawigacja do `/briefs` |
-| Kliknięcie "Briefs" | NavLink | Nawigacja do `/briefs` |
-| Kliknięcie "New Brief" (creator) | NavLink | Nawigacja do `/briefs/new` |
-| Kliknięcie "New Brief" (disabled) | NavLink | Brak akcji, tooltip z info o limicie |
-| Kliknięcie "Profile" | NavLink/UserMenu | Nawigacja do `/profile` |
-| Kliknięcie "Logout" | SidebarFooter/UserMenu | Wylogowanie, redirect do `/login` |
-| Kliknięcie hamburger (mobile) | MobileMenuTrigger | Otwarcie Sheet z nawigacją |
-| Kliknięcie poza Sheet | MobileNav | Zamknięcie Sheet |
-| Kliknięcie linku w Sheet | MobileNav NavLink | Nawigacja + zamknięcie Sheet |
-| Kliknięcie ThemeToggle | ThemeToggle | Przełączenie dark/light mode |
-| Kliknięcie avatara | UserMenu | Otwarcie dropdown menu |
+| Interakcja                        | Komponent              | Rezultat                             |
+| --------------------------------- | ---------------------- | ------------------------------------ |
+| Kliknięcie logo                   | Logo                   | Nawigacja do `/briefs`               |
+| Kliknięcie "Briefs"               | NavLink                | Nawigacja do `/briefs`               |
+| Kliknięcie "New Brief" (creator)  | NavLink                | Nawigacja do `/briefs/new`           |
+| Kliknięcie "New Brief" (disabled) | NavLink                | Brak akcji, tooltip z info o limicie |
+| Kliknięcie "Profile"              | NavLink/UserMenu       | Nawigacja do `/profile`              |
+| Kliknięcie "Logout"               | SidebarFooter/UserMenu | Wylogowanie, redirect do `/login`    |
+| Kliknięcie hamburger (mobile)     | MobileMenuTrigger      | Otwarcie Sheet z nawigacją           |
+| Kliknięcie poza Sheet             | MobileNav              | Zamknięcie Sheet                     |
+| Kliknięcie linku w Sheet          | MobileNav NavLink      | Nawigacja + zamknięcie Sheet         |
+| Kliknięcie ThemeToggle            | ThemeToggle            | Przełączenie dark/light mode         |
+| Kliknięcie avatara                | UserMenu               | Otwarcie dropdown menu               |
 
 ## 9. Warunki i walidacja
 
 ### 9.1 Warunkowe renderowanie elementów nawigacji
 
-| Warunek | Element | Zachowanie |
-|---------|---------|------------|
+| Warunek                   | Element             | Zachowanie                      |
+| ------------------------- | ------------------- | ------------------------------- |
 | `user.role === "creator"` | NavLink "New Brief" | Renderowany tylko dla creatorów |
-| `briefCount >= 20` | NavLink "New Brief" | `disabled=true`, zmieniony styl |
-| `briefCount >= 18` | BriefCountBadge | Kolor warning (żółty) |
-| `briefCount >= 20` | BriefCountBadge | Kolor destructive (czerwony) |
-| `currentPath === href` | NavLink | `isActive=true`, podświetlenie |
+| `briefCount >= 20`        | NavLink "New Brief" | `disabled=true`, zmieniony styl |
+| `briefCount >= 18`        | BriefCountBadge     | Kolor warning (żółty)           |
+| `briefCount >= 20`        | BriefCountBadge     | Kolor destructive (czerwony)    |
+| `currentPath === href`    | NavLink             | `isActive=true`, podświetlenie  |
 
 ### 9.2 Konfiguracja nawigacji
 
@@ -781,10 +852,7 @@ await supabase.auth.signOut();
 import { FileText, Plus, User, LogOut } from "lucide-react";
 import type { NavigationItem } from "@/lib/types/navigation.types";
 
-export const getNavigationItems = (
-  briefCount: number,
-  maxBriefs: number
-): NavigationItem[] => [
+export const getNavigationItems = (briefCount: number, maxBriefs: number): NavigationItem[] => [
   {
     name: "Briefs",
     href: "/briefs",
@@ -818,6 +886,7 @@ export const getNavigationItems = (
 **Scenariusz:** API `/api/users/me` zwraca 401 lub 500
 
 **Obsługa:**
+
 ```typescript
 // W layout.tsx
 if (!response.ok) {
@@ -834,6 +903,7 @@ if (!response.ok) {
 **Scenariusz:** Supabase signOut() rzuca błąd
 
 **Obsługa:**
+
 ```typescript
 const logout = async () => {
   try {
@@ -851,6 +921,7 @@ const logout = async () => {
 **Scenariusz:** API `/api/briefs` zwraca błąd
 
 **Obsługa:**
+
 ```typescript
 // W useBriefCount hook
 const refresh = async () => {
@@ -870,6 +941,7 @@ const refresh = async () => {
 ### 10.4 Brak połączenia sieciowego
 
 **Obsługa:**
+
 - Nawigacja działa offline (client-side routing)
 - Akcje wymagające API (logout) pokazują toast z błędem
 - Licznik briefów może być nieaktualny
@@ -879,6 +951,7 @@ const refresh = async () => {
 ### Krok 1: Zaktualizuj middleware dla przekierowań i ochrony ścieżek
 
 Zaktualizuj `src/middleware.ts`:
+
 - Dodaj przekierowanie ze strony głównej (`/`) w zależności od stanu logowania
 - Dodaj ochronę ścieżek dashboard (`/briefs`, `/profile`) - przekierowanie do `/login` dla niezalogowanych
 - Dodaj przekierowanie zalogowanych użytkowników z `/login` do `/briefs`
@@ -887,7 +960,9 @@ Zaktualizuj `src/middleware.ts`:
 // src/middleware.ts - dodać po sprawdzeniu sesji
 
 const { pathname } = request.nextUrl;
-const { data: { user } } = await supabase.auth.getUser();
+const {
+  data: { user },
+} = await supabase.auth.getUser();
 
 // Przekierowanie ze strony głównej
 if (pathname === "/") {
@@ -897,7 +972,7 @@ if (pathname === "/") {
 
 // Ochrona ścieżek dashboard
 const protectedPaths = ["/briefs", "/profile"];
-const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+const isProtectedPath = protectedPaths.some((path) => pathname.startsWith(path));
 
 if (isProtectedPath && !user) {
   return NextResponse.redirect(new URL("/login", request.url));
@@ -930,6 +1005,7 @@ npx shadcn@latest add sheet dropdown-menu separator avatar tooltip
 ### Krok 4: Utwórz typy nawigacji
 
 Utwórz plik `src/lib/types/navigation.types.ts` z definicjami:
+
 - `NavigationItem`
 - `AuthContextValue`
 - `BriefCountData`
@@ -937,12 +1013,14 @@ Utwórz plik `src/lib/types/navigation.types.ts` z definicjami:
 ### Krok 5: Utwórz stałe nawigacji
 
 Utwórz plik `src/lib/constants/navigation.ts`:
+
 - Funkcja `getNavigationItems()`
 - Stałe dla breakpointów
 
 ### Krok 6: Utwórz AuthProvider i useAuth hook
 
 Utwórz plik `src/hooks/use-auth.tsx`:
+
 - `AuthContext`
 - `AuthProvider` component
 - `useAuth` hook
@@ -950,24 +1028,28 @@ Utwórz plik `src/hooks/use-auth.tsx`:
 ### Krok 7: Utwórz useBriefCount hook
 
 Utwórz plik `src/hooks/use-brief-count.tsx`:
+
 - Hook do pobierania i cachowania liczby briefów
 - Obsługa loading state i błędów
 
 ### Krok 8: Utwórz komponent Logo
 
 Utwórz plik `src/components/layout/Logo.tsx`:
+
 - Link do `/briefs`
 - Responsywne rozmiary
 
 ### Krok 9: Utwórz komponent ThemeToggle
 
 Utwórz plik `src/components/layout/ThemeToggle.tsx`:
+
 - Integracja z next-themes
 - Ikony Sun/Moon
 
 ### Krok 10: Utwórz komponent NavLink
 
 Utwórz plik `src/components/layout/NavLink.tsx`:
+
 - Obsługa active state
 - Obsługa disabled state
 - Obsługa badge
@@ -975,18 +1057,21 @@ Utwórz plik `src/components/layout/NavLink.tsx`:
 ### Krok 11: Utwórz komponent BriefCountBadge
 
 Utwórz plik `src/components/layout/BriefCountBadge.tsx`:
+
 - Wyświetlanie licznika "X/20"
 - Warunkowe kolory (normal, warning, destructive)
 
 ### Krok 12: Utwórz komponent SidebarNavigation
 
 Utwórz plik `src/components/layout/SidebarNavigation.tsx`:
+
 - Lista NavLink
 - Filtrowanie elementów wg roli
 
 ### Krok 13: Utwórz komponent Sidebar
 
 Utwórz plik `src/components/layout/Sidebar.tsx`:
+
 - SidebarHeader z Logo
 - SidebarNavigation
 - Separator
@@ -995,12 +1080,14 @@ Utwórz plik `src/components/layout/Sidebar.tsx`:
 ### Krok 14: Utwórz komponent UserMenu
 
 Utwórz plik `src/components/layout/UserMenu.tsx`:
+
 - DropdownMenu z avatarem
 - Opcje: Profile, Logout
 
 ### Krok 15: Utwórz komponent TopBar
 
 Utwórz plik `src/components/layout/TopBar.tsx`:
+
 - MobileMenuTrigger
 - Logo (center)
 - ThemeToggle + UserMenu
@@ -1008,6 +1095,7 @@ Utwórz plik `src/components/layout/TopBar.tsx`:
 ### Krok 16: Utwórz komponent MobileNav
 
 Utwórz plik `src/components/layout/MobileNav.tsx`:
+
 - Sheet component
 - Nawigacja identyczna jak Sidebar
 - Zamykanie po kliknięciu linku
@@ -1015,6 +1103,7 @@ Utwórz plik `src/components/layout/MobileNav.tsx`:
 ### Krok 17: Utwórz komponent DashboardLayoutClient
 
 Utwórz plik `src/components/layout/DashboardLayoutClient.tsx`:
+
 - Client Component wrapper
 - AuthProvider
 - ThemeProvider
@@ -1025,6 +1114,7 @@ Utwórz plik `src/components/layout/DashboardLayoutClient.tsx`:
 ### Krok 18: Zaktualizuj layout.tsx
 
 Zaktualizuj `src/app/(dashboard)/layout.tsx`:
+
 - Pobieranie użytkownika server-side
 - Pobieranie liczby briefów
 - Renderowanie DashboardLayoutClient
@@ -1032,6 +1122,7 @@ Zaktualizuj `src/app/(dashboard)/layout.tsx`:
 ### Krok 19: Dodaj ThemeProvider do root layout
 
 Zaktualizuj `src/app/layout.tsx`:
+
 - Dodaj ThemeProvider z next-themes
 - Skonfiguruj attribute="class"
 
@@ -1049,6 +1140,7 @@ Zaktualizuj `src/app/layout.tsx`:
 ### Krok 21: Export komponentów
 
 Utwórz plik `src/components/layout/index.ts`:
+
 ```typescript
 export { Sidebar } from "./Sidebar";
 export { TopBar } from "./TopBar";

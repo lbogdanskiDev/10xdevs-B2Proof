@@ -3,6 +3,7 @@ description:
 globs:
 alwaysApply: false
 ---
+
 # Supabase Next.js Initialization
 
 This document provides a reproducible guide to create the necessary file structure for integrating Supabase with your Next.js 15 project.
@@ -23,10 +24,10 @@ IMPORTANT: Check prerequisites before performing actions below. If they're not m
 Create the file `/src/db/supabase.server.ts` with the following content:
 
 ```ts
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
-import type { Database } from './database.types';
+import type { Database } from "./database.types";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -62,9 +63,9 @@ This file creates a Supabase client for use in Server Components, Server Actions
 Create the file `/src/db/supabase.client.ts` with the following content:
 
 ```ts
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient } from "@supabase/ssr";
 
-import type { Database } from './database.types';
+import type { Database } from "./database.types";
 
 export function createSupabaseBrowserClient() {
   return createBrowserClient<Database>(
@@ -81,8 +82,8 @@ This file creates a Supabase client for use in Client Components with automatic 
 Create or update the file `/src/middleware.ts` with the following content:
 
 ```ts
-import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -127,7 +128,7 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder files
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
 ```
@@ -158,11 +159,11 @@ npx supabase gen types typescript --local > src/db/database.types.ts
 ### In Server Components
 
 ```tsx
-import { createSupabaseServerClient } from '@/db/supabase.server';
+import { createSupabaseServerClient } from "@/db/supabase.server";
 
 export default async function ServerComponent() {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.from('your_table').select();
+  const { data } = await supabase.from("your_table").select();
 
   return <div>{/* Your component */}</div>;
 }
@@ -186,12 +187,12 @@ export async function myServerAction() {
 ### In Route Handlers
 
 ```tsx
-import { createSupabaseServerClient } from '@/db/supabase.server';
-import { NextResponse } from 'next/server';
+import { createSupabaseServerClient } from "@/db/supabase.server";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.from('your_table').select();
+  const { data } = await supabase.from("your_table").select();
 
   return NextResponse.json(data);
 }
@@ -200,10 +201,10 @@ export async function GET() {
 ### In Client Components
 
 ```tsx
-'use client';
+"use client";
 
-import { createSupabaseBrowserClient } from '@/db/supabase.client';
-import { useEffect, useState } from 'react';
+import { createSupabaseBrowserClient } from "@/db/supabase.client";
+import { useEffect, useState } from "react";
 
 export default function ClientComponent() {
   const [data, setData] = useState(null);
@@ -211,7 +212,7 @@ export default function ClientComponent() {
 
   useEffect(() => {
     async function loadData() {
-      const { data } = await supabase.from('your_table').select();
+      const { data } = await supabase.from("your_table").select();
       setData(data);
     }
     loadData();

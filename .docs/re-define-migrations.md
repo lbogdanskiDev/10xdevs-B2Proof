@@ -10,20 +10,20 @@ Przepisanie 12 plików migracji do 7 skonsolidowanych plików z poprawkami, opty
 
 ### Pliki migracji (12 plików, ~76 KB)
 
-| Plik | Opis | Problem |
-|------|------|---------|
-| `000_extensions.sql` | Rozszerzenia PostgreSQL | Niespójne nazewnictwo |
-| `001_create_enums.sql` | Typy ENUM | Niespójne nazewnictwo |
-| `002_create_tables.sql` | Tabele | Brak `recipient_email` |
-| `003_create_indexes.sql` | Indeksy | OK |
-| `004_create_functions.sql` | Funkcje | Stara wersja `user_has_brief_access` |
-| `005_create_triggers.sql` | Triggery | Brak `auto_update_recipient_id` |
-| `006_create_rls_policies.sql` | Polityki RLS | Brak optymalizacji `(SELECT auth.uid())` |
-| `007_seed_data.sql` | Dane testowe | OK (do zachowania) |
-| `008_add_recipient_email.sql` | Dodanie recipient_email | Poprawka do 002 |
-| `20251220141332_add_recipient_update_policy.sql` | Polityka UPDATE | Poprawka do 006 |
-| `20251220170000_fix_recipient_policy_performance.sql` | Fix wydajności | Poprawka do poprawki |
-| `20251220190000_fix_recipient_select_policy.sql` | Fix SELECT policy | Poprawka do poprawki |
+| Plik                                                  | Opis                    | Problem                                  |
+| ----------------------------------------------------- | ----------------------- | ---------------------------------------- |
+| `000_extensions.sql`                                  | Rozszerzenia PostgreSQL | Niespójne nazewnictwo                    |
+| `001_create_enums.sql`                                | Typy ENUM               | Niespójne nazewnictwo                    |
+| `002_create_tables.sql`                               | Tabele                  | Brak `recipient_email`                   |
+| `003_create_indexes.sql`                              | Indeksy                 | OK                                       |
+| `004_create_functions.sql`                            | Funkcje                 | Stara wersja `user_has_brief_access`     |
+| `005_create_triggers.sql`                             | Triggery                | Brak `auto_update_recipient_id`          |
+| `006_create_rls_policies.sql`                         | Polityki RLS            | Brak optymalizacji `(SELECT auth.uid())` |
+| `007_seed_data.sql`                                   | Dane testowe            | OK (do zachowania)                       |
+| `008_add_recipient_email.sql`                         | Dodanie recipient_email | Poprawka do 002                          |
+| `20251220141332_add_recipient_update_policy.sql`      | Polityka UPDATE         | Poprawka do 006                          |
+| `20251220170000_fix_recipient_policy_performance.sql` | Fix wydajności          | Poprawka do poprawki                     |
+| `20251220190000_fix_recipient_select_policy.sql`      | Fix SELECT policy       | Poprawka do poprawki                     |
 
 ### Zidentyfikowane problemy
 
@@ -41,12 +41,14 @@ Przepisanie 12 plików migracji do 7 skonsolidowanych plików z poprawkami, opty
 ### 1. `20251220200000_extensions.sql`
 
 Zawartość bez zmian - rozszerzenia PostgreSQL:
+
 - `uuid-ossp`
 - `moddatetime`
 
 ### 2. `20251220200001_create_enums.sql`
 
 Zawartość bez zmian - typy ENUM:
+
 - `user_role` (creator, client)
 - `brief_status` (draft, sent, accepted, rejected, needs_modification)
 - `audit_action` (user_registered, user_deleted, brief_created, ...)
@@ -366,30 +368,30 @@ Dane testowe - przeniesione z `007_seed_data.sql` bez zmian.
 
 ### Nowe funkcjonalności
 
-| Funkcjonalność | Status |
-|----------------|--------|
-| `recipient_email` w `brief_recipients` | ✅ Wbudowane od początku |
-| Pending invitations (recipient_id = NULL) | ✅ Wbudowane |
-| Auto-claim invitation po rejestracji | ✅ Trigger `auto_update_recipient_id` |
-| Klienci mogą zmieniać status briefu | ✅ Polityka `briefs_update_status_by_client` |
-| Klienci mogą dodawać komentarze | ✅ Już działało (bez zmian) |
+| Funkcjonalność                            | Status                                       |
+| ----------------------------------------- | -------------------------------------------- |
+| `recipient_email` w `brief_recipients`    | ✅ Wbudowane od początku                     |
+| Pending invitations (recipient_id = NULL) | ✅ Wbudowane                                 |
+| Auto-claim invitation po rejestracji      | ✅ Trigger `auto_update_recipient_id`        |
+| Klienci mogą zmieniać status briefu       | ✅ Polityka `briefs_update_status_by_client` |
+| Klienci mogą dodawać komentarze           | ✅ Już działało (bez zmian)                  |
 
 ### Optymalizacje
 
-| Optymalizacja | Opis |
-|---------------|------|
-| `(SELECT auth.uid())` | Wszystkie wywołania auth.uid() opakowane w SELECT |
-| Jedna wersja `user_has_brief_access` | Zamiast 3 definicji |
-| Usunięta redundancja w `briefs_select_accessible` | Tylko `user_has_brief_access(id)` |
-| Spójne nazewnictwo | Format timestamp UTC |
+| Optymalizacja                                     | Opis                                              |
+| ------------------------------------------------- | ------------------------------------------------- |
+| `(SELECT auth.uid())`                             | Wszystkie wywołania auth.uid() opakowane w SELECT |
+| Jedna wersja `user_has_brief_access`              | Zamiast 3 definicji                               |
+| Usunięta redundancja w `briefs_select_accessible` | Tylko `user_has_brief_access(id)`                 |
+| Spójne nazewnictwo                                | Format timestamp UTC                              |
 
 ### Redukcja plików
 
-| Metryka | Przed | Po |
-|---------|-------|-----|
-| Liczba plików | 12 | 7-8 |
-| Rozmiar | ~76 KB | ~50 KB |
-| Definicje `user_has_brief_access` | 3 | 1 |
+| Metryka                           | Przed  | Po     |
+| --------------------------------- | ------ | ------ |
+| Liczba plików                     | 12     | 7-8    |
+| Rozmiar                           | ~76 KB | ~50 KB |
+| Definicje `user_has_brief_access` | 3      | 1      |
 
 ---
 

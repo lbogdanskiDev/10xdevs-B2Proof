@@ -253,14 +253,12 @@ npm install @tailwindcss/typography
 W `tailwind.config.ts`:
 
 ```typescript
-import type { Config } from 'tailwindcss';
-import typography from '@tailwindcss/typography';
+import type { Config } from "tailwindcss";
+import typography from "@tailwindcss/typography";
 
 const config: Config = {
   // ... rest of config
-  plugins: [
-    typography,
-  ],
+  plugins: [typography],
 };
 
 export default config;
@@ -315,10 +313,10 @@ Jeśli potrzebne są dostosowania, można je dodać w `global.css`:
 
 ## Warunki renderowania
 
-| Komponent | Warunek |
-|-----------|---------|
-| `BriefContentSection` | Zawsze renderowany |
-| `BriefFooterSection` | `footer !== null && footer.trim() !== ''` |
+| Komponent             | Warunek                                   |
+| --------------------- | ----------------------------------------- |
+| `BriefContentSection` | Zawsze renderowany                        |
+| `BriefFooterSection`  | `footer !== null && footer.trim() !== ''` |
 
 ---
 
@@ -397,9 +395,7 @@ TipTap generuje semantyczny HTML, który jest dobrze wspierany przez czytniki ek
   "content": [
     {
       "type": "paragraph",
-      "content": [
-        { "type": "text", "text": "Hello, world!" }
-      ]
+      "content": [{ "type": "text", "text": "Hello, world!" }]
     }
   ]
 }
@@ -414,15 +410,11 @@ TipTap generuje semantyczny HTML, który jest dobrze wspierany przez czytniki ek
     {
       "type": "heading",
       "attrs": { "level": 1 },
-      "content": [
-        { "type": "text", "text": "My Heading" }
-      ]
+      "content": [{ "type": "text", "text": "My Heading" }]
     },
     {
       "type": "paragraph",
-      "content": [
-        { "type": "text", "text": "Some text content." }
-      ]
+      "content": [{ "type": "text", "text": "Some text content." }]
     }
   ]
 }
@@ -442,9 +434,7 @@ TipTap generuje semantyczny HTML, który jest dobrze wspierany przez czytniki ek
           "content": [
             {
               "type": "paragraph",
-              "content": [
-                { "type": "text", "text": "Item 1" }
-              ]
+              "content": [{ "type": "text", "text": "Item 1" }]
             }
           ]
         },
@@ -453,9 +443,7 @@ TipTap generuje semantyczny HTML, który jest dobrze wspierany przez czytniki ek
           "content": [
             {
               "type": "paragraph",
-              "content": [
-                { "type": "text", "text": "Item 2" }
-              ]
+              "content": [{ "type": "text", "text": "Item 2" }]
             }
           ]
         }
@@ -475,4 +463,5 @@ TipTap generuje semantyczny HTML, który jest dobrze wspierany przez czytniki ek
 ## Następne kroki
 
 Po zakończeniu tej części, przejdź do:
+
 - [Part 4: Recipients Section](./brief-details-recipients.md)

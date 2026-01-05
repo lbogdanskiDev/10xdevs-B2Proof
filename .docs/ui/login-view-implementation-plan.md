@@ -261,16 +261,16 @@ router.push("/briefs");
 
 ## 8. Interakcje użytkownika
 
-| Interakcja              | Element           | Akcja                                                                 |
-| ----------------------- | ----------------- | --------------------------------------------------------------------- |
-| Wpisanie email          | Input email       | Aktualizacja `formData.email`, czyszczenie błędu pola                 |
-| Wpisanie hasła          | Input password    | Aktualizacja `formData.password`, czyszczenie błędu pola              |
-| Blur na email           | Input email       | Walidacja formatu email, ustawienie błędu jeśli niepoprawny           |
-| Blur na hasło           | Input password    | Walidacja niepustości, ustawienie błędu jeśli puste                   |
-| Kliknięcie toggle hasła | Button (Eye icon) | Toggle `showPassword`                                                 |
-| Submit formularza       | Form / Button     | Walidacja wszystkich pól, mock login (sukces), redirect do /briefs    |
-| Enter w formularzu      | Input (dowolny)   | Submit formularza                                                     |
-| Kliknięcie "Sign up"    | Link              | Nawigacja do `/register`                                              |
+| Interakcja              | Element           | Akcja                                                              |
+| ----------------------- | ----------------- | ------------------------------------------------------------------ |
+| Wpisanie email          | Input email       | Aktualizacja `formData.email`, czyszczenie błędu pola              |
+| Wpisanie hasła          | Input password    | Aktualizacja `formData.password`, czyszczenie błędu pola           |
+| Blur na email           | Input email       | Walidacja formatu email, ustawienie błędu jeśli niepoprawny        |
+| Blur na hasło           | Input password    | Walidacja niepustości, ustawienie błędu jeśli puste                |
+| Kliknięcie toggle hasła | Button (Eye icon) | Toggle `showPassword`                                              |
+| Submit formularza       | Form / Button     | Walidacja wszystkich pól, mock login (sukces), redirect do /briefs |
+| Enter w formularzu      | Input (dowolny)   | Submit formularza                                                  |
+| Kliknięcie "Sign up"    | Link              | Nawigacja do `/register`                                           |
 
 ## 9. Warunki i walidacja
 

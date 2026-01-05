@@ -1,8 +1,9 @@
 ---
-description: 
-globs: 
+description:
+globs:
 alwaysApply: false
 ---
+
 # Shadcn UI Components
 
 This project uses @shadcn/ui for UI components. These are beautifully designed, accessible components that can be customized for your application.
@@ -16,9 +17,9 @@ Components are available in the `src/components/ui` folder, according to the ali
 Import components using the configured `@/` alias:
 
 ```tsx
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 ```
 
 Example component usage:
@@ -45,7 +46,6 @@ Example component usage:
 Many other components are available but are not currently installed. The full list can be found at https://ui.shadcn.com/r
 
 To install a new component, use the shadcn CLI:
-
 
 ```bash
 npx shadcn@latest add [component-name]

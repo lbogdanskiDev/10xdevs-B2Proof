@@ -3,6 +3,7 @@ description:
 globs:
 alwaysApply: false
 ---
+
 # Supabase Auth Integration with Next.js 15
 
 Use this guide to introduce authentication (sign-up & sign-in) in Next.js 15 applications with App Router and Server Components.
@@ -47,9 +48,9 @@ Create utilities for different contexts in `src/db/`:
 Update existing Supabase client or create one in `src/db/supabase.server.ts`:
 
 ```typescript
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import type { Database } from './database.types';
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import type { Database } from "./database.types";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
@@ -64,9 +65,7 @@ export async function createSupabaseServerClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
           } catch {
             // The `setAll` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing sessions.
@@ -83,14 +82,11 @@ export async function createSupabaseServerClient() {
 Create `src/db/supabase.middleware.ts`:
 
 ```typescript
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { type NextRequest, NextResponse } from 'next/server';
-import type { Database } from './database.types';
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { type NextRequest, NextResponse } from "next/server";
+import type { Database } from "./database.types";
 
-export function createSupabaseMiddlewareClient(
-  request: NextRequest,
-  response: NextResponse
-) {
+export function createSupabaseMiddlewareClient(request: NextRequest, response: NextResponse) {
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -116,8 +112,8 @@ export function createSupabaseMiddlewareClient(
 Create `src/db/supabase.browser.ts`:
 
 ```typescript
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from './database.types';
+import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "./database.types";
 
 export function createSupabaseBrowserClient() {
   return createBrowserClient<Database>(
@@ -132,19 +128,19 @@ export function createSupabaseBrowserClient() {
 Create or update `src/middleware.ts`:
 
 ```typescript
-import { type NextRequest, NextResponse } from 'next/server';
-import { createSupabaseMiddlewareClient } from './db/supabase.middleware';
+import { type NextRequest, NextResponse } from "next/server";
+import { createSupabaseMiddlewareClient } from "./db/supabase.middleware";
 
 // Public paths - Auth pages & API endpoints
 const PUBLIC_PATHS = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/reset-password',
-  '/auth/callback',
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/logout',
-  '/api/auth/reset-password',
+  "/auth/login",
+  "/auth/register",
+  "/auth/reset-password",
+  "/auth/callback",
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/logout",
+  "/api/auth/reset-password",
 ];
 
 export async function middleware(request: NextRequest) {
@@ -170,8 +166,8 @@ export async function middleware(request: NextRequest) {
 
   // Redirect to login for protected routes if not authenticated
   if (!user && !PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
-    const loginUrl = new URL('/auth/login', request.url);
-    loginUrl.searchParams.set('redirectTo', pathname);
+    const loginUrl = new URL("/auth/login", request.url);
+    loginUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -187,7 +183,7 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
 ```
@@ -198,8 +194,8 @@ Create the following Route Handlers in `src/app/api/auth/`:
 
 ```typescript
 // src/app/api/auth/login/route.ts
-import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/db/supabase.server';
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/db/supabase.server";
 
 export async function POST(request: Request) {
   const { email, password } = await request.json();
@@ -221,8 +217,8 @@ export async function POST(request: Request) {
 
 ```typescript
 // src/app/api/auth/register/route.ts
-import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/db/supabase.server';
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/db/supabase.server";
 
 export async function POST(request: Request) {
   const { email, password } = await request.json();
@@ -244,8 +240,8 @@ export async function POST(request: Request) {
 
 ```typescript
 // src/app/api/auth/logout/route.ts
-import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/db/supabase.server';
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/db/supabase.server";
 
 export async function POST() {
   const supabase = await createSupabaseServerClient();

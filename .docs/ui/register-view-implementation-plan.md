@@ -271,10 +271,7 @@ interface RegisterCommand {
 import { z } from "zod";
 
 export const registerSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
+  email: z.string().min(1, "Email is required").email("Please enter a valid email address"),
   password: z
     .string()
     .min(1, "Password is required")
@@ -285,12 +282,14 @@ export const registerSchema = z.object({
   }),
 });
 
-export const registerFormSchema = registerSchema.extend({
-  passwordConfirm: z.string().min(1, "Password confirmation is required"),
-}).refine((data) => data.password === data.passwordConfirm, {
-  message: "Passwords do not match",
-  path: ["passwordConfirm"],
-});
+export const registerFormSchema = registerSchema
+  .extend({
+    passwordConfirm: z.string().min(1, "Password confirmation is required"),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: "Passwords do not match",
+    path: ["passwordConfirm"],
+  });
 
 export type RegisterFormData = z.infer<typeof registerFormSchema>;
 export type RegisterCommand = z.infer<typeof registerSchema>;
@@ -320,10 +319,13 @@ const [showPassword, setShowPassword] = useState(false);
 const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
 
 // Walidacja hasła w czasie rzeczywistym (derived state)
-const passwordValidation: PasswordValidation = useMemo(() => ({
-  hasMinLength: formData.password.length >= 8,
-  hasDigit: /\d/.test(formData.password),
-}), [formData.password]);
+const passwordValidation: PasswordValidation = useMemo(
+  () => ({
+    hasMinLength: formData.password.length >= 8,
+    hasDigit: /\d/.test(formData.password),
+  }),
+  [formData.password]
+);
 ```
 
 ### 6.2 Custom Hook (opcjonalnie)
@@ -428,40 +430,40 @@ router.push("/briefs");
 
 ## 8. Interakcje użytkownika
 
-| Interakcja | Element | Akcja |
-|------------|---------|-------|
-| Wpisanie email | Input email | Aktualizacja `formData.email`, czyszczenie błędu pola |
-| Blur na email | Input email | Walidacja formatu email, ustawienie błędu jeśli niepoprawny |
-| Wpisanie hasła | Input password | Aktualizacja `formData.password`, aktualizacja checklisty wymagań, czyszczenie błędu |
-| Blur na hasło | Input password | Walidacja wymagań hasła |
-| Toggle hasła | Button Eye | Toggle `showPassword`, zmiana type input |
-| Wpisanie potwierdzenia | Input confirm | Aktualizacja `formData.passwordConfirm`, walidacja zgodności |
-| Blur na potwierdzenie | Input confirm | Walidacja zgodności z hasłem |
-| Toggle potwierdzenia | Button Eye | Toggle `showPasswordConfirm` |
-| Wybór roli | Select | Aktualizacja `formData.role`, czyszczenie błędu |
-| Submit formularza | Form / Button | Walidacja wszystkich pól, mock rejestracja, redirect do /briefs |
-| Enter w formularzu | Input (dowolny) | Submit formularza |
-| Kliknięcie "Sign in" | Link | Nawigacja do `/login` |
+| Interakcja             | Element         | Akcja                                                                                |
+| ---------------------- | --------------- | ------------------------------------------------------------------------------------ |
+| Wpisanie email         | Input email     | Aktualizacja `formData.email`, czyszczenie błędu pola                                |
+| Blur na email          | Input email     | Walidacja formatu email, ustawienie błędu jeśli niepoprawny                          |
+| Wpisanie hasła         | Input password  | Aktualizacja `formData.password`, aktualizacja checklisty wymagań, czyszczenie błędu |
+| Blur na hasło          | Input password  | Walidacja wymagań hasła                                                              |
+| Toggle hasła           | Button Eye      | Toggle `showPassword`, zmiana type input                                             |
+| Wpisanie potwierdzenia | Input confirm   | Aktualizacja `formData.passwordConfirm`, walidacja zgodności                         |
+| Blur na potwierdzenie  | Input confirm   | Walidacja zgodności z hasłem                                                         |
+| Toggle potwierdzenia   | Button Eye      | Toggle `showPasswordConfirm`                                                         |
+| Wybór roli             | Select          | Aktualizacja `formData.role`, czyszczenie błędu                                      |
+| Submit formularza      | Form / Button   | Walidacja wszystkich pól, mock rejestracja, redirect do /briefs                      |
+| Enter w formularzu     | Input (dowolny) | Submit formularza                                                                    |
+| Kliknięcie "Sign in"   | Link            | Nawigacja do `/login`                                                                |
 
 ## 9. Warunki i walidacja
 
 ### 9.1 Walidacja client-side
 
-| Pole | Warunek | Komunikat błędu | Kiedy walidowane |
-|------|---------|-----------------|------------------|
-| Email | Niepuste | "Email is required" | onBlur, onSubmit |
-| Email | Format email | "Please enter a valid email address" | onBlur, onSubmit |
-| Password | Niepuste | "Password is required" | onBlur, onSubmit |
-| Password | Min 8 znaków | Wyświetlane w checkliście (✗ Minimum 8 characters) | Real-time |
-| Password | Min 1 cyfra | Wyświetlane w checkliście (✗ At least one digit) | Real-time |
-| PasswordConfirm | Niepuste | "Password confirmation is required" | onBlur, onSubmit |
-| PasswordConfirm | Zgodność | "Passwords do not match" | onChange, onBlur, onSubmit |
-| Role | Wybrana | "Please select a role" | onSubmit |
+| Pole            | Warunek      | Komunikat błędu                                    | Kiedy walidowane           |
+| --------------- | ------------ | -------------------------------------------------- | -------------------------- |
+| Email           | Niepuste     | "Email is required"                                | onBlur, onSubmit           |
+| Email           | Format email | "Please enter a valid email address"               | onBlur, onSubmit           |
+| Password        | Niepuste     | "Password is required"                             | onBlur, onSubmit           |
+| Password        | Min 8 znaków | Wyświetlane w checkliście (✗ Minimum 8 characters) | Real-time                  |
+| Password        | Min 1 cyfra  | Wyświetlane w checkliście (✗ At least one digit)   | Real-time                  |
+| PasswordConfirm | Niepuste     | "Password confirmation is required"                | onBlur, onSubmit           |
+| PasswordConfirm | Zgodność     | "Passwords do not match"                           | onChange, onBlur, onSubmit |
+| Role            | Wybrana      | "Please select a role"                             | onSubmit                   |
 
 ### 9.2 Walidacja server-side (przyszła implementacja)
 
-| Pole | Warunek | Komunikat błędu | Sposób wyświetlenia |
-|------|---------|-----------------|---------------------|
+| Pole  | Warunek    | Komunikat błędu                    | Sposób wyświetlenia          |
+| ----- | ---------- | ---------------------------------- | ---------------------------- |
 | Email | Unikalność | "This email is already registered" | Inline error pod polem email |
 
 ### 9.3 Funkcje walidacji
@@ -535,11 +537,11 @@ Na obecnym etapie rejestracja zawsze kończy się sukcesem po przejściu walidac
 
 ### 10.3 Przyszłe błędy serwera (Supabase Auth)
 
-| Kod błędu | Komunikat dla użytkownika | Sposób wyświetlenia |
-|-----------|---------------------------|---------------------|
-| 400 Email already exists | "This email is already registered" | Inline error pod polem email |
-| 400 Validation errors | Odpowiednie komunikaty | Inline errors przy polach |
-| 500 Server error | "Something went wrong. Please try again." | Toast error |
+| Kod błędu                | Komunikat dla użytkownika                 | Sposób wyświetlenia          |
+| ------------------------ | ----------------------------------------- | ---------------------------- |
+| 400 Email already exists | "This email is already registered"        | Inline error pod polem email |
+| 400 Validation errors    | Odpowiednie komunikaty                    | Inline errors przy polach    |
+| 500 Server error         | "Something went wrong. Please try again." | Toast error                  |
 
 ### 10.4 Implementacja obsługi błędów
 

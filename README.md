@@ -1,4 +1,4 @@
-# B2Proof
+# B2Proof Application
 
 ## Project Description
 

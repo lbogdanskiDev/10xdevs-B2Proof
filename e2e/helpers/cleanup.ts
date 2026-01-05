@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { Page } from "@playwright/test";
 
 /**
@@ -49,7 +50,7 @@ export function extractBriefIdFromUrl(url: string): string | null {
  * ```
  */
 export class BriefTracker {
-  private briefIds: Set<string> = new Set();
+  private briefIds = new Set<string>();
 
   /**
    * Track a brief ID

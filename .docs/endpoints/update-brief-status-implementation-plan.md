@@ -75,7 +75,11 @@ export const updateBriefStatusSchema = z
     status: z.enum(["accepted", "rejected", "needs_modification"], {
       errorMap: () => ({ message: "Status must be 'accepted', 'rejected', or 'needs_modification'" }),
     }),
-    comment: z.string().min(1, "Comment cannot be empty").max(1000, "Comment must not exceed 1000 characters").optional(),
+    comment: z
+      .string()
+      .min(1, "Comment cannot be empty")
+      .max(1000, "Comment must not exceed 1000 characters")
+      .optional(),
   })
   .refine(
     (data) => {
@@ -203,13 +207,14 @@ export const updateBriefStatusSchema = z
 ### Step 3: Service Layer (✅ Completed)
 
 1. **Function `updateBriefStatus()`** in `src/lib/services/brief.service.ts`:
+
    ```typescript
    async function updateBriefStatus(
      supabase: SupabaseClient,
      userId: string,
      briefId: string,
      data: UpdateBriefStatusCommand
-   ): Promise<UpdateBriefStatusWithCommentResponseDto>
+   ): Promise<UpdateBriefStatusWithCommentResponseDto>;
    ```
 
    **Logic:**
@@ -373,17 +378,20 @@ RETURNING *;
 ## 11. Related Files
 
 **Implementation:**
+
 - `src/app/api/briefs/[id]/status/route.ts` - Route handler
 - `src/lib/services/brief.service.ts` - Business logic
 - `src/lib/schemas/brief.schema.ts` - Validation
 - `src/types.ts` - Type definitions
 
 **Database:**
+
 - `briefs` table - Status update
 - `comments` table - Comment creation
 - `increment_comment_count` trigger - Auto-increment
 
 **Related Endpoints:**
+
 - `PATCH /api/briefs/:id` - Owner content updates (see [update-brief-implementation-plan.md](.docs/endpoints/update-brief-implementation-plan.md))
 - `GET /api/briefs/:id` - View brief details (see [get-brief-by-id-implementation-plan.md](.docs/endpoints/get-brief-by-id-implementation-plan.md))
 - `GET /api/briefs/:id/comments` - List all comments

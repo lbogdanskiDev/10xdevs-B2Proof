@@ -55,12 +55,14 @@ npm run type-check      # Run TypeScript type checking
 ## Key Architecture Patterns
 
 ### Component Strategy
+
 - **Server Components** (default) - Use for static content, data fetching, and SEO-critical content
 - **Client Components** (`.tsx` with `"use client"`) - Use only when interactivity is required (event handlers, hooks, browser APIs)
 - Server Components can import Client Components, but not vice versa
 - Keep components as Server Components by default unless client interactivity is needed
 
 ### API Routes (Route Handlers)
+
 - Place in `src/app/api/` directory
 - Use uppercase HTTP methods: `export async function GET()`, `export async function POST()`
 - File naming: `route.ts` for API endpoints
@@ -69,12 +71,14 @@ npm run type-check      # Run TypeScript type checking
 - Return `Response` objects or use `NextResponse` helper
 
 ### Backend Integration
+
 - Use Supabase for database and authentication
 - Import `SupabaseClient` type from `src/db/supabase.client.ts`
 - Validate data exchanged with backend using Zod schemas
 - Use Server Actions for form submissions and mutations
 
 ### Environment & Configuration
+
 - Access environment variables via `process.env` (server-side)
 - Server-side cookie management: use `cookies()` from `next/headers`
 - Path aliases: `@/*` maps to `./src/*` (configured in `tsconfig.json`)
@@ -83,6 +87,7 @@ npm run type-check      # Run TypeScript type checking
 ## Code Quality Standards
 
 ### Error Handling
+
 - Handle errors and edge cases at the beginning of functions
 - Use early returns for error conditions (avoid deeply nested ifs)
 - Place happy path last in functions
@@ -90,6 +95,7 @@ npm run type-check      # Run TypeScript type checking
 - Implement proper error logging with user-friendly messages
 
 ### React Best Practices
+
 - Use functional components with hooks
 - Extract reusable logic to custom hooks in `src/components/hooks/`
 - Use `React.memo()` for expensive components with stable props
@@ -101,6 +107,7 @@ npm run type-check      # Run TypeScript type checking
 - Implement code-splitting with `React.lazy()` and `Suspense`
 
 ### Next.js Best Practices
+
 - Use Server Components by default; only use Client Components when needed
 - Leverage App Router file conventions: `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`
 - Use `next/image` for optimized image loading
@@ -111,6 +118,7 @@ npm run type-check      # Run TypeScript type checking
 - Use Server Actions for mutations instead of API routes when possible
 
 ### Styling with Tailwind
+
 - Use `@layer` directive to organize styles (components, utilities, base)
 - Use arbitrary values with square brackets for one-off designs: `w-[123px]`
 - Use responsive variants: `sm:`, `md:`, `lg:`, etc.
@@ -118,6 +126,7 @@ npm run type-check      # Run TypeScript type checking
 - Implement dark mode with `dark:` variant
 
 ### Accessibility (ARIA)
+
 - Use ARIA landmarks for page regions (main, navigation, search)
 - Use `aria-expanded` and `aria-controls` for expandable content
 - Use `aria-live` regions for dynamic content updates
@@ -126,6 +135,7 @@ npm run type-check      # Run TypeScript type checking
 - Avoid redundant ARIA that duplicates native HTML semantics
 
 ### Linting & Formatting
+
 - Use ESLint feedback to improve code during changes
 - Project uses lint-staged with Husky for pre-commit checks
 - Auto-formatted files: `*.{ts,tsx}` (ESLint), `*.{json,css,md}` (Prettier)
@@ -133,6 +143,7 @@ npm run type-check      # Run TypeScript type checking
 ## Next.js App Router Specific Patterns
 
 ### File Conventions
+
 - `page.tsx` - UI for a route segment
 - `layout.tsx` - Shared UI for a segment and its children
 - `loading.tsx` - Loading UI for a segment and its children
@@ -141,12 +152,14 @@ npm run type-check      # Run TypeScript type checking
 - `route.ts` - API endpoint (Route Handler)
 
 ### Data Fetching
+
 - Fetch data directly in Server Components using `async/await`
 - Use `fetch()` with Next.js automatic request deduplication
 - Implement caching strategies with `revalidate` option
 - Use `unstable_cache` for manual caching when needed
 
 ### Routing
+
 - File-system based routing in `src/app/` directory
 - Dynamic routes: `[id]/page.tsx`
 - Catch-all routes: `[...slug]/page.tsx`
@@ -157,6 +170,7 @@ npm run type-check      # Run TypeScript type checking
 ## Shadcn/ui Integration
 
 ### Component Usage
+
 - Components are installed in `src/components/ui/`
 - Use the `cn()` utility from `@/lib/utils` for conditional class merging
 - Configuration in `components.json`:
@@ -165,6 +179,7 @@ npm run type-check      # Run TypeScript type checking
   - Path aliases configured for `@/components`, `@/lib/utils`, etc.
 
 ### Adding New Components
+
 ```bash
 npx shadcn@latest add [component-name]
 ```
@@ -172,6 +187,7 @@ npx shadcn@latest add [component-name]
 ## ESLint Configuration
 
 The project uses a modern flat config with:
+
 - TypeScript ESLint (strict + stylistic)
 - React plugin with hooks validation
 - React Compiler plugin (enforces React Compiler rules)

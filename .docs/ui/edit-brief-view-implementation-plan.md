@@ -10,6 +10,7 @@ Widok edycji briefu (`/briefs/[id]/edit`) umożliwia właścicielowi (creator) m
 - Wywołanie API PATCH zamiast POST
 
 Główne przypadki użycia:
+
 - Edycja briefu w statusie 'draft' (bez ostrzeżenia)
 - Edycja briefu w statusie 'sent', 'accepted', 'rejected', 'needs_modification' (z ostrzeżeniem o resecie statusu)
 - Obsługa błędów autoryzacji (tylko owner może edytować)
@@ -21,9 +22,11 @@ Główne przypadki użycia:
 **Lokalizacja pliku:** `src/app/(dashboard)/briefs/[id]/edit/page.tsx`
 
 **Parametry URL:**
+
 - `id` - UUID briefu do edycji
 
 **Przekierowania:**
+
 - Sukces zapisania → `/briefs/[id]`
 - 403 (nie owner) → `/briefs/[id]` + Toast z błędem
 - 404 (brief nie istnieje) → `not-found.tsx`
@@ -64,6 +67,7 @@ EditBriefPage (Server Component)
 **Opis:** Główna strona edycji briefu. Server Component odpowiedzialny za pobranie danych briefu i weryfikację dostępu.
 
 **Główne elementy:**
+
 - Asynchroniczna funkcja `getBriefForEdit(id)` do pobrania danych z API
 - Obsługa błędów 404 (notFound()) i 403 (redirect z toast)
 - Renderowanie `EditBriefClient` z danymi briefu
@@ -71,15 +75,18 @@ EditBriefPage (Server Component)
 **Obsługiwane interakcje:** Brak (Server Component)
 
 **Obsługiwana walidacja:**
+
 - Walidacja UUID parametru `id`
 - Sprawdzenie czy brief istnieje (404)
 - Sprawdzenie czy user jest owner (403)
 
 **Typy:**
+
 - `BriefDetailDto` (dane briefu)
 - `EditBriefPageProps` (params z id)
 
 **Propsy:**
+
 - `params: Promise<{ id: string }>` (Next.js 15 pattern)
 
 ---
@@ -89,11 +96,13 @@ EditBriefPage (Server Component)
 **Opis:** Client wrapper zarządzający logiką edycji, stanem formularza i alertem resetowania statusu.
 
 **Główne elementy:**
+
 - `BriefForm` z pre-filled wartościami
 - `StatusResetAlertDialog` (warunkowy, gdy status !== 'draft')
 - Logika obsługi submit z opcjonalnym potwierdzeniem
 
 **Obsługiwane interakcje:**
+
 - `onSave` - wywołanie API PATCH lub pokazanie alertu
 - `onCancel` - nawigacja do `/briefs/[id]`
 - `onConfirmStatusReset` - potwierdzenie edycji non-draft briefu
@@ -101,10 +110,12 @@ EditBriefPage (Server Component)
 **Obsługiwana walidacja:** Delegowana do `BriefForm`
 
 **Typy:**
+
 - `BriefDetailDto` (initialData)
 - `EditBriefFormState` (stan formularza)
 
 **Propsy:**
+
 ```typescript
 interface EditBriefClientProps {
   brief: BriefDetailDto;
@@ -118,30 +129,35 @@ interface EditBriefClientProps {
 **Opis:** Formularz tworzenia/edycji briefu. Współdzielony między `/briefs/new` i `/briefs/[id]/edit`. Obsługuje zarówno tryb tworzenia jak i edycji.
 
 **Główne elementy:**
+
 - `StickyHeader` z przyciskami Cancel/Save i tytułem
 - `HeaderField` (Input + CharacterCounter)
 - `BriefEditor` (TipTap, lazy-loaded)
 - `FooterField` (Textarea + CharacterCounter)
 
 **Obsługiwane interakcje:**
+
 - `onChange` dla każdego pola (header, content, footer)
 - `onSubmit` - walidacja i wywołanie callback
 - `onCancel` - nawigacja wstecz lub do listy
 
 **Obsługiwana walidacja:**
+
 - `header`: wymagany, 1-200 znaków
 - `content`: wymagany, valid TipTap JSON, max 10,000 znaków tekstu
 - `footer`: opcjonalny, max 200 znaków
 - Disabled submit gdy walidacja nie przechodzi
 
 **Typy:**
+
 - `BriefFormData` (dane formularza)
 - `BriefFormMode` ('create' | 'edit')
 
 **Propsy:**
+
 ```typescript
 interface BriefFormProps {
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   initialData?: BriefFormData;
   onSubmit: (data: BriefFormData) => Promise<void>;
   onCancel: () => void;
@@ -157,25 +173,30 @@ interface BriefFormProps {
 **Opis:** TipTap WYSIWYG editor z toolbar. Lazy-loaded dla optymalizacji bundle size.
 
 **Główne elementy:**
+
 - `EditorMenuBar` - sticky toolbar z przyciskami formatowania
 - `EditorContent` - główny obszar edycji TipTap
 - `CharacterCounter` - licznik znaków (debounced)
 
 **Obsługiwane interakcje:**
+
 - `onUpdate` - callback przy zmianie treści
 - Komendy formatowania: Bold, Italic, Underline, Strike
 - Zmiana nagłówków: Paragraph, H1, H2, H3
 - Listy: BulletList, OrderedList
 
 **Obsługiwana walidacja:**
+
 - Max 10,000 znaków tekstu (liczone rekursywnie z JSON)
 - Wyświetlanie ostrzeżenia przy zbliżeniu do limitu
 
 **Typy:**
+
 - `JSONContent` (TipTap content type)
 - `Editor` (TipTap editor instance)
 
 **Propsy:**
+
 ```typescript
 interface BriefEditorProps {
   initialContent?: JSONContent;
@@ -192,11 +213,13 @@ interface BriefEditorProps {
 **Opis:** Dialog ostrzegający o resetowaniu statusu briefu do 'draft'. Wyświetlany przed zapisem gdy brief ma status inny niż 'draft'.
 
 **Główne elementy:**
+
 - `AlertDialog` (Shadcn/ui)
 - `AlertDialogContent` z tytułem i opisem
 - Przyciski: Cancel, Continue
 
 **Obsługiwane interakcje:**
+
 - `onConfirm` - potwierdzenie i kontynuacja zapisu
 - `onCancel` - zamknięcie dialogu bez akcji
 
@@ -205,6 +228,7 @@ interface BriefEditorProps {
 **Typy:** Brak specjalnych typów
 
 **Propsy:**
+
 ```typescript
 interface StatusResetAlertDialogProps {
   open: boolean;
@@ -221,12 +245,14 @@ interface StatusResetAlertDialogProps {
 **Opis:** Licznik znaków z kolorystycznym feedbackiem. Już zaimplementowany w `src/components/briefs/shared/CharacterCounter.tsx`.
 
 **Główne elementy:**
+
 - `<span>` z formatem "{current}/{max}"
 - Dynamiczne klasy kolorystyczne
 
 **Obsługiwane interakcje:** Brak (display only)
 
 **Obsługiwana walidacja:** Wizualna (kolory):
+
 - Default (< 90% limitu): `text-muted-foreground`
 - Warning (90-100%): `text-yellow-600 dark:text-yellow-400`
 - Error (> 100%): `text-destructive font-medium`
@@ -234,6 +260,7 @@ interface StatusResetAlertDialogProps {
 **Typy:** Brak
 
 **Propsy:**
+
 ```typescript
 interface CharacterCounterProps {
   current: number;
@@ -270,7 +297,7 @@ interface UpdateBriefCommand {
 }
 
 // Status briefu
-type BriefStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'needs_modification';
+type BriefStatus = "draft" | "sent" | "accepted" | "rejected" | "needs_modification";
 
 // Odpowiedź błędu
 interface ErrorReturn {
@@ -289,13 +316,13 @@ interface ValidationErrorDetail {
 **Lokalizacja:** `src/lib/types/brief-form.types.ts`
 
 ```typescript
-import type { JSONContent } from '@tiptap/react';
-import type { BriefStatus } from '@/types';
+import type { JSONContent } from "@tiptap/react";
+import type { BriefStatus } from "@/types";
 
 /**
  * Tryb formularza briefu
  */
-export type BriefFormMode = 'create' | 'edit';
+export type BriefFormMode = "create" | "edit";
 
 /**
  * Dane formularza briefu (ViewModel)
@@ -395,6 +422,7 @@ interface UseBriefFormReturn {
 ```
 
 **Implementacja:**
+
 - `useState` dla każdego pola formularza
 - `useMemo` dla walidacji i obliczania długości tekstu
 - `useCallback` dla setterów
@@ -436,20 +464,17 @@ const [pendingSubmitData, setPendingSubmitData] = useState<BriefFormData | null>
 ```typescript
 async function getBriefForEdit(id: string): Promise<BriefDetailDto | null> {
   const cookieStore = await cookies();
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/api/briefs/${id}`,
-    {
-      headers: { Cookie: cookieStore.toString() },
-      cache: 'no-store',
-    }
-  );
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/briefs/${id}`, {
+    headers: { Cookie: cookieStore.toString() },
+    cache: "no-store",
+  });
 
   if (response.status === 404) return null;
   if (response.status === 403) {
     redirect(`/briefs/${id}?error=not-owner`);
   }
   if (!response.ok) {
-    throw new Error('Failed to fetch brief');
+    throw new Error("Failed to fetch brief");
   }
 
   return response.json();
@@ -467,13 +492,10 @@ async function getBriefForEdit(id: string): Promise<BriefDetailDto | null> {
 **Typ odpowiedzi błędu:** `ErrorReturn`
 
 ```typescript
-async function updateBrief(
-  briefId: string,
-  data: UpdateBriefCommand
-): Promise<BriefSaveResult> {
+async function updateBrief(briefId: string, data: UpdateBriefCommand): Promise<BriefSaveResult> {
   const response = await fetch(`/api/briefs/${briefId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 
@@ -541,42 +563,39 @@ async function updateBrief(
 
 ### 9.1 Walidacja pól formularza
 
-| Pole | Warunek | Komunikat błędu |
-|------|---------|-----------------|
-| header | Wymagane | "Header is required" |
-| header | Max 200 znaków | "Header must be 200 characters or less" |
-| content | Wymagane (niepusty doc) | "Content is required" |
+| Pole    | Warunek                  | Komunikat błędu                             |
+| ------- | ------------------------ | ------------------------------------------- |
+| header  | Wymagane                 | "Header is required"                        |
+| header  | Max 200 znaków           | "Header must be 200 characters or less"     |
+| content | Wymagane (niepusty doc)  | "Content is required"                       |
 | content | Max 10,000 znaków tekstu | "Content must not exceed 10,000 characters" |
-| footer | Max 200 znaków | "Footer must be 200 characters or less" |
+| footer  | Max 200 znaków           | "Footer must be 200 characters or less"     |
 
 ### 9.2 Warunki biznesowe
 
-| Warunek | Sprawdzenie | Efekt UI |
-|---------|-------------|----------|
-| User jest owner | `brief.isOwned === true` | Brak → redirect 403 |
-| Brief istnieje | Response !== 404 | Brak → not-found.tsx |
-| Status !== 'draft' | `brief.status !== 'draft'` | Pokazanie AlertDialog przed zapisem |
-| Formularz jest dirty | Porównanie z initialData | Ostrzeżenie przy wyjściu |
+| Warunek              | Sprawdzenie                | Efekt UI                            |
+| -------------------- | -------------------------- | ----------------------------------- |
+| User jest owner      | `brief.isOwned === true`   | Brak → redirect 403                 |
+| Brief istnieje       | Response !== 404           | Brak → not-found.tsx                |
+| Status !== 'draft'   | `brief.status !== 'draft'` | Pokazanie AlertDialog przed zapisem |
+| Formularz jest dirty | Porównanie z initialData   | Ostrzeżenie przy wyjściu            |
 
 ### 9.3 Stan przycisku Save
 
 ```typescript
-const isSaveDisabled =
-  !isValid ||
-  isSubmitting ||
-  !isDirty;
+const isSaveDisabled = !isValid || isSubmitting || !isDirty;
 ```
 
 ## 10. Obsługa błędów
 
 ### 10.1 Błędy HTTP
 
-| Kod | Przyczyna | Obsługa UI |
-|-----|-----------|------------|
-| 400 | Błędy walidacji | Inline errors pod polami + toast |
-| 403 | Nie owner | Redirect do `/briefs/[id]` + toast "Only the brief owner can edit" |
-| 404 | Brief nie istnieje | not-found.tsx |
-| 500 | Błąd serwera | Toast "Something went wrong. Please try again." |
+| Kod | Przyczyna          | Obsługa UI                                                         |
+| --- | ------------------ | ------------------------------------------------------------------ |
+| 400 | Błędy walidacji    | Inline errors pod polami + toast                                   |
+| 403 | Nie owner          | Redirect do `/briefs/[id]` + toast "Only the brief owner can edit" |
+| 404 | Brief nie istnieje | not-found.tsx                                                      |
+| 500 | Błąd serwera       | Toast "Something went wrong. Please try again."                    |
 
 ### 10.2 Błędy walidacji client-side
 

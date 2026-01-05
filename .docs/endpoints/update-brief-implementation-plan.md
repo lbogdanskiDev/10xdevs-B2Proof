@@ -88,7 +88,12 @@ function countTipTapTextLength(node: unknown): number {
 
 export const updateBriefContentSchema = z
   .object({
-    header: z.string().trim().min(1, "Header cannot be empty").max(200, "Header must not exceed 200 characters").optional(),
+    header: z
+      .string()
+      .trim()
+      .min(1, "Header cannot be empty")
+      .max(200, "Header must not exceed 200 characters")
+      .optional(),
     content: z
       .record(z.unknown())
       .refine((val) => typeof val === "object" && val !== null, {
@@ -104,7 +109,13 @@ export const updateBriefContentSchema = z
         }
       )
       .optional(),
-    footer: z.string().trim().min(1, "Footer cannot be empty").max(200, "Footer must not exceed 200 characters").nullable().optional(),
+    footer: z
+      .string()
+      .trim()
+      .min(1, "Footer cannot be empty")
+      .max(200, "Footer must not exceed 200 characters")
+      .nullable()
+      .optional(),
   })
   .refine((data) => data.header !== undefined || data.content !== undefined || data.footer !== undefined, {
     message: "At least one field (header, content, or footer) must be provided",
@@ -112,6 +123,7 @@ export const updateBriefContentSchema = z
 ```
 
 **Note:**
+
 - The `countTipTapTextLength()` function enforces the 10,000 character limit for TipTap content (see tech-stack.md line 57)
 - `.trim()` is applied to `header` and `footer` to prevent empty strings after whitespace removal
 - `.min(1)` ensures that after trimming, the fields are not empty strings
@@ -143,14 +155,14 @@ export const updateBriefContentSchema = z
 
 **Error Responses:**
 
-| Status | Error                       | When                                        |
-| ------ | --------------------------- | ------------------------------------------- |
+| Status | Error                       | When                                          |
+| ------ | --------------------------- | --------------------------------------------- |
 | 400    | Validation failed           | Invalid request body, missing required fields |
-| 400    | At least one field required | Empty request body                          |
-| 401    | Unauthorized                | Missing or invalid authentication token     |
-| 403    | Forbidden                   | User is not the brief owner                 |
-| 404    | Brief not found             | Brief with specified ID does not exist      |
-| 500    | Internal server error       | Database error or unexpected error          |
+| 400    | At least one field required | Empty request body                            |
+| 401    | Unauthorized                | Missing or invalid authentication token       |
+| 403    | Forbidden                   | User is not the brief owner                   |
+| 404    | Brief not found             | Brief with specified ID does not exist        |
+| 500    | Internal server error       | Database error or unexpected error            |
 
 ---
 
@@ -171,13 +183,13 @@ export const updateBriefContentSchema = z
 
 #### Threat Mitigation
 
-| Threat                 | Mitigation                                                                  |
-| ---------------------- | --------------------------------------------------------------------------- |
-| Token theft/replay     | Validate JWT signature and expiration via Supabase Auth                     |
-| Privilege escalation   | Enforce ownership check: only owners can update content                     |
-| Unauthorized access    | Check ownership via `briefs.owner_id`                                       |
-| XSS via TipTap content | Sanitize content on frontend render (TipTap handles this), store as JSONB   |
-| SQL injection          | Use Supabase parameterized queries, validate UUIDs with Zod                 |
+| Threat                 | Mitigation                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| Token theft/replay     | Validate JWT signature and expiration via Supabase Auth                         |
+| Privilege escalation   | Enforce ownership check: only owners can update content                         |
+| Unauthorized access    | Check ownership via `briefs.owner_id`                                           |
+| XSS via TipTap content | Sanitize content on frontend render (TipTap handles this), store as JSONB       |
+| SQL injection          | Use Supabase parameterized queries, validate UUIDs with Zod                     |
 | Resource enumeration   | Return 404 for both non-existent and unauthorized briefs (don't leak existence) |
 
 #### Input Validation
@@ -291,10 +303,11 @@ export async function updateBriefContent(
   userId: string,
   briefId: string,
   data: UpdateBriefCommand
-): Promise<BriefDetailDto>
+): Promise<BriefDetailDto>;
 ```
 
 **Logic:**
+
 - Uses shared helper `checkBriefAccess()` to verify ownership
 - Throws `NotFoundError` if brief not found
 - Throws `ForbiddenError` if user is not the owner
@@ -350,7 +363,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Update brief content
     const updatedBrief = await updateBriefContent(supabase, user.id, briefId, validatedData);
     return NextResponse.json(updatedBrief, { status: 200 });
-
   } catch (error) {
     // Handle Zod validation errors
     if (error instanceof z.ZodError) {
@@ -418,13 +430,14 @@ npm run lint && npm run type-check && npm run build
 git add . && git commit -m "feat: implement PATCH /api/briefs/:id endpoint" && git push
 ```
 
-
 ## 10. Related Endpoints
 
 **Status Updates:**
+
 - `PATCH /api/briefs/:id/status` - Client status updates (see [update-brief-status-implementation-plan.md](.docs/endpoints/update-brief-status-implementation-plan.md))
 
 **Viewing Briefs:**
+
 - `GET /api/briefs/:id` - View brief details (see [get-brief-by-id-implementation-plan.md](.docs/endpoints/get-brief-by-id-implementation-plan.md))
 - `GET /api/briefs` - List all briefs (see [get-briefs-implementation-plan.md](.docs/endpoints/get-briefs-implementation-plan.md))
 

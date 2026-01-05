@@ -19,13 +19,13 @@ This specification defines the architecture of the authentication module for the
 
 ### 1.2 Functional Scope
 
-| User Story | Functionality | Priority |
-|------------|---------------|----------|
-| US-001 | New user registration | Critical |
-| US-002 | User login | Critical |
-| US-015 | Password change | High |
-| US-016 | Account deletion | High |
-| US-019 | Logout | Critical |
+| User Story | Functionality         | Priority |
+| ---------- | --------------------- | -------- |
+| US-001     | New user registration | Critical |
+| US-002     | User login            | Critical |
+| US-015     | Password change       | High     |
+| US-016     | Account deletion      | High     |
+| US-019     | Logout                | Critical |
 
 ### 1.3 Constraints and Assumptions
 
@@ -66,12 +66,14 @@ src/app/
 **Type:** Server Component
 
 **Responsibilities:**
+
 - Rendering shared layout for `/login` and `/register` pages
 - Centering form on page
 - Displaying application logo/branding
 - Redirect to `/briefs` if user is already logged in
 
 **Dependencies:**
+
 - `createSupabaseServerClient` - session check
 - `redirect` from `next/navigation`
 
@@ -84,11 +86,13 @@ src/app/
 **Type:** Server Component (wrapper)
 
 **Responsibilities:**
+
 - Rendering `LoginForm` as Client Component
 - Passing potential URL parameters (e.g., `?error=session_expired`)
 - SEO metadata
 
 **Supported URL Parameters:**
+
 - `?error=session_expired` - display session expiration message
 - `?redirectTo=/path` - redirect after login
 
@@ -101,6 +105,7 @@ src/app/
 **Type:** Client Component (`"use client"`)
 
 **Component State:**
+
 ```typescript
 interface LoginFormState {
   email: string;
@@ -116,6 +121,7 @@ interface LoginFormState {
 ```
 
 **Responsibilities:**
+
 - Client-side form field validation
 - Calling Server Action `loginAction`
 - Handling loading/error/success states
@@ -124,15 +130,16 @@ interface LoginFormState {
 - Link to registration: "Don't have an account? Create one"
 
 **Backend Integration:**
+
 - Call: `loginAction(formData: FormData)`
 - Return: `{ success: boolean; error?: string; redirectTo?: string }`
 
 **Form Fields:**
 
-| Field | Type | Validation | Error Message |
-|-------|------|------------|---------------|
-| email | email | Email format, required | "Enter a valid email address" |
-| password | password | Required | "Password is required" |
+| Field    | Type     | Validation             | Error Message                 |
+| -------- | -------- | ---------------------- | ----------------------------- |
+| email    | email    | Email format, required | "Enter a valid email address" |
+| password | password | Required               | "Password is required"        |
 
 ---
 
@@ -143,6 +150,7 @@ interface LoginFormState {
 **Type:** Server Component (wrapper)
 
 **Responsibilities:**
+
 - Rendering `RegisterForm` as Client Component
 - SEO metadata
 - Account limit information
@@ -156,12 +164,13 @@ interface LoginFormState {
 **Type:** Client Component (`"use client"`)
 
 **Component State:**
+
 ```typescript
 interface RegisterFormState {
   email: string;
   password: string;
   confirmPassword: string;
-  role: 'creator' | 'client';
+  role: "creator" | "client";
   showPassword: boolean;
   showConfirmPassword: boolean;
   isSubmitting: boolean;
@@ -176,6 +185,7 @@ interface RegisterFormState {
 ```
 
 **Responsibilities:**
+
 - Client-side validation of all fields
 - Real-time password requirements validation (`PasswordRequirements` component)
 - Password and confirmation match validation (client-side only)
@@ -185,18 +195,19 @@ interface RegisterFormState {
 - Link to login: "Already have an account? Sign in" (per PRD US-001)
 
 **Backend Integration:**
+
 - Call: `registerAction(formData: FormData)`
 - Return: `{ success: boolean; error?: string }`
 - Note: `confirmPassword` is NOT sent to backend (client-side validation only)
 
 **Form Fields:**
 
-| Field | Type | Validation | Error Message |
-|-------|------|------------|---------------|
-| email | email | Email format, required, uniqueness (server) | "Enter a valid email address" / "This email is already registered" |
-| password | password | Min 8 characters, min 1 digit | "Password must be at least 8 characters" / "Password must contain a digit" |
-| confirmPassword | password | Match with password | "Passwords must match" |
-| role | radio | Required | "Select account type" |
+| Field           | Type     | Validation                                  | Error Message                                                              |
+| --------------- | -------- | ------------------------------------------- | -------------------------------------------------------------------------- |
+| email           | email    | Email format, required, uniqueness (server) | "Enter a valid email address" / "This email is already registered"         |
+| password        | password | Min 8 characters, min 1 digit               | "Password must be at least 8 characters" / "Password must contain a digit" |
+| confirmPassword | password | Match with password                         | "Passwords must match"                                                     |
+| role            | radio    | Required                                    | "Select account type"                                                      |
 
 ---
 
@@ -207,6 +218,7 @@ interface RegisterFormState {
 **Type:** Stateless Client Component
 
 **Props:**
+
 ```typescript
 interface PasswordRequirementsProps {
   password: string;
@@ -215,6 +227,7 @@ interface PasswordRequirementsProps {
 ```
 
 **Responsibilities:**
+
 - Displaying password requirements checklist
 - Visual indication of met/unmet requirements
 - Show/hide animation
@@ -228,6 +241,7 @@ interface PasswordRequirementsProps {
 **Type:** Server Component (wrapper) + Client Components
 
 **Page Sections:**
+
 1. Account information (email, role, registration date) - Server Component
 2. Password change - Client Component `ChangePasswordForm`
 3. Account deletion - Client Component `DeleteAccountSection`
@@ -241,6 +255,7 @@ interface PasswordRequirementsProps {
 **Type:** Client Component (`"use client"`)
 
 **Component State:**
+
 ```typescript
 interface ChangePasswordFormState {
   currentPassword: string;
@@ -261,6 +276,7 @@ interface ChangePasswordFormState {
 ```
 
 **Responsibilities:**
+
 - Current password validation (server-side)
 - New password requirements validation (client + server)
 - New password and confirmation match validation (client-side)
@@ -270,11 +286,11 @@ interface ChangePasswordFormState {
 
 **Form Fields:**
 
-| Field | Type | Validation | Error Message |
-|-------|------|------------|---------------|
-| currentPassword | password | Required, correctness (server) | "Enter current password" / "Invalid password" |
-| newPassword | password | Min 8 characters, min 1 digit, different from current | "Password must be at least 8 characters" / "New password must be different from current" |
-| confirmPassword | password | Match with newPassword | "Passwords must match" |
+| Field           | Type     | Validation                                            | Error Message                                                                            |
+| --------------- | -------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| currentPassword | password | Required, correctness (server)                        | "Enter current password" / "Invalid password"                                            |
+| newPassword     | password | Min 8 characters, min 1 digit, different from current | "Password must be at least 8 characters" / "New password must be different from current" |
+| confirmPassword | password | Match with newPassword                                | "Passwords must match"                                                                   |
 
 ---
 
@@ -285,10 +301,12 @@ interface ChangePasswordFormState {
 **Type:** Client Component (`"use client"`)
 
 **Subcomponents:**
+
 - `DeleteAccountButton` - button initiating the process
 - `DeleteAccountModal` - confirmation modal (shadcn/ui AlertDialog)
 
 **Component State:**
+
 ```typescript
 interface DeleteAccountState {
   isModalOpen: boolean;
@@ -298,12 +316,14 @@ interface DeleteAccountState {
 ```
 
 **Responsibilities:**
+
 - Displaying irreversibility warning
 - Confirmation modal with consequence information
 - Calling Server Action `deleteAccountAction`
 - Logout and redirect after deletion
 
 **Modal Content:**
+
 - Title: "Delete Account"
 - Warning: "This action is irreversible. All your data will be deleted, including briefs and comments."
 - Buttons: "Cancel" / "Delete Account" (destructive)
@@ -317,6 +337,7 @@ interface DeleteAccountState {
 **Type:** Client Component (`"use client"`)
 
 **Modification:**
+
 - Integration with `useAuth` hook for `logout()` function
 - Loading state handling during logout
 - Redirect to `/login` after logout
@@ -325,29 +346,29 @@ interface DeleteAccountState {
 
 ### 2.3 Server/Client Components Responsibility Division
 
-| Component | Type | Justification |
-|-----------|------|---------------|
-| `(auth)/layout.tsx` | Server | Session check, redirect |
-| `login/page.tsx` | Server | SEO, URL parameters |
-| `LoginForm.tsx` | Client | Interactivity, form state |
-| `register/page.tsx` | Server | SEO |
-| `RegisterForm.tsx` | Client | Interactivity, real-time validation |
-| `PasswordRequirements.tsx` | Client | Animations, reactivity |
-| `profile/page.tsx` | Server | User data, authorization |
-| `ChangePasswordForm.tsx` | Client | Form interactivity |
-| `DeleteAccountSection.tsx` | Client | Modal, interactivity |
-| `UserMenu.tsx` | Client | Dropdown, interactions |
+| Component                  | Type   | Justification                       |
+| -------------------------- | ------ | ----------------------------------- |
+| `(auth)/layout.tsx`        | Server | Session check, redirect             |
+| `login/page.tsx`           | Server | SEO, URL parameters                 |
+| `LoginForm.tsx`            | Client | Interactivity, form state           |
+| `register/page.tsx`        | Server | SEO                                 |
+| `RegisterForm.tsx`         | Client | Interactivity, real-time validation |
+| `PasswordRequirements.tsx` | Client | Animations, reactivity              |
+| `profile/page.tsx`         | Server | User data, authorization            |
+| `ChangePasswordForm.tsx`   | Client | Form interactivity                  |
+| `DeleteAccountSection.tsx` | Client | Modal, interactivity                |
+| `UserMenu.tsx`             | Client | Dropdown, interactions              |
 
 ### 2.4 Navigation and Redirects
 
-| Scenario | Source | Target | Condition |
-|----------|--------|--------|-----------|
-| After login | `/login` | `/briefs` | Login success |
-| After registration | `/register` | `/briefs` | Registration success |
-| After logout | any | `/login` | Logout call |
-| After account deletion | `/profile` | `/login` | Deletion success |
-| Access to protected page | `/briefs`, `/profile` | `/login` | No session |
-| Access to auth pages | `/login`, `/register` | `/briefs` | Active session |
+| Scenario                 | Source                | Target    | Condition            |
+| ------------------------ | --------------------- | --------- | -------------------- |
+| After login              | `/login`              | `/briefs` | Login success        |
+| After registration       | `/register`           | `/briefs` | Registration success |
+| After logout             | any                   | `/login`  | Logout call          |
+| After account deletion   | `/profile`            | `/login`  | Deletion success     |
+| Access to protected page | `/briefs`, `/profile` | `/login`  | No session           |
+| Access to auth pages     | `/login`, `/register` | `/briefs` | Active session       |
 
 ---
 
@@ -360,11 +381,13 @@ interface DeleteAccountState {
 **Location:** `src/lib/actions/auth.actions.ts`
 
 **Signature:**
+
 ```typescript
-async function loginAction(formData: FormData): Promise<AuthActionResult>
+async function loginAction(formData: FormData): Promise<AuthActionResult>;
 ```
 
 **Result Type:**
+
 ```typescript
 interface AuthActionResult {
   success: boolean;
@@ -375,6 +398,7 @@ interface AuthActionResult {
 ```
 
 **Logic:**
+
 1. Extract and validate input data (Zod schema)
 2. Call `supabase.auth.signInWithPassword()`
 3. Handle Supabase errors (invalid credentials, user not found)
@@ -382,6 +406,7 @@ interface AuthActionResult {
 5. Return result
 
 **Handled Errors:**
+
 - `invalid_credentials` → "Invalid email or password"
 - `user_not_found` → "Invalid email or password" (intentionally the same for security)
 
@@ -392,11 +417,13 @@ interface AuthActionResult {
 **Location:** `src/lib/actions/auth.actions.ts`
 
 **Signature:**
+
 ```typescript
-async function registerAction(formData: FormData): Promise<AuthActionResult>
+async function registerAction(formData: FormData): Promise<AuthActionResult>;
 ```
 
 **Logic:**
+
 1. Extract and validate input data (Zod schema)
 2. Call `supabase.auth.signUp()` with metadata `{ role }`
 3. Database trigger creates record in `profiles` table
@@ -404,6 +431,7 @@ async function registerAction(formData: FormData): Promise<AuthActionResult>
 5. Return result
 
 **Handled Errors:**
+
 - `user_already_exists` → "This email is already registered"
 - `weak_password` → "Password does not meet security requirements"
 - `invalid_email` → "Invalid email format"
@@ -415,11 +443,13 @@ async function registerAction(formData: FormData): Promise<AuthActionResult>
 **Location:** `src/lib/actions/auth.actions.ts`
 
 **Signature:**
+
 ```typescript
-async function changePasswordAction(formData: FormData): Promise<AuthActionResult>
+async function changePasswordAction(formData: FormData): Promise<AuthActionResult>;
 ```
 
 **Logic:**
+
 1. Check active session
 2. Validate input data (Zod schema)
 3. Verify current password via `signInWithPassword()`
@@ -427,6 +457,7 @@ async function changePasswordAction(formData: FormData): Promise<AuthActionResul
 5. Return result
 
 **Handled Errors:**
+
 - `invalid_credentials` → "Invalid current password"
 - `same_password` → "New password must be different from current"
 - `weak_password` → "Password does not meet security requirements"
@@ -438,11 +469,13 @@ async function changePasswordAction(formData: FormData): Promise<AuthActionResul
 **Location:** `src/lib/actions/auth.actions.ts`
 
 **Signature:**
+
 ```typescript
-async function deleteAccountAction(): Promise<AuthActionResult>
+async function deleteAccountAction(): Promise<AuthActionResult>;
 ```
 
 **Logic:**
+
 1. Check active session
 2. Get user ID
 3. Call `userService.deleteUserAccount()` (cascade deletion)
@@ -450,6 +483,7 @@ async function deleteAccountAction(): Promise<AuthActionResult>
 5. Return result with redirect
 
 **Cascade Operations (handled by FK constraints):**
+
 - Delete all user briefs
 - Delete all user comments
 - Delete brief_recipients entries where user is recipient
@@ -463,11 +497,13 @@ async function deleteAccountAction(): Promise<AuthActionResult>
 **Location:** `src/lib/actions/auth.actions.ts`
 
 **Signature:**
+
 ```typescript
-async function logoutAction(): Promise<AuthActionResult>
+async function logoutAction(): Promise<AuthActionResult>;
 ```
 
 **Logic:**
+
 1. Call `supabase.auth.signOut()`
 2. Clear session cookies
 3. Return result with redirect to `/login`
@@ -481,48 +517,40 @@ async function logoutAction(): Promise<AuthActionResult>
 ```typescript
 // Login schema
 const loginSchema = z.object({
-  email: z.string()
-    .min(1, "Email is required")
-    .email("Invalid email format"),
-  password: z.string()
-    .min(1, "Password is required"),
+  email: z.string().min(1, "Email is required").email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
 });
 
 // Registration schema
 const registerSchema = z.object({
-  email: z.string()
-    .min(1, "Email is required")
-    .email("Invalid email format"),
-  password: z.string()
+  email: z.string().min(1, "Email is required").email("Invalid email format"),
+  password: z
+    .string()
     .min(8, "Password must be at least 8 characters")
     .regex(/\d/, "Password must contain at least one digit"),
-  role: z.enum(['creator', 'client'], {
+  role: z.enum(["creator", "client"], {
     required_error: "Select account type",
   }),
 });
 
 // Change password schema
-const changePasswordSchema = z.object({
-  currentPassword: z.string()
-    .min(1, "Current password is required"),
-  newPassword: z.string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/\d/, "Password must contain at least one digit"),
-  confirmPassword: z.string()
-    .min(1, "Password confirmation is required"),
-}).refine(
-  (data) => data.newPassword === data.confirmPassword,
-  {
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/\d/, "Password must contain at least one digit"),
+    confirmPassword: z.string().min(1, "Password confirmation is required"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords must match",
     path: ["confirmPassword"],
-  }
-).refine(
-  (data) => data.currentPassword !== data.newPassword,
-  {
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
     message: "New password must be different from current",
     path: ["newPassword"],
-  }
-);
+  });
 ```
 
 ---
@@ -541,7 +569,7 @@ interface LoginInput {
 interface RegisterInput {
   email: string;
   password: string;
-  role: 'creator' | 'client';
+  role: "creator" | "client";
 }
 
 interface ChangePasswordInput {
@@ -562,7 +590,7 @@ interface AuthActionResult {
 interface SessionUser {
   id: string;
   email: string;
-  role: 'creator' | 'client';
+  role: "creator" | "client";
 }
 ```
 
@@ -610,43 +638,46 @@ class AuthService {
 **Location:** `src/middleware.ts`
 
 **Changes:**
+
 1. Remove mock authentication (DEFAULT_USER_PROFILE)
 2. Implement actual Supabase session checking
 3. Handle token refresh
 
 **Logic:**
+
 ```typescript
 export async function middleware(request: NextRequest) {
   const supabase = createSupabaseMiddlewareClient(request);
 
   // Refresh session if expired
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
 
   const pathname = request.nextUrl.pathname;
 
   // Public pages (auth)
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
 
   // Protected pages
-  const isProtectedPage = pathname.startsWith('/briefs') || pathname.startsWith('/profile');
+  const isProtectedPage = pathname.startsWith("/briefs") || pathname.startsWith("/profile");
 
   // Redirect logged-in user from auth pages
   if (isAuthPage && session) {
-    return NextResponse.redirect(new URL('/briefs', request.url));
+    return NextResponse.redirect(new URL("/briefs", request.url));
   }
 
   // Redirect non-logged-in user from protected pages
   if (isProtectedPage && !session) {
-    const redirectUrl = new URL('/login', request.url);
-    redirectUrl.searchParams.set('redirectTo', pathname);
+    const redirectUrl = new URL("/login", request.url);
+    redirectUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect from root
-  if (pathname === '/') {
-    return NextResponse.redirect(
-      new URL(session ? '/briefs' : '/login', request.url)
-    );
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL(session ? "/briefs" : "/login", request.url));
   }
 
   return NextResponse.next();
@@ -662,17 +693,15 @@ export async function middleware(request: NextRequest) {
 **Location:** `src/db/supabase.client.ts`
 
 **Changes:**
+
 - Remove `DEFAULT_USER_PROFILE`
 - Configure cookie storage for session
 
 ```typescript
-import { createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient } from "@supabase/ssr";
 
 export function createSupabaseBrowserClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  return createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
 }
 ```
 
@@ -681,36 +710,31 @@ export function createSupabaseBrowserClient() {
 **Location:** `src/db/supabase.server.ts`
 
 **Changes:**
+
 - Configure cookie handling for Server Components
 - Remove mock auth logic
 
 ```typescript
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Component - ignore
-          }
-        },
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        } catch {
+          // Server Component - ignore
+        }
+      },
+    },
+  });
 }
 ```
 
@@ -719,8 +743,8 @@ export async function createSupabaseServerClient() {
 **Location:** `src/db/supabase.middleware.ts`
 
 ```typescript
-import { createServerClient } from '@supabase/ssr';
-import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
 
 export function createSupabaseMiddlewareClient(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -783,6 +807,7 @@ export function createSupabaseMiddlewareClient(request: NextRequest) {
 8. Redirect to `/briefs`
 
 **Database Trigger:**
+
 ```sql
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
@@ -836,7 +861,7 @@ Supabase allows multiple sessions by default. To enforce single session:
 
 ```typescript
 // In loginAction after successful signIn:
-await supabase.auth.signOut({ scope: 'others' });
+await supabase.auth.signOut({ scope: "others" });
 ```
 
 ---
@@ -914,6 +939,7 @@ await supabase.auth.signOut({ scope: 'others' });
 ```
 
 **Cascade Deletion (database constraints):**
+
 ```sql
 -- Briefs owned by user
 ALTER TABLE briefs
@@ -938,10 +964,12 @@ ALTER TABLE brief_recipients
 **Mechanism:** HTTP-only cookies with Supabase SSR
 
 **Cookies set by Supabase:**
+
 - `sb-<project-ref>-auth-token` - JWT access token
 - `sb-<project-ref>-auth-token-code-verifier` - PKCE code verifier (if used)
 
 **Cookie Configuration:**
+
 ```typescript
 {
   path: '/',
@@ -953,6 +981,7 @@ ALTER TABLE brief_recipients
 ```
 
 **Token Refresh:**
+
 - Middleware automatically refreshes expired tokens
 - Refresh token valid for 7 days (Supabase default)
 - Access token valid for 1 hour (default)
@@ -980,14 +1009,14 @@ AuthError (base)
 
 ### 5.2 Supabase Error Mapping
 
-| Supabase Code | HTTP Status | User Message |
-|---------------|-------------|--------------|
-| `invalid_credentials` | 401 | "Invalid email or password" |
-| `user_already_exists` | 409 | "This email is already registered" |
-| `weak_password` | 400 | "Password does not meet security requirements" |
-| `invalid_email` | 400 | "Invalid email format" |
-| `session_not_found` | 401 | "Session expired. Please log in again" |
-| `user_not_found` | 401 | "Invalid email or password" |
+| Supabase Code         | HTTP Status | User Message                                   |
+| --------------------- | ----------- | ---------------------------------------------- |
+| `invalid_credentials` | 401         | "Invalid email or password"                    |
+| `user_already_exists` | 409         | "This email is already registered"             |
+| `weak_password`       | 400         | "Password does not meet security requirements" |
+| `invalid_email`       | 400         | "Invalid email format"                         |
+| `session_not_found`   | 401         | "Session expired. Please log in again"         |
+| `user_not_found`      | 401         | "Invalid email or password"                    |
 
 **Note:** Email confirmation is disabled in Supabase for MVP (no email verification).
 
@@ -996,6 +1025,7 @@ AuthError (base)
 **Purpose:** Immediate feedback, reduce unnecessary requests
 
 **Implementation:**
+
 ```typescript
 // In form component
 const validateEmail = (email: string): string | undefined => {
@@ -1019,20 +1049,19 @@ const validatePassword = (password: string): string | undefined => {
 **Purpose:** Security, final verification before operation
 
 **Zod Implementation:**
+
 ```typescript
 // In Server Action
 const result = loginSchema.safeParse({
-  email: formData.get('email'),
-  password: formData.get('password'),
+  email: formData.get("email"),
+  password: formData.get("password"),
 });
 
 if (!result.success) {
   const fieldErrors = result.error.flatten().fieldErrors;
   return {
     success: false,
-    fieldErrors: Object.fromEntries(
-      Object.entries(fieldErrors).map(([key, errors]) => [key, errors?.[0]])
-    ),
+    fieldErrors: Object.fromEntries(Object.entries(fieldErrors).map(([key, errors]) => [key, errors?.[0]])),
   };
 }
 ```
@@ -1040,24 +1069,29 @@ if (!result.success) {
 ### 5.5 UI Error Display
 
 **Form Field Errors:**
+
 - Displayed directly below field
 - Red text color
 - Warning icon
 - Red field border
 
 **General Errors:**
+
 - Displayed above form in Alert component
 - Destructive variant shadcn/ui Alert
 - AlertCircle icon
 
 **Example:**
+
 ```tsx
-{errors.general && (
-  <Alert variant="destructive">
-    <AlertCircle className="h-4 w-4" />
-    <AlertDescription>{errors.general}</AlertDescription>
-  </Alert>
-)}
+{
+  errors.general && (
+    <Alert variant="destructive">
+      <AlertCircle className="h-4 w-4" />
+      <AlertDescription>{errors.general}</AlertDescription>
+    </Alert>
+  );
+}
 ```
 
 ---
@@ -1071,6 +1105,7 @@ if (!result.success) {
 **Preconditions:** User doesn't have an account in the system
 
 **Main Flow:**
+
 1. User opens `/register`
 2. System displays registration form
 3. User fills email, password, password confirmation
@@ -1082,15 +1117,18 @@ if (!result.success) {
 
 **Alternative Flows:**
 
-*3a. Email already registered:*
+_3a. Email already registered:_
+
 - System displays error "This email is already registered"
 - "Sign in" link below message
 
-*3b. Password doesn't meet requirements:*
+_3b. Password doesn't meet requirements:_
+
 - System displays requirements as checklist
 - Unmet requirements marked in red
 
-*3c. Passwords don't match:*
+_3c. Passwords don't match:_
+
 - System displays error at confirmation field
 - Error "Passwords must match"
 
@@ -1103,6 +1141,7 @@ if (!result.success) {
 **Preconditions:** User has an account in the system
 
 **Main Flow:**
+
 1. User opens `/login`
 2. System displays login form
 3. User enters email and password
@@ -1114,11 +1153,13 @@ if (!result.success) {
 
 **Alternative Flows:**
 
-*5a. Invalid login credentials:*
+_5a. Invalid login credentials:_
+
 - System displays error "Invalid email or password"
 - Form is not cleared (password is cleared)
 
-*5b. Account inactive/blocked:*
+_5b. Account inactive/blocked:_
+
 - System displays appropriate message
 - Login not possible
 
@@ -1131,6 +1172,7 @@ if (!result.success) {
 **Preconditions:** User is logged in
 
 **Main Flow:**
+
 1. User opens `/profile`
 2. System displays "Change Password" section
 3. User enters current password
@@ -1145,13 +1187,16 @@ if (!result.success) {
 
 **Alternative Flows:**
 
-*8a. Invalid current password:*
+_8a. Invalid current password:_
+
 - System displays error "Invalid current password"
 
-*4a. New password same as current:*
+_4a. New password same as current:_
+
 - System displays error "New password must be different from current"
 
-*5a. Passwords don't match:*
+_5a. Passwords don't match:_
+
 - System displays error "Passwords must match"
 
 ---
@@ -1163,6 +1208,7 @@ if (!result.success) {
 **Preconditions:** User is logged in
 
 **Main Flow:**
+
 1. User opens `/profile`
 2. System displays "Delete Account" section
 3. User clicks "Delete Account"
@@ -1174,11 +1220,13 @@ if (!result.success) {
 
 **Alternative Flows:**
 
-*5a. User cancels:*
+_5a. User cancels:_
+
 - Modal closes
 - No changes made
 
-*6a. Error during deletion:*
+_6a. Error during deletion:_
+
 - System displays error message
 - Account remains intact
 
@@ -1191,6 +1239,7 @@ if (!result.success) {
 **Preconditions:** User is logged in
 
 **Main Flow:**
+
 1. User clicks user menu in navigation
 2. User clicks "Sign out"
 3. System terminates session
@@ -1199,7 +1248,8 @@ if (!result.success) {
 
 **Alternative Flows:**
 
-*3a. Logout error:*
+_3a. Logout error:_
+
 - System retries logout
 - On subsequent failure - forced cookie clearing
 
@@ -1210,6 +1260,7 @@ if (!result.success) {
 **Actor:** Non-logged-in user
 
 **Main Flow:**
+
 1. User tries to open `/briefs` or `/profile`
 2. Middleware detects no session
 3. System redirects to `/login?redirectTo=/briefs`
@@ -1223,6 +1274,7 @@ if (!result.success) {
 **Actor:** Logged-in user
 
 **Main Flow:**
+
 1. User works in application
 2. Session expires (after 7 days of inactivity)
 3. User performs action requiring authorization
@@ -1248,23 +1300,23 @@ export const AUTH_CONSTANTS = {
 
   // Routing
   ROUTES: {
-    LOGIN: '/login',
-    REGISTER: '/register',
-    BRIEFS: '/briefs',
-    PROFILE: '/profile',
+    LOGIN: "/login",
+    REGISTER: "/register",
+    BRIEFS: "/briefs",
+    PROFILE: "/profile",
   },
 
   // Messages (English - per PRD requirement)
   MESSAGES: {
-    INVALID_CREDENTIALS: 'Invalid email or password',
-    EMAIL_EXISTS: 'This email is already registered',
-    SESSION_EXPIRED: 'Session expired. Please log in again',
-    ACCOUNT_DELETED: 'Account has been deleted',
-    PASSWORD_CHANGED: 'Password has been changed',
-    WEAK_PASSWORD: 'Password does not meet security requirements',
-    PASSWORDS_MUST_MATCH: 'Passwords must match',
-    NEW_PASSWORD_MUST_DIFFER: 'New password must be different from current',
-    SELECT_ACCOUNT_TYPE: 'Select account type',
+    INVALID_CREDENTIALS: "Invalid email or password",
+    EMAIL_EXISTS: "This email is already registered",
+    SESSION_EXPIRED: "Session expired. Please log in again",
+    ACCOUNT_DELETED: "Account has been deleted",
+    PASSWORD_CHANGED: "Password has been changed",
+    WEAK_PASSWORD: "Password does not meet security requirements",
+    PASSWORDS_MUST_MATCH: "Passwords must match",
+    NEW_PASSWORD_MUST_DIFFER: "New password must be different from current",
+    SELECT_ACCOUNT_TYPE: "Select account type",
   },
 } as const;
 ```
@@ -1274,6 +1326,7 @@ export const AUTH_CONSTANTS = {
 ## Appendix B: File Structure for Creation/Modification
 
 ### New Files:
+
 ```
 src/
 ├── app/
@@ -1295,6 +1348,7 @@ src/
 ```
 
 ### Files to Modify:
+
 ```
 src/
 ├── app/

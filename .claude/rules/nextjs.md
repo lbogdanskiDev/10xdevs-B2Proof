@@ -3,6 +3,7 @@ description:
 globs: *.tsx,*.ts,*.jsx,*.js
 alwaysApply: false
 ---
+
 ### Guidelines for Next.js
 
 - Use App Router for all features and pages (located in `src/app/`)

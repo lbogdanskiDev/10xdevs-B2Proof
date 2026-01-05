@@ -83,6 +83,7 @@ BriefDetailsPage (Server Component)
 **Opis:** Główny komponent strony odpowiedzialny za pobranie danych briefu z API i przekazanie ich do komponentów potomnych. Renderowany po stronie serwera.
 
 **Główne elementy:**
+
 - Wywołanie `fetch()` do `GET /api/briefs/:id` w funkcji async component
 - Warunkowe renderowanie sekcji w zależności od `isOwned` i `status`
 - Layout kontenerowy z odpowiednimi odstępami (spacing)
@@ -92,10 +93,12 @@ BriefDetailsPage (Server Component)
 **Walidacja:** Walidacja UUID w URL (Next.js automatycznie przekazuje params)
 
 **Typy:**
+
 - `BriefDetailDto` (z API response)
 - `params: { id: string }` (Next.js route params)
 
 **Propsy:**
+
 ```typescript
 interface BriefDetailsPageProps {
   params: Promise<{ id: string }>;
@@ -109,6 +112,7 @@ interface BriefDetailsPageProps {
 **Opis:** Wyświetla nagłówek briefu, status badge, datę ostatniej aktualizacji i przyciski akcji zależne od roli użytkownika.
 
 **Główne elementy:**
+
 - `Card`, `CardHeader`, `CardContent` (Shadcn/ui)
 - `h1` z nagłówkiem briefu (`font-semibold`)
 - `BriefStatusBadge` z przekazanym statusem
@@ -116,6 +120,7 @@ interface BriefDetailsPageProps {
 - Warunkowe renderowanie `OwnerActions` lub `RecipientActions`
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie przycisku "Edit" → przekierowanie do `/briefs/[id]/edit`
 - Kliknięcie przycisku "Delete" → otwarcie `DeleteBriefDialog`
 - Kliknięcie przycisku "Share" → otwarcie `ShareBriefDialog`
@@ -126,10 +131,12 @@ interface BriefDetailsPageProps {
 **Walidacja:** Brak (przyciski są disabled podczas ładowania)
 
 **Typy:**
+
 - `BriefDetailDto`
 - `BriefStatus`
 
 **Propsy:**
+
 ```typescript
 interface BriefHeaderProps {
   brief: BriefDetailDto;
@@ -144,6 +151,7 @@ interface BriefHeaderProps {
 **Opis:** Badge wyświetlający aktualny status briefu z odpowiednim kolorem i tekstem.
 
 **Główne elementy:**
+
 - `Badge` (Shadcn/ui) z wariantami zależnymi od statusu:
   - `draft` → variant: "secondary"
   - `sent` → variant: "default"
@@ -156,9 +164,11 @@ interface BriefHeaderProps {
 **Walidacja:** Brak
 
 **Typy:**
+
 - `BriefStatus`
 
 **Propsy:**
+
 ```typescript
 interface BriefStatusBadgeProps {
   status: BriefStatus;
@@ -172,11 +182,13 @@ interface BriefStatusBadgeProps {
 **Opis:** Grupa przycisków akcji dostępnych dla właściciela briefu.
 
 **Główne elementy:**
+
 - `Button` "Edit" → `variant="outline"`
 - `DeleteBriefDialog` (wrapper z triggerem)
 - `ShareBriefDialog` (wrapper z triggerem)
 
 **Obsługiwane interakcje:**
+
 - Edit → `useRouter().push('/briefs/[id]/edit')`
 - Delete → otwarcie AlertDialog z potwierdzeniem
 - Share → otwarcie Dialog z formularzem
@@ -184,9 +196,11 @@ interface BriefStatusBadgeProps {
 **Walidacja:** Brak (przyciski są warunkowe)
 
 **Typy:**
+
 - `BriefDetailDto`
 
 **Propsy:**
+
 ```typescript
 interface OwnerActionsProps {
   brief: BriefDetailDto;
@@ -201,24 +215,29 @@ interface OwnerActionsProps {
 **Opis:** Grupa przycisków akcji dostępnych dla odbiorcy briefu (tylko gdy status === 'sent').
 
 **Główne elementy:**
+
 - `Button` "Accept" → `variant="default"`
 - `Button` "Reject" → `variant="outline"`
 - `NeedsModificationDialog` (wrapper z triggerem)
 
 **Obsługiwane interakcje:**
+
 - Accept → wywołanie API `PATCH /api/briefs/:id/status` z `{ status: 'accepted' }`
 - Reject → wywołanie API `PATCH /api/briefs/:id/status` z `{ status: 'rejected' }`
 - Needs Modification → otwarcie dwuetapowego dialogu z wymaganym komentarzem
 
 **Walidacja:**
+
 - Przyciski widoczne tylko gdy `status === 'sent'`
 - Przyciski disabled gdy trwa request do API
 
 **Typy:**
+
 - `BriefDetailDto`
 - `UpdateBriefStatusCommand`
 
 **Propsy:**
+
 ```typescript
 interface RecipientActionsProps {
   briefId: string;
@@ -233,11 +252,13 @@ interface RecipientActionsProps {
 **Opis:** AlertDialog z potwierdzeniem usunięcia briefu. Wyświetla komunikat: "Are you sure? This will delete all comments and cannot be undone."
 
 **Główne elementy:**
+
 - `AlertDialog`, `AlertDialogTrigger`, `AlertDialogContent` (Shadcn/ui)
 - `AlertDialogHeader` z tytułem i opisem
 - `AlertDialogFooter` z przyciskami "Cancel" i "Delete"
 
 **Obsługiwane interakcje:**
+
 - Cancel → zamknięcie dialogu
 - Delete → wywołanie `DELETE /api/briefs/:id`, przekierowanie do `/briefs` po sukcesie
 
@@ -246,6 +267,7 @@ interface RecipientActionsProps {
 **Typy:** Brak (używa tylko `briefId: string`)
 
 **Propsy:**
+
 ```typescript
 interface DeleteBriefDialogProps {
   briefId: string;
@@ -260,6 +282,7 @@ interface DeleteBriefDialogProps {
 **Opis:** Dialog umożliwiający dodanie odbiorcy briefu przez email. Wyświetla aktualną listę odbiorców z możliwością usunięcia dostępu.
 
 **Główne elementy:**
+
 - `Dialog`, `DialogTrigger`, `DialogContent` (Shadcn/ui)
 - `DialogHeader` z tytułem
 - `RecipientTable` (lista aktualnych odbiorców)
@@ -267,18 +290,22 @@ interface DeleteBriefDialogProps {
 - `RecipientLimitIndicator` (np. "2/10")
 
 **Obsługiwane interakcje:**
+
 - Dodanie odbiorcy → wywołanie `POST /api/briefs/:id/recipients` z `{ email }`
 - Usunięcie odbiorcy → wywołanie `DELETE /api/briefs/:id/recipients/:recipientId`
 
 **Walidacja:**
+
 - Email musi być w poprawnym formacie
 - Limit 10 odbiorców
 
 **Typy:**
+
 - `BriefRecipientDto[]`
 - `ShareBriefCommand`
 
 **Propsy:**
+
 ```typescript
 interface ShareBriefDialogProps {
   briefId: string;
@@ -295,6 +322,7 @@ interface ShareBriefDialogProps {
 **Opis:** Dwuetapowy dialog do zgłoszenia potrzeby modyfikacji briefu. Wymaga podania komentarza.
 
 **Główne elementy:**
+
 - `Dialog`, `DialogTrigger`, `DialogContent` (Shadcn/ui)
 - `DialogHeader` z tytułem
 - `Textarea` dla komentarza (1000 znaków)
@@ -302,16 +330,20 @@ interface ShareBriefDialogProps {
 - `DialogFooter` z przyciskami "Cancel" i "Submit"
 
 **Obsługiwane interakcje:**
+
 - Submit → wywołanie `PATCH /api/briefs/:id/status` z `{ status: 'needs_modification', comment }`
 
 **Walidacja:**
+
 - Komentarz wymagany (1-1000 znaków)
 - Przycisk Submit disabled gdy komentarz pusty lub przekroczony limit
 
 **Typy:**
+
 - `UpdateBriefStatusCommand`
 
 **Propsy:**
+
 ```typescript
 interface NeedsModificationDialogProps {
   briefId: string;
@@ -327,6 +359,7 @@ interface NeedsModificationDialogProps {
 **Opis:** Komponent renderujący treść briefu w formacie TipTap JSON w trybie read-only z wykorzystaniem Tailwind Typography.
 
 **Główne elementy:**
+
 - TipTap `EditorContent` w trybie `editable={false}`
 - Klasy CSS: `prose dark:prose-invert` (Tailwind Typography)
 - Konfiguracja TipTap z dozwolonymi rozszerzeniami (zgodnie z tech stack)
@@ -336,12 +369,14 @@ interface NeedsModificationDialogProps {
 **Walidacja:** Brak
 
 **Typy:**
+
 - `BriefEntity['content']` (TipTap JSON structure)
 
 **Propsy:**
+
 ```typescript
 interface BriefContentRendererProps {
-  content: BriefEntity['content'];
+  content: BriefEntity["content"];
 }
 ```
 
@@ -352,6 +387,7 @@ interface BriefContentRendererProps {
 **Opis:** Opcjonalna sekcja wyświetlająca stopkę briefu. Renderowana tylko gdy `footer !== null`.
 
 **Główne elementy:**
+
 - `Card`, `CardContent` (Shadcn/ui)
 - `p` z klasą `text-muted-foreground`
 
@@ -360,9 +396,11 @@ interface BriefContentRendererProps {
 **Walidacja:** Warunkowe renderowanie (gdy `footer !== null`)
 
 **Typy:**
+
 - `string | null`
 
 **Propsy:**
+
 ```typescript
 interface BriefFooterSectionProps {
   footer: string | null;
@@ -376,6 +414,7 @@ interface BriefFooterSectionProps {
 **Opis:** Sekcja wyświetlająca listę odbiorców briefu i formularz dodawania nowych odbiorców. Widoczna tylko dla właściciela.
 
 **Główne elementy:**
+
 - `Card`, `CardHeader`, `CardContent` (Shadcn/ui)
 - `h2` z tytułem "Recipients"
 - `RecipientLimitIndicator` (np. "2/10")
@@ -383,20 +422,24 @@ interface BriefFooterSectionProps {
 - `RecipientAddForm` z inputem email i przyciskiem "Add"
 
 **Obsługiwane interakcje:**
+
 - Dodanie odbiorcy → `POST /api/briefs/:id/recipients`
 - Usunięcie odbiorcy → `DELETE /api/briefs/:id/recipients/:recipientId`
 - Refresh listy po każdej zmianie
 
 **Walidacja:**
+
 - Email w poprawnym formacie
 - Limit 10 odbiorców
 - Recipient już nie istnieje na liście
 
 **Typy:**
+
 - `BriefRecipientDto[]`
 - `ShareBriefCommand`
 
 **Propsy:**
+
 ```typescript
 interface BriefRecipientsSectionProps {
   briefId: string;
@@ -411,20 +454,25 @@ interface BriefRecipientsSectionProps {
 **Opis:** Tabela wyświetlająca listę odbiorców briefu z możliwością usunięcia dostępu.
 
 **Główne elementy:**
+
 - `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableCell` (Shadcn/ui)
 - Kolumny: Email, Shared At, Actions
 - Przycisk usunięcia z ikoną `Trash2` (Lucide React)
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie Trash icon → wywołanie `DELETE /api/briefs/:id/recipients/:recipientId`
 
 **Walidacja:**
+
 - Usunięcie ostatniego odbiorcy zmienia status briefu na 'draft' (obsługiwane przez API)
 
 **Typy:**
+
 - `BriefRecipientDto[]`
 
 **Propsy:**
+
 ```typescript
 interface RecipientTableProps {
   recipients: BriefRecipientDto[];
@@ -439,24 +487,29 @@ interface RecipientTableProps {
 **Opis:** Formularz dodawania nowego odbiorcy briefu przez email.
 
 **Główne elementy:**
+
 - `Input` typu email z placeholder "client@example.com"
 - `Button` "Add" z ikoną `Plus` (Lucide React)
 - Stan dla email input
 - Stan loading podczas request
 
 **Obsługiwane interakcje:**
+
 - Submit → wywołanie `POST /api/briefs/:id/recipients` z `{ email }`
 - Czyszczenie inputu po sukcesie
 
 **Walidacja:**
+
 - Email w poprawnym formacie (HTML5 email validation)
 - Nie może być pusty
 - Button disabled podczas loading
 
 **Typy:**
+
 - `ShareBriefCommand`
 
 **Propsy:**
+
 ```typescript
 interface RecipientAddFormProps {
   briefId: string;
@@ -473,6 +526,7 @@ interface RecipientAddFormProps {
 **Opis:** Wskaźnik pokazujący aktualną liczbę odbiorców i limit.
 
 **Główne elementy:**
+
 - `span` z tekstem "X/10 recipients"
 - Warunkowa kolorystyka (np. warning gdy blisko limitu)
 
@@ -483,6 +537,7 @@ interface RecipientAddFormProps {
 **Typy:** Brak
 
 **Propsy:**
+
 ```typescript
 interface RecipientLimitIndicatorProps {
   current: number;
@@ -497,6 +552,7 @@ interface RecipientLimitIndicatorProps {
 **Opis:** Sekcja wyświetlająca listę komentarzy z paginacją i formularzem dodawania nowych komentarzy. Wspiera odświeżanie co 30s oraz manualne odświeżanie.
 
 **Główne elementy:**
+
 - `Card`, `CardHeader`, `CardContent` (Shadcn/ui)
 - `h2` z tytułem "Comments"
 - `Button` "Refresh" (manual refresh)
@@ -505,6 +561,7 @@ interface RecipientLimitIndicatorProps {
 - `CommentForm`
 
 **Obsługiwane interakcje:**
+
 - Automatyczne odświeżanie co 30s (useEffect z intervalem)
 - Manualne odświeżanie (przycisk)
 - Zmiana strony paginacji → fetch nowej strony
@@ -512,13 +569,16 @@ interface RecipientLimitIndicatorProps {
 - Usunięcie komentarza → `DELETE /api/comments/:id`
 
 **Walidacja:**
+
 - Paginacja: `page >= 1`, `limit` między 1 a 100
 
 **Typy:**
+
 - `PaginatedResponse<CommentDto>`
 - `CreateCommentCommand`
 
 **Propsy:**
+
 ```typescript
 interface BriefCommentsSectionProps {
   briefId: string;
@@ -533,6 +593,7 @@ interface BriefCommentsSectionProps {
 **Opis:** Lista komentarzy wyświetlana chronologicznie (newest first).
 
 **Główne elementy:**
+
 - Lista `CommentItem[]`
 - Informacja gdy brak komentarzy ("No comments yet")
 
@@ -541,9 +602,11 @@ interface BriefCommentsSectionProps {
 **Walidacja:** Brak
 
 **Typy:**
+
 - `CommentDto[]`
 
 **Propsy:**
+
 ```typescript
 interface CommentListProps {
   comments: CommentDto[];
@@ -558,6 +621,7 @@ interface CommentListProps {
 **Opis:** Pojedynczy komentarz z informacjami o autorze, datą, treścią i opcjonalnym przyciskiem usunięcia.
 
 **Główne elementy:**
+
 - `div` container z paddingiem i borderem
 - `div` z informacją o autorze (email + role badge)
 - `Badge` z rolą autora (creator/client)
@@ -566,15 +630,19 @@ interface CommentListProps {
 - `Button` usunięcia (tylko gdy `isOwn === true`)
 
 **Obsługiwane interakcje:**
+
 - Kliknięcie Delete → wywołanie `DELETE /api/comments/:id` bez potwierdzenia
 
 **Walidacja:**
+
 - Przycisk Delete widoczny tylko gdy `isOwn === true`
 
 **Typy:**
+
 - `CommentDto`
 
 **Propsy:**
+
 ```typescript
 interface CommentItemProps {
   comment: CommentDto;
@@ -589,6 +657,7 @@ interface CommentItemProps {
 **Opis:** Formularz dodawania nowego komentarza z licznikiem znaków.
 
 **Główne elementy:**
+
 - `Textarea` z limitem 1000 znaków
 - `CharacterCounter` pokazujący "X/1000"
 - `Button` "Add Comment"
@@ -596,17 +665,21 @@ interface CommentItemProps {
 - Stan loading
 
 **Obsługiwane interakcje:**
+
 - Submit → wywołanie `POST /api/briefs/:id/comments` z `{ content }`
 - Czyszczenie textarea po sukcesie
 
 **Walidacja:**
+
 - Treść wymagana (1-1000 znaków)
 - Button disabled gdy pusty lub przekroczony limit lub loading
 
 **Typy:**
+
 - `CreateCommentCommand`
 
 **Propsy:**
+
 ```typescript
 interface CommentFormProps {
   briefId: string;
@@ -621,6 +694,7 @@ interface CommentFormProps {
 **Opis:** Licznik znaków wyświetlający aktualną liczbę znaków i limit.
 
 **Główne elementy:**
+
 - `span` z tekstem "X/1000"
 - Warunkowa kolorystyka (np. red gdy przekroczony limit)
 
@@ -631,6 +705,7 @@ interface CommentFormProps {
 **Typy:** Brak
 
 **Propsy:**
+
 ```typescript
 interface CharacterCounterProps {
   current: number;
@@ -650,7 +725,7 @@ interface BriefDetailDto {
   id: string;
   ownerId: string;
   header: string;
-  content: BriefEntity['content']; // TipTap JSON
+  content: BriefEntity["content"]; // TipTap JSON
   footer: string | null;
   status: BriefStatus;
   statusChangedAt: string | null;
@@ -661,7 +736,7 @@ interface BriefDetailDto {
   updatedAt: string;
 }
 
-type BriefStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'needs_modification';
+type BriefStatus = "draft" | "sent" | "accepted" | "rejected" | "needs_modification";
 
 interface UpdateBriefStatusCommand {
   status: BriefStatus;
@@ -801,7 +876,7 @@ interface UseBriefCommentsReturn {
 export function useBriefComments({
   briefId,
   initialData,
-  pollingInterval = 30000
+  pollingInterval = 30000,
 }: UseBriefCommentsProps): UseBriefCommentsReturn {
   // State management
   const [data, setData] = useState(initialData);
@@ -846,10 +921,7 @@ interface UseBriefRecipientsReturn {
   removeRecipient: (recipientId: string) => Promise<void>;
 }
 
-export function useBriefRecipients({
-  briefId,
-  initialRecipients
-}: UseBriefRecipientsProps): UseBriefRecipientsReturn {
+export function useBriefRecipients({ briefId, initialRecipients }: UseBriefRecipientsProps): UseBriefRecipientsReturn {
   const [recipients, setRecipients] = useState(initialRecipients);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -882,10 +954,7 @@ interface UseBriefStatusChangeReturn {
   requestModification: (comment: string) => Promise<void>;
 }
 
-export function useBriefStatusChange({
-  briefId,
-  onSuccess
-}: UseBriefStatusChangeProps): UseBriefStatusChangeReturn {
+export function useBriefStatusChange({ briefId, onSuccess }: UseBriefStatusChangeProps): UseBriefStatusChangeReturn {
   const [isChanging, setIsChanging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -903,26 +972,35 @@ export function useBriefStatusChange({
 **Kiedy:** Initial page load (Server Component)
 
 **Request:**
+
 - Method: GET
 - Headers: `Authorization: Bearer {token}` (development: mock)
 - Path params: `id: string` (UUID)
 
 **Response (200 OK):**
+
 ```typescript
-BriefDetailDto
+BriefDetailDto;
 ```
 
 **Response (403 Forbidden):**
+
 ```typescript
-{ error: "You don't have permission to view this brief" }
+{
+  error: "You don't have permission to view this brief";
+}
 ```
 
 **Response (404 Not Found):**
+
 ```typescript
-{ error: "Brief not found" }
+{
+  error: "Brief not found";
+}
 ```
 
 **Obsługa błędów:**
+
 - 403 → Toast notification + przekierowanie do `/briefs`
 - 404 → Next.js `notFound()` → `not-found.tsx`
 - 500 → Error boundary → `error.tsx`
@@ -934,6 +1012,7 @@ BriefDetailDto
 **Kiedy:** Recipient actions (Accept/Reject/Needs Modification)
 
 **Request:**
+
 ```typescript
 // Accept
 { status: 'accepted' }
@@ -949,11 +1028,13 @@ BriefDetailDto
 ```
 
 **Response (200 OK):**
+
 ```typescript
-UpdateBriefStatusWithCommentResponseDto
+UpdateBriefStatusWithCommentResponseDto;
 ```
 
 **Walidacja przed wysłaniem:**
+
 - Status musi być jednym z: 'accepted', 'rejected', 'needs_modification'
 - Komentarz wymagany dla 'needs_modification' (1-1000 znaków)
 
@@ -964,14 +1045,17 @@ UpdateBriefStatusWithCommentResponseDto
 **Kiedy:** Owner clicks Delete button in DeleteBriefDialog
 
 **Request:**
+
 - Method: DELETE
 - Headers: `Authorization: Bearer {token}`
 - Path params: `id: string` (UUID)
 
 **Response (204 No Content):**
+
 - Empty body
 
 **Po sukcesie:**
+
 - Toast: "Brief deleted successfully"
 - Przekierowanie do `/briefs`
 
@@ -982,11 +1066,13 @@ UpdateBriefStatusWithCommentResponseDto
 **Kiedy:** Initial load (Server Component) + refresh w `useBriefRecipients`
 
 **Request:**
+
 - Method: GET
 - Headers: `Authorization: Bearer {token}`
 - Path params: `id: string` (UUID)
 
 **Response (200 OK):**
+
 ```typescript
 { data: BriefRecipientDto[] }
 ```
@@ -998,23 +1084,33 @@ UpdateBriefStatusWithCommentResponseDto
 **Kiedy:** Owner adds new recipient w RecipientAddForm
 
 **Request:**
+
 ```typescript
-{ email: string }
+{
+  email: string;
+}
 ```
 
 **Response (201 Created):**
+
 ```typescript
-ShareBriefResponseDto
+ShareBriefResponseDto;
 ```
 
 **Response (409 Conflict):**
+
 ```typescript
-{ error: "User already has access to this brief" }
+{
+  error: "User already has access to this brief";
+}
 ```
 
 **Response (403 Forbidden):**
+
 ```typescript
-{ error: "Maximum of 10 recipients per brief exceeded" }
+{
+  error: "Maximum of 10 recipients per brief exceeded";
+}
 ```
 
 ---
@@ -1024,11 +1120,13 @@ ShareBriefResponseDto
 **Kiedy:** Owner removes recipient access
 
 **Request:**
+
 - Method: DELETE
 - Headers: `Authorization: Bearer {token}`
 - Path params: `id: string`, `recipientId: string`
 
 **Response (204 No Content):**
+
 - Empty body
 
 **Uwaga:** Usunięcie ostatniego odbiorcy resetuje status briefu do 'draft' (obsługiwane przez API)
@@ -1040,14 +1138,16 @@ ShareBriefResponseDto
 **Kiedy:** Initial load + polling co 30s + manual refresh + pagination
 
 **Request:**
+
 - Method: GET
 - Headers: `Authorization: Bearer {token}`
 - Path params: `id: string` (UUID)
 - Query params: `page?: number`, `limit?: number` (default: 50)
 
 **Response (200 OK):**
+
 ```typescript
-PaginatedResponse<CommentDto>
+PaginatedResponse<CommentDto>;
 ```
 
 ---
@@ -1057,16 +1157,21 @@ PaginatedResponse<CommentDto>
 **Kiedy:** User submits CommentForm
 
 **Request:**
+
 ```typescript
-{ content: string } // 1-1000 characters
+{
+  content: string;
+} // 1-1000 characters
 ```
 
 **Response (201 Created):**
+
 ```typescript
-CommentDto
+CommentDto;
 ```
 
 **Walidacja przed wysłaniem:**
+
 - Content wymagany (1-1000 znaków)
 - Trimmed (usunięcie whitespace)
 
@@ -1077,11 +1182,13 @@ CommentDto
 **Kiedy:** User deletes own comment
 
 **Request:**
+
 - Method: DELETE
 - Headers: `Authorization: Bearer {token}`
 - Path params: `id: string` (UUID)
 
 **Response (204 No Content):**
+
 - Empty body
 
 **Uwaga:** Usunięcie bez potwierdzenia (zgodnie z US-013)
@@ -1156,13 +1263,16 @@ CommentDto
 ### Warunki renderowania komponentów
 
 #### BriefHeader
+
 - Zawsze renderowany
 
 #### OwnerActions
+
 - **Warunek:** `isOwned === true`
 - **Komponenty:** Edit, Delete, Share buttons
 
 #### RecipientActions
+
 - **Warunek:** `!isOwned && status === 'sent'`
 - **Komponenty:** Accept, Reject, Needs Modification buttons
 - **Uwaga:** Przyciski nie są widoczne gdy:
@@ -1170,13 +1280,16 @@ CommentDto
   - Użytkownik jest właścicielem
 
 #### BriefFooterSection
+
 - **Warunek:** `footer !== null && footer !== ''`
 
 #### BriefRecipientsSection
+
 - **Warunek:** `isOwned === true`
 - **Uwaga:** Widoczne tylko dla właściciela
 
 #### CommentItem Delete Button
+
 - **Warunek:** `comment.isOwn === true`
 - **Uwaga:** Tylko autor może usunąć swój komentarz
 
@@ -1185,6 +1298,7 @@ CommentDto
 ### Walidacja formularzy
 
 #### RecipientAddForm
+
 - **Email:**
   - Wymagany
   - Poprawny format email (HTML5 validation)
@@ -1194,6 +1308,7 @@ CommentDto
   - Button disabled gdy `recipients.length >= 10`
 
 #### CommentForm
+
 - **Content:**
   - Wymagany
   - Trimmed (usunięcie whitespace na początku i końcu)
@@ -1202,6 +1317,7 @@ CommentDto
   - Button disabled gdy pusty lub przekroczony limit
 
 #### NeedsModificationDialog
+
 - **Comment:**
   - Wymagany
   - Trimmed
@@ -1214,6 +1330,7 @@ CommentDto
 ### Warunki API
 
 #### PATCH /api/briefs/:id/status
+
 - **Pre-conditions:**
   - Użytkownik musi być odbiorcą (nie właścicielem)
   - Brief musi być w statusie 'sent'
@@ -1224,6 +1341,7 @@ CommentDto
   - `statusChangedAt` i `statusChangedBy` zaktualizowane
 
 #### POST /api/briefs/:id/recipients
+
 - **Pre-conditions:**
   - Użytkownik musi być właścicielem
   - Email musi być w systemie
@@ -1234,6 +1352,7 @@ CommentDto
   - Jeśli status był 'draft' → zmieniony na 'sent'
 
 #### DELETE /api/briefs/:id/recipients/:recipientId
+
 - **Pre-conditions:**
   - Użytkownik musi być właścicielem
   - Odbiorca musi istnieć
@@ -1250,14 +1369,17 @@ CommentDto
 #### Server Component (BriefDetailsPage)
 
 **403 Forbidden:**
+
 - Przekierowanie do `/briefs` z Toast notification
 - Implementacja: `redirect('/briefs')` + query param dla toast
 
 **404 Not Found:**
+
 - Wywołanie Next.js `notFound()` function
 - Renderowanie `not-found.tsx` w tym samym segmencie
 
 **500 Internal Server Error:**
+
 - Error boundary → renderowanie `error.tsx`
 - Możliwość retry
 
@@ -1266,19 +1388,23 @@ CommentDto
 #### Client Components
 
 **Network errors:**
+
 - Wyświetlenie Toast notification z komunikatem błędu
 - Zachowanie poprzedniego stanu (no optimistic updates)
 - Możliwość retry (np. przycisk "Try Again")
 
 **Validation errors (400):**
+
 - Wyświetlenie szczegółowych błędów walidacji pod odpowiednimi polami
 - Format: `details[].field` + `details[].message`
 
 **Authorization errors (403):**
+
 - Toast notification: "You don't have permission to perform this action"
 - Opcjonalne przekierowanie do listy briefów
 
 **Conflict errors (409):**
+
 - Toast notification z opisem konfliktu
 - Np. "User already has access to this brief"
 
@@ -1289,19 +1415,22 @@ CommentDto
 #### RecipientAddForm
 
 **Email nie istnieje (400):**
+
 ```typescript
-Toast: "User with email 'client@example.com' not found"
+Toast: "User with email 'client@example.com' not found";
 ```
 
 **Limit odbiorców przekroczony (403):**
+
 ```typescript
 Toast: "Maximum of 10 recipients per brief exceeded"
 Button disabled gdy recipients.length >= 10
 ```
 
 **Odbiorca już dodany (409):**
+
 ```typescript
-Toast: "User already has access to this brief"
+Toast: "User already has access to this brief";
 ```
 
 ---
@@ -1309,11 +1438,13 @@ Toast: "User already has access to this brief"
 #### CommentForm
 
 **Błąd walidacji (400):**
+
 ```typescript
-Toast: "Comment must be between 1 and 1000 characters"
+Toast: "Comment must be between 1 and 1000 characters";
 ```
 
 **Brak dostępu (403):**
+
 ```typescript
 Toast: "You do not have access to this brief"
 Redirect: /briefs
@@ -1324,18 +1455,21 @@ Redirect: /briefs
 #### RecipientActions (Accept/Reject/Needs Modification)
 
 **Brief nie w statusie 'sent' (403):**
+
 ```typescript
 Toast: "This brief is not available for review"
 Buttons hidden (conditional rendering)
 ```
 
 **Użytkownik jest właścicielem (403):**
+
 ```typescript
 Toast: "Only recipients can change brief status"
 Buttons hidden (conditional rendering)
 ```
 
 **Próba zmiany z 'accepted' (403):**
+
 ```typescript
 Toast: "Cannot change status of accepted brief"
 Buttons hidden (conditional rendering)
@@ -1346,11 +1480,13 @@ Buttons hidden (conditional rendering)
 #### DeleteBriefDialog
 
 **Użytkownik nie jest właścicielem (403):**
+
 ```typescript
-Toast: "Only the brief owner can delete the brief"
+Toast: "Only the brief owner can delete the brief";
 ```
 
 **Brief nie istnieje (404):**
+
 ```typescript
 Toast: "Brief not found"
 Redirect: /briefs
@@ -1361,6 +1497,7 @@ Redirect: /briefs
 #### Auto-refresh komentarzy
 
 **Błąd podczas polling:**
+
 - Silent fail (nie wyświetlaj toast przy każdym błędzie)
 - Logowanie do console.error
 - Kontynuacja polling (retry następny interval)
@@ -1370,19 +1507,23 @@ Redirect: /briefs
 ### Loading states
 
 **Przyciski akcji:**
+
 - Disabled state podczas request
 - Loading spinner w przycisku
 - Tekst zmieniony na "Loading..."
 
 **Formularze:**
+
 - Disabled inputs podczas submit
 - Loading spinner w przycisku submit
 
 **Paginacja komentarzy:**
+
 - Skeleton loader dla listy komentarzy
 - Disabled pagination controls
 
 **Refresh komentarzy:**
+
 - Loading spinner w przycisku "Refresh"
 - Disabled podczas request
 
@@ -1393,6 +1534,7 @@ Redirect: /briefs
 ### Faza 1: Infrastruktura i typy (1-2h)
 
 1. Utworzenie struktury katalogów:
+
    ```
    src/app/(dashboard)/briefs/[id]/
    ├── page.tsx
@@ -1426,6 +1568,7 @@ Redirect: /briefs
    ```
 
 2. Utworzenie pliku z typami ViewModel:
+
    ```typescript
    // src/lib/types/brief-details.types.ts
    ```
@@ -1708,12 +1851,14 @@ Redirect: /briefs
 **Szacowany czas implementacji:** 30-40 godzin
 
 **Priorytet komponentów:**
+
 1. **Krytyczne:** BriefDetailsPage, BriefHeader, BriefContentRenderer, BriefStatusBadge
 2. **Wysokie:** CommentList, CommentForm, useBriefComments
 3. **Średnie:** RecipientActions, OwnerActions, dialogi
 4. **Niskie:** Styling, edge cases, optymalizacja
 
 **Kolejność implementacji:**
+
 1. Typy i infrastructure
 2. Atomic components
 3. Custom hooks
@@ -1726,6 +1871,7 @@ Redirect: /briefs
 10. Documentation
 
 **Kluczowe wyzwania:**
+
 - TipTap read-only configuration
 - Polling mechanism z cleanup
 - Warunkowe renderowanie (isOwned, status)

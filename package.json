@@ -75,6 +75,7 @@
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "axe-core": "^4.11.0",
+    "baseline-browser-mapping": "^2.9.11",
     "dotenv": "^17.2.3",
     "dotenv-cli": "^11.0.0",
     "eslint": "^9.23.0",

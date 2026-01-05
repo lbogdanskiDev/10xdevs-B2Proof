@@ -21,7 +21,7 @@ test.describe("Homepage (authenticated)", () => {
     await page.goto("/briefs");
 
     // Wait for page to be fully loaded
-    await expect(page.getByRole("heading", { name: "Briefs" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Briefs", exact: true, level: 1 })).toBeVisible();
 
     // Run accessibility checks
     const accessibilityScanResults = await makeAxeBuilder().analyze();

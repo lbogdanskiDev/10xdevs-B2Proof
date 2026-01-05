@@ -9,7 +9,10 @@
  */
 export function generateUniqueId(): string {
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[-:T.]/g, "").slice(0, 15);
+  const timestamp = now
+    .toISOString()
+    .replace(/[-:T.]/g, "")
+    .slice(0, 15);
   const randomHash = Math.random().toString(36).substring(2, 8);
   return `${timestamp}_${randomHash}`;
 }
@@ -39,9 +42,7 @@ export function generateUniqueBriefData(options?: {
 } {
   const uniqueId = generateUniqueId();
 
-  const header = options?.headerPrefix
-    ? `${options.headerPrefix} - ${uniqueId}`
-    : `Test Brief - ${uniqueId}`;
+  const header = options?.headerPrefix ? `${options.headerPrefix} - ${uniqueId}` : `Test Brief - ${uniqueId}`;
 
   const content = options?.contentPrefix
     ? `${options.contentPrefix} - Created at ${new Date().toISOString()}`
@@ -53,9 +54,7 @@ export function generateUniqueBriefData(options?: {
   };
 
   if (options?.includeFooter) {
-    data.footer = options?.footerPrefix
-      ? `${options.footerPrefix} - ${uniqueId}`
-      : `Test footer - ${uniqueId}`;
+    data.footer = options?.footerPrefix ? `${options.footerPrefix} - ${uniqueId}` : `Test footer - ${uniqueId}`;
   }
 
   return data;
@@ -70,7 +69,7 @@ export function generateUniqueBriefData(options?: {
 export function generateMultipleUniqueBriefs(
   count: number,
   options?: Parameters<typeof generateUniqueBriefData>[0]
-): Array<{ header: string; content: string; footer?: string }> {
+): { header: string; content: string; footer?: string }[] {
   return Array.from({ length: count }, (_, index) =>
     generateUniqueBriefData({
       ...options,
@@ -129,11 +128,10 @@ export const TEST_DATA = {
  * Validate brief data against expected constraints
  * Useful for testing validation logic
  */
-export function validateBriefData(data: {
-  header: string;
-  content: string;
-  footer?: string;
-}): { valid: boolean; errors: string[] } {
+export function validateBriefData(data: { header: string; content: string; footer?: string }): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!data.header || data.header.length < TEST_DATA.BRIEF.MIN_HEADER_LENGTH) {

@@ -685,10 +685,10 @@ export function CharacterCounter({ current, max }: CharacterCounterProps) {
 
 ## Warunki renderowania
 
-| Komponent | Warunek |
-|-----------|---------|
-| `OwnerActions` | `isOwned === true` |
-| `RecipientActions` | `!isOwned && status === 'sent'` |
+| Komponent            | Warunek                                   |
+| -------------------- | ----------------------------------------- |
+| `OwnerActions`       | `isOwned === true`                        |
+| `RecipientActions`   | `!isOwned && status === 'sent'`           |
 | `BriefActionButtons` | Zawsze renderowany (puste gdy brak akcji) |
 
 ---
@@ -698,6 +698,7 @@ export function CharacterCounter({ current, max }: CharacterCounterProps) {
 ### PATCH /api/briefs/:id/status
 
 **Request:**
+
 ```typescript
 // Accept
 { status: 'accepted' }
@@ -713,8 +714,9 @@ export function CharacterCounter({ current, max }: CharacterCounterProps) {
 ```
 
 **Response (200 OK):**
+
 ```typescript
-UpdateBriefStatusWithCommentResponseDto
+UpdateBriefStatusWithCommentResponseDto;
 ```
 
 ### DELETE /api/briefs/:id
@@ -747,4 +749,5 @@ UpdateBriefStatusWithCommentResponseDto
 ## Następne kroki
 
 Po zakończeniu tej części, przejdź do:
+
 - [Part 3: Brief Content & Footer](./brief-details-content.md)

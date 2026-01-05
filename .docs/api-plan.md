@@ -6,22 +6,22 @@
 
 ### Completed Endpoints (15/15)
 
-| Endpoint | Method | Status | Commit |
-|----------|--------|--------|--------|
-| `/api/users/me` | GET | ✅ Implemented | [ac762fe](https://github.com/user/repo/commit/ac762fe) |
-| `/api/users/me` | DELETE | ✅ Implemented | Ready for commit |
-| `/api/briefs` | GET | ✅ Implemented | [41747d7](https://github.com/user/repo/commit/41747d7) |
-| `/api/briefs/:id` | GET | ✅ Implemented | [f2f8fd0](https://github.com/user/repo/commit/f2f8fd0) |
-| `/api/briefs` | POST | ✅ Implemented | [9782e92](https://github.com/user/repo/commit/9782e92) |
-| `/api/briefs/:id` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
-| `/api/briefs/:id/status` | PATCH | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
-| `/api/briefs/:id` | DELETE | ✅ Implemented | [5671ed4](https://github.com/user/repo/commit/5671ed4) |
-| `/api/briefs/:id/recipients` | GET | ✅ Implemented | [19dc685](https://github.com/user/repo/commit/19dc685) |
-| `/api/briefs/:id/recipients` | POST | ✅ Implemented | [efc5a44](https://github.com/user/repo/commit/efc5a44) |
-| `/api/briefs/:id/recipients/:recipientId` | DELETE | ✅ Implemented | Ready for commit |
-| `/api/briefs/:id/comments` | POST | ✅ Implemented | Ready for commit |
-| `/api/briefs/:id/comments` | GET | ✅ Implemented | Ready for commit |
-| `/api/comments/:id` | DELETE | ✅ Implemented | Ready for commit |
+| Endpoint                                  | Method | Status         | Commit                                                 |
+| ----------------------------------------- | ------ | -------------- | ------------------------------------------------------ |
+| `/api/users/me`                           | GET    | ✅ Implemented | [ac762fe](https://github.com/user/repo/commit/ac762fe) |
+| `/api/users/me`                           | DELETE | ✅ Implemented | Ready for commit                                       |
+| `/api/briefs`                             | GET    | ✅ Implemented | [41747d7](https://github.com/user/repo/commit/41747d7) |
+| `/api/briefs/:id`                         | GET    | ✅ Implemented | [f2f8fd0](https://github.com/user/repo/commit/f2f8fd0) |
+| `/api/briefs`                             | POST   | ✅ Implemented | [9782e92](https://github.com/user/repo/commit/9782e92) |
+| `/api/briefs/:id`                         | PATCH  | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
+| `/api/briefs/:id/status`                  | PATCH  | ✅ Implemented | [9e0eb28](https://github.com/user/repo/commit/9e0eb28) |
+| `/api/briefs/:id`                         | DELETE | ✅ Implemented | [5671ed4](https://github.com/user/repo/commit/5671ed4) |
+| `/api/briefs/:id/recipients`              | GET    | ✅ Implemented | [19dc685](https://github.com/user/repo/commit/19dc685) |
+| `/api/briefs/:id/recipients`              | POST   | ✅ Implemented | [efc5a44](https://github.com/user/repo/commit/efc5a44) |
+| `/api/briefs/:id/recipients/:recipientId` | DELETE | ✅ Implemented | Ready for commit                                       |
+| `/api/briefs/:id/comments`                | POST   | ✅ Implemented | Ready for commit                                       |
+| `/api/briefs/:id/comments`                | GET    | ✅ Implemented | Ready for commit                                       |
+| `/api/comments/:id`                       | DELETE | ✅ Implemented | Ready for commit                                       |
 
 **Progress**: 100% (15/15 endpoints complete) 🎉
 
@@ -41,12 +41,12 @@ This API follows REST principles and uses JSON for request/response payloads. Au
 
 ## 2. Resources
 
-| Resource | Database Table | Description |
-|----------|----------------|-------------|
-| Users | `profiles` + `auth.users` | User accounts with role information |
-| Briefs | `briefs` | Project briefs created by creators |
-| Recipients | `brief_recipients` | Brief sharing relationships |
-| Comments | `comments` | Comments on briefs |
+| Resource   | Database Table            | Description                         |
+| ---------- | ------------------------- | ----------------------------------- |
+| Users      | `profiles` + `auth.users` | User accounts with role information |
+| Briefs     | `briefs`                  | Project briefs created by creators  |
+| Recipients | `brief_recipients`        | Brief sharing relationships         |
+| Comments   | `comments`                | Comments on briefs                  |
 
 ---
 
@@ -55,6 +55,7 @@ This API follows REST principles and uses JSON for request/response payloads. Au
 ### 3.1 Authentication Strategy
 
 **Supabase Auth handles all authentication operations:**
+
 - User registration
 - Login/logout
 - Session management
@@ -62,38 +63,43 @@ This API follows REST principles and uses JSON for request/response payloads. Au
 - Password reset
 
 **Client-side implementation uses Supabase SSR SDK:**
-```typescript
-import { createSupabaseBrowserClient } from '@/db/supabase.client'
 
-const supabase = createSupabaseBrowserClient()
+```typescript
+import { createSupabaseBrowserClient } from "@/db/supabase.client";
+
+const supabase = createSupabaseBrowserClient();
 
 // Register
 const { data, error } = await supabase.auth.signUp({
-  email: 'user@example.com',
-  password: 'Password123',
+  email: "user@example.com",
+  password: "Password123",
   options: {
     data: {
-      role: 'creator' // Stored in auth.users.raw_user_meta_data
-    }
-  }
-})
+      role: "creator", // Stored in auth.users.raw_user_meta_data
+    },
+  },
+});
 
 // After signup, profile is created automatically via database trigger
 
 // Login
 const { data, error } = await supabase.auth.signInWithPassword({
-  email: 'user@example.com',
-  password: 'Password123'
-})
+  email: "user@example.com",
+  password: "Password123",
+});
 
 // Logout
-const { error } = await supabase.auth.signOut()
+const { error } = await supabase.auth.signOut();
 
 // Get session
-const { data: { session } } = await supabase.auth.getSession()
+const {
+  data: { session },
+} = await supabase.auth.getSession();
 
 // Get current user
-const { data: { user } } = await supabase.auth.getUser()
+const {
+  data: { user },
+} = await supabase.auth.getUser();
 ```
 
 **No custom authentication endpoints needed** - Supabase handles everything via its own API.
@@ -105,17 +111,19 @@ const { data: { user } } = await supabase.auth.getUser()
 **Profile creation is handled automatically via database trigger** when a user signs up through Supabase Auth.
 
 **How it works:**
+
 1. User registers via `supabase.auth.signUp()` with role in metadata:
+
    ```typescript
    const { data, error } = await supabase.auth.signUp({
-     email: 'user@example.com',
-     password: 'Password123',
+     email: "user@example.com",
+     password: "Password123",
      options: {
        data: {
-         role: 'creator' // Will be used by trigger
-       }
-     }
-   })
+         role: "creator", // Will be used by trigger
+       },
+     },
+   });
    ```
 
 2. Database trigger `create_profile_for_new_user` automatically:
@@ -137,15 +145,17 @@ const { data: { user } } = await supabase.auth.getUser()
 **Implementation**: Enforces single active session per user account
 
 **How it works:**
+
 - When user logs in, all other sessions are automatically invalidated
 - Implemented via `signOut({ scope: 'others' })` in Server Actions
 - Prevents concurrent sessions from multiple devices/browsers
 - Ensures security and proper session management
 
 **Implementation Details:**
+
 ```typescript
 // In auth.actions.ts
-await adminClient.auth.signOut({ scope: 'others' })
+await adminClient.auth.signOut({ scope: "others" });
 ```
 
 #### Pending Invitations Auto-Update
@@ -153,12 +163,14 @@ await adminClient.auth.signOut({ scope: 'others' })
 **Implementation**: Automatically links pending invitations when invited user registers
 
 **How it works:**
+
 1. Brief can be shared with unregistered user via email (`recipient_email` field)
 2. When user with that email registers, trigger `update_pending_recipients` runs
 3. System automatically populates `recipient_id` for all pending invitations
 4. User immediately gets access to briefs shared with them before registration
 
 **Implementation Details:**
+
 - Database trigger: `update_pending_recipients` on `profiles` table insert
 - Updates `brief_recipients` where `recipient_email` matches new user's email
 - Logs update to audit trail
@@ -168,11 +180,13 @@ await adminClient.auth.signOut({ scope: 'others' })
 **Implementation**: Service role client for privileged operations
 
 **Usage:**
+
 - Account deletion operations
 - Session management (signOut with scope: 'others')
 - Bypassing RLS for administrative tasks
 
 **Security:**
+
 - Uses `SUPABASE_SERVICE_ROLE_KEY` (server-side only, never exposed to client)
 - Created in `supabase.server.ts` as `createSupabaseAdminClient()`
 - Used only for operations that require elevated privileges
@@ -188,15 +202,18 @@ await adminClient.auth.signOut({ scope: 'others' })
 Retrieve authenticated user's profile.
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/users/me/route.ts](../src/app/api/users/me/route.ts)
 - ✅ Service Layer: [src/lib/services/user.service.ts](../src/lib/services/user.service.ts)
 - ✅ Error Handling: Custom ApiError classes in [src/lib/errors/](../src/lib/errors/)
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "uuid",
@@ -208,6 +225,7 @@ Retrieve authenticated user's profile.
 ```
 
 **Error Responses:**
+
 - `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `404 Not Found`: Profile not found (when auth is implemented)
 - `500 Internal Server Error`: Unexpected server error
@@ -220,8 +238,8 @@ Retrieve authenticated user's profile.
 
 ```typescript
 const { data, error } = await supabase.auth.updateUser({
-  password: 'NewPassword456'
-})
+  password: "NewPassword456",
+});
 ```
 
 **Note:** Password change is managed entirely by Supabase Auth. No custom API endpoint needed
@@ -235,6 +253,7 @@ const { data, error } = await supabase.auth.updateUser({
 Delete authenticated user's account and all associated data (briefs, comments, recipients).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/users/me/route.ts](../src/app/api/users/me/route.ts) (DELETE method)
 - ✅ Service Layer: [src/lib/services/user.service.ts](../src/lib/services/user.service.ts) (`deleteUserAccount`)
 - ✅ Authorization: JWT token validation via Supabase Auth
@@ -242,11 +261,13 @@ Delete authenticated user's account and all associated data (briefs, comments, r
 - ✅ Cascade Deletion: Automatically removes profiles, briefs, comments, and recipients via database constraints
 
 **Headers:**
+
 - `Authorization: Bearer {token}`
 
 **Success Response (204 No Content)**
 
 **Error Responses:**
+
 - `401 Unauthorized`: Invalid or expired token
 - `404 Not Found`: User account not found
 - `500 Internal Server Error`: Failed to delete account or log deletion
@@ -262,21 +283,25 @@ Delete authenticated user's account and all associated data (briefs, comments, r
 Retrieve paginated list of briefs (owned and shared with user).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/route.ts](../src/app/api/briefs/route.ts)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefs`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefQuerySchema`)
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Query Parameters:**
+
 - `page`: Number (default: 1) - Page number
 - `limit`: Number (default: 10, max: 50) - Items per page
 - `filter`: String (optional) - `"owned"` | `"shared"` - Filter by ownership
 - `status`: String (optional) - `"draft"` | `"sent"` | `"accepted"` | `"rejected"` | `"needs_modification"` - Filter by status
 
 **Success Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -302,11 +327,13 @@ Retrieve paginated list of briefs (owned and shared with user).
 ```
 
 **Computed Properties:**
+
 - `isOwned`: Boolean - `true` if authenticated user is the brief owner (`brief.owner_id === auth.uid()`), `false` if user is a recipient
   - Used for UI conditional rendering (show edit/delete buttons only if `isOwned === true`)
   - Helps frontend distinguish between owned briefs and shared briefs in the same list
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid query parameters
 - `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 
@@ -319,6 +346,7 @@ Retrieve paginated list of briefs (owned and shared with user).
 Retrieve full details of a specific brief.
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/route.ts](../src/app/api/briefs/[id]/route.ts)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefById`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
@@ -326,12 +354,15 @@ Retrieve full details of a specific brief.
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "uuid",
@@ -363,11 +394,13 @@ Retrieve full details of a specific brief.
 ```
 
 **Computed Properties:**
+
 - `isOwned`: Boolean - `true` if authenticated user is the brief owner (`brief.owner_id === auth.uid()`), `false` if user is a recipient
   - Used for UI conditional rendering (show edit/delete/share buttons only if `isOwned === true`)
   - Used to determine which actions are available (owner can edit, client can change status)
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid brief ID format
 - `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User does not have access to this brief
@@ -382,6 +415,7 @@ Retrieve full details of a specific brief.
 Create a new brief (creators only).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/route.ts](../src/app/api/briefs/route.ts) (POST method)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`createBrief`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`CreateBriefSchema`)
@@ -391,9 +425,11 @@ Create a new brief (creators only).
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Request Body:**
+
 ```json
 {
   "header": "Project Brief Title",
@@ -416,17 +452,21 @@ Create a new brief (creators only).
 ```
 
 **Validation:**
+
 - `header`: Required, string, 1-200 characters
 - `content`: Required, valid TipTap JSON structure
 - `footer`: Optional, string, max 200 characters
 
 **Success Response (201 Created):**
+
 ```json
 {
   "id": "uuid",
   "ownerId": "uuid",
   "header": "Project Brief Title",
-  "content": { /* TipTap JSON */ },
+  "content": {
+    /* TipTap JSON */
+  },
   "footer": "Optional footer text",
   "status": "draft",
   "statusChangedAt": null,
@@ -439,6 +479,7 @@ Create a new brief (creators only).
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Validation errors
   ```json
   {
@@ -468,6 +509,7 @@ Create a new brief (creators only).
 Update brief content and metadata (owner only). Automatically resets status to 'draft' via database trigger.
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/route.ts](../src/app/api/briefs/[id]/route.ts) (PATCH method)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`updateBrief`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`UpdateBriefSchema`)
@@ -475,12 +517,15 @@ Update brief content and metadata (owner only). Automatically resets status to '
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Request Body:**
+
 ```json
 {
   "header": "Updated Title",
@@ -503,11 +548,13 @@ Update brief content and metadata (owner only). Automatically resets status to '
 ```
 
 **Validation:**
+
 - `header`: Optional, string, 1-200 characters
 - `content`: Optional, valid TipTap JSON structure, max 10,000 text characters
 - `footer`: Optional, string, max 200 characters or null
 
 **Business Rules:**
+
 - Only brief owner can update content
 - Can edit brief in ANY status (draft, sent, accepted, rejected, needs_modification)
 - Editing automatically resets status to 'draft' via database trigger
@@ -515,18 +562,22 @@ Update brief content and metadata (owner only). Automatically resets status to '
 - All recipients retain access after edit (must re-share if needed)
 
 **Special Case: Editing "Accepted" Brief**
+
 - Once brief is accepted by client, owner can still edit it
 - Editing resets status to 'draft' (client acceptance is lost)
 - Brief must be re-shared (status changes to 'sent') and re-accepted
 - Frontend should show warning modal before editing accepted brief
 
 **Success Response (200 OK):**
+
 ```json
 {
   "id": "uuid",
   "ownerId": "uuid",
   "header": "Updated Title",
-  "content": { /* Updated TipTap JSON */ },
+  "content": {
+    /* Updated TipTap JSON */
+  },
   "footer": "Updated footer",
   "status": "draft",
   "statusChangedAt": "2025-01-15T11:00:00Z",
@@ -539,6 +590,7 @@ Update brief content and metadata (owner only). Automatically resets status to '
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Validation errors
   ```json
   {
@@ -569,6 +621,7 @@ Update brief content and metadata (owner only). Automatically resets status to '
 Change brief status (client with access only). Used for Accept/Reject/Request Modification actions.
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/status/route.ts](../src/app/api/briefs/[id]/status/route.ts)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`updateBriefStatus`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`UpdateBriefStatusSchema`)
@@ -576,12 +629,15 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Request Body (Accept/Reject):**
+
 ```json
 {
   "status": "accepted"
@@ -589,6 +645,7 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 ```
 
 **Request Body (Needs Modification - requires comment):**
+
 ```json
 {
   "status": "needs_modification",
@@ -597,10 +654,12 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 ```
 
 **Validation:**
+
 - `status`: Required, enum: `accepted` | `rejected` | `needs_modification`
 - `comment`: Required if `status` is `needs_modification`, string, 1-1000 characters
 
 **Business Rules:**
+
 - Only clients with brief access (recipients) can change status
 - Owners (creators) cannot change status via this endpoint
 - Brief must be in `sent` status to allow status change
@@ -609,6 +668,7 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 - Logs status change to audit_log
 
 **Success Response (200 OK) - Accept/Reject:**
+
 ```json
 {
   "id": "uuid",
@@ -621,6 +681,7 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 ```
 
 **Success Response (200 OK) - Needs Modification with Comment:**
+
 ```json
 {
   "id": "uuid",
@@ -643,6 +704,7 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Validation errors
   ```json
   {
@@ -677,6 +739,7 @@ Change brief status (client with access only). Used for Accept/Reject/Request Mo
 Permanently delete a brief (owner only).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/route.ts](../src/app/api/briefs/[id]/route.ts) (DELETE method)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`deleteBrief`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
@@ -686,14 +749,17 @@ Permanently delete a brief (owner only).
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Success Response (204 No Content)**
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid brief ID format
 - `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User is not the owner
@@ -715,6 +781,7 @@ Permanently delete a brief (owner only).
 Retrieve list of users with access to the brief (owner only).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/recipients/route.ts](../src/app/api/briefs/[id]/recipients/route.ts)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`getBriefRecipients`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`BriefIdSchema`)
@@ -723,6 +790,7 @@ Retrieve list of users with access to the brief (owner only).
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
+
 - Authorization check performed in route handler (not service layer)
 - Email fetching uses `Promise.all()` for parallel execution (avoids N+1 problem)
 - Service layer only handles data retrieval
@@ -730,12 +798,15 @@ Retrieve list of users with access to the brief (owner only).
 - Results ordered by `shared_at DESC` (most recent first)
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Success Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -751,6 +822,7 @@ Retrieve list of users with access to the brief (owner only).
 ```
 
 **Success Response (200 OK) - Empty List:**
+
 ```json
 {
   "data": []
@@ -758,6 +830,7 @@ Retrieve list of users with access to the brief (owner only).
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid brief ID format (not valid UUID)
 - `401 Unauthorized`: Invalid or expired token (when auth is implemented)
 - `403 Forbidden`: User is not the brief owner
@@ -782,18 +855,22 @@ Retrieve list of users with access to the brief (owner only).
 Share brief with a user by email (owner only, max 10 recipients, changes status to 'sent').
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/recipients/route.ts](../src/app/api/briefs/[id]/recipients/route.ts)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`shareBriefWithRecipient`)
 - ✅ Pending Invitations: Supports sharing with unregistered users via `recipient_email`
 - ✅ Auto-Update: When invited user registers, `recipient_id` is automatically populated
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Request Body:**
+
 ```json
 {
   "email": "client@example.com"
@@ -801,10 +878,12 @@ Share brief with a user by email (owner only, max 10 recipients, changes status 
 ```
 
 **Validation:**
+
 - `email`: Required, valid email format
 - User does not need to exist in system (supports pending invitations)
 
 **Success Response (201 Created):**
+
 ```json
 {
   "id": "uuid",
@@ -817,6 +896,7 @@ Share brief with a user by email (owner only, max 10 recipients, changes status 
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid email format
   ```json
   {
@@ -847,6 +927,7 @@ Share brief with a user by email (owner only, max 10 recipients, changes status 
 Remove user's access to brief (owner only, resets status to 'draft' if last recipient).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/recipients/[recipientId]/route.ts](../src/app/api/briefs/[id]/recipients/[recipientId]/route.ts)
 - ✅ Service Layer: [src/lib/services/brief.service.ts](../src/lib/services/brief.service.ts) (`revokeBriefRecipient`)
 - ✅ Validation Schema: [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts) (`RevokeRecipientSchema`)
@@ -855,6 +936,7 @@ Remove user's access to brief (owner only, resets status to 'draft' if last reci
 - ✅ Status Reset: Automatically resets brief status to 'draft' when last recipient is removed
 
 **Implementation Details:**
+
 - Authorization check performed in service layer (verifies ownership via database query)
 - Audit log created BEFORE deletion for data recovery capability
 - Status reset only occurs if last recipient AND status is not already 'draft'
@@ -862,15 +944,18 @@ Remove user's access to brief (owner only, resets status to 'draft' if last reci
 - Service layer uses guard clauses for validation and early returns
 
 **Headers:**
+
 - `Authorization: Bearer {token}`
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 - `recipientId`: UUID - Recipient user identifier
 
 **Success Response (204 No Content)**
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid brief ID or recipient ID format (not valid UUID)
   ```json
   {
@@ -914,6 +999,7 @@ Remove user's access to brief (owner only, resets status to 'draft' if last reci
 Retrieve paginated comments for a brief (users with access only).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/comments/route.ts](../src/app/api/briefs/[id]/comments/route.ts) (GET method)
 - ✅ Service Layer: [src/lib/services/comments.service.ts](../src/lib/services/comments.service.ts) (`getCommentsByBriefId`)
 - ✅ Validation Schema: [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts) (`getCommentsQuerySchema`)
@@ -922,6 +1008,7 @@ Retrieve paginated comments for a brief (users with access only).
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
+
 - Access control performed in service layer (verifies ownership or recipient status via database queries)
 - Comments ordered by `created_at DESC` (newest first)
 - Author email and role fetched from `auth.users` and `profiles` tables using `Promise.all()` for parallel execution
@@ -929,16 +1016,20 @@ Retrieve paginated comments for a brief (users with access only).
 - `isOwn` flag indicates if comment belongs to requesting user
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Query Parameters:**
+
 - `page`: Number (default: 1, min: 1) - Page number
 - `limit`: Number (default: 50, min: 1, max: 100) - Comments per page
 
 **Success Response (200 OK):**
+
 ```json
 {
   "data": [
@@ -963,6 +1054,7 @@ Retrieve paginated comments for a brief (users with access only).
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid query parameters or invalid UUID format
   ```json
   {
@@ -1004,6 +1096,7 @@ Retrieve paginated comments for a brief (users with access only).
 Add a comment to a brief (users with access only).
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/briefs/[id]/comments/route.ts](../src/app/api/briefs/[id]/comments/route.ts)
 - ✅ Service Layer: [src/lib/services/comments.service.ts](../src/lib/services/comments.service.ts) (`createComment`)
 - ✅ Validation Schema: [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts) (`createCommentSchema`)
@@ -1013,6 +1106,7 @@ Add a comment to a brief (users with access only).
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
+
 - Access control performed in service layer (verifies ownership or recipient status via database queries)
 - Comment count incremented with manual rollback on failure (reads current count, increments, updates)
 - Audit log created after successful comment insertion (non-critical, won't rollback on failure)
@@ -1020,12 +1114,15 @@ Add a comment to a brief (users with access only).
 - Email and role fetched from `auth.users` and `profiles` tables for response DTO
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Brief identifier
 
 **Request Body:**
+
 ```json
 {
   "content": "This looks good, but can we adjust the timeline?"
@@ -1033,9 +1130,11 @@ Add a comment to a brief (users with access only).
 ```
 
 **Validation:**
+
 - `content`: Required, string, trimmed, 1-1000 characters
 
 **Success Response (201 Created):**
+
 ```json
 {
   "id": "uuid",
@@ -1050,6 +1149,7 @@ Add a comment to a brief (users with access only).
 ```
 
 **Error Responses:**
+
 - `400 Bad Request`: Validation errors (invalid UUID format or invalid content)
   ```json
   {
@@ -1096,6 +1196,7 @@ Add a comment to a brief (users with access only).
 Delete own comment (author only). Updates brief's comment_count and creates audit log entry.
 
 **Implementation Status:**
+
 - ✅ Route Handler: [src/app/api/comments/[id]/route.ts](../src/app/api/comments/[id]/route.ts)
 - ✅ Service Layer: [src/lib/services/comments.service.ts](../src/lib/services/comments.service.ts) (`deleteComment`)
 - ✅ Validation Schema: [src/lib/schemas/comment.schema.ts](../src/lib/schemas/comment.schema.ts) (`deleteCommentParamsSchema`)
@@ -1105,6 +1206,7 @@ Delete own comment (author only). Updates brief's comment_count and creates audi
 - ✅ Authentication: Fully implemented with Supabase Auth
 
 **Implementation Details:**
+
 - Authorization check performed in service layer (verifies authorship via database query)
 - Comment must exist and user must be the author to delete
 - Brief's comment_count decremented after successful deletion (uses Math.max to prevent negative values)
@@ -1113,14 +1215,17 @@ Delete own comment (author only). Updates brief's comment_count and creates audi
 - Non-critical errors (audit log, comment count) are logged but don't fail the operation
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (validated via Supabase Auth)
 
 **Path Parameters:**
+
 - `id`: UUID - Comment identifier
 
 **Success Response (204 No Content)**
 
 **Error Responses:**
+
 - `400 Bad Request`: Invalid comment ID format (not valid UUID)
   ```json
   {
@@ -1162,6 +1267,7 @@ Delete own comment (author only). Updates brief's comment_count and creates audi
 **Implementation**: Supabase Auth with JWT tokens
 
 **Flow:**
+
 1. User registers or logs in via **Supabase Auth SDK** (client-side)
 2. Supabase returns access token (JWT) and refresh token
 3. Client stores tokens securely (handled automatically by Supabase SDK)
@@ -1170,16 +1276,20 @@ Delete own comment (author only). Updates brief's comment_count and creates audi
 6. Token refresh handled automatically by Supabase SDK
 
 **Server-side validation (Next.js API routes):**
+
 ```typescript
-import { createSupabaseServerClient } from '@/db/supabase.server'
+import { createSupabaseServerClient } from "@/db/supabase.server";
 
 export async function GET(request: Request) {
-  const supabase = await createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient();
 
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   if (error || !user) {
-    return new Response('Unauthorized', { status: 401 })
+    return new Response("Unauthorized", { status: 401 });
   }
 
   // User is authenticated, proceed with request
@@ -1187,22 +1297,20 @@ export async function GET(request: Request) {
   // Access user email: user.email
 
   // Get role from profiles table
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
   // Access role: profile?.role
 }
 ```
 
 **Token Format:**
+
 ```
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Token Payload (Supabase JWT):**
+
 ```json
 {
   "sub": "user-uuid",
@@ -1219,16 +1327,19 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### 8.2 Authorization Rules
 
 **Role-Based Access:**
+
 - **Creators**: Can create briefs, share briefs, manage recipients, edit/delete own briefs
 - **Clients**: Can view shared briefs, add comments, change brief status (accept/reject/needs modification)
 
 **Resource-Based Access:**
+
 - Users can only access briefs they own or have been shared with
 - Users can only edit/delete their own briefs
 - Users can only delete their own comments
 - Brief owners can manage recipients
 
 **Implementation**:
+
 - Leverages Supabase Row Level Security (RLS) policies defined in database schema
 - API endpoints trust RLS and use authenticated user context (`auth.uid()`) for all queries
 - Helper function `user_has_brief_access(brief_id)` checks ownership or recipient status
@@ -1236,6 +1347,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### 8.3 Session Management
 
 **Managed by Supabase Auth:**
+
 - Configurable session lifetime (default: 1 hour for access token)
 - Refresh tokens valid for 7 days (configurable)
 - Automatic token refresh via Supabase SDK
@@ -1250,30 +1362,36 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### 9.1 Field Validation Rules
 
 **User Registration:**
+
 - Email: Valid email format, unique in system
 - Password: Min 8 characters, at least one digit (regex: `/^(?=.*\d).{8,}$/`)
 - Role: Enum (`creator` | `client`)
 
 **Brief Creation/Update:**
+
 - Header: Required, 1-200 characters
 - Content: Required, valid TipTap JSON structure (type: "doc")
 - Footer: Optional, max 200 characters
 
 **Comment:**
+
 - Content: Required, 1-1000 characters
 
 **Password Change:**
+
 - Current password: Required, must match existing
 - New password: Min 8 characters, at least one digit, different from current
 
 ### 9.2 Business Logic Rules
 
 **Brief Limits:**
+
 - Creators can have max 20 active briefs (enforced by database trigger)
 - Each brief can be shared with max 10 recipients (enforced by database trigger)
 - API returns `403 Forbidden` when limits are reached
 
 **Status Workflow:**
+
 1. New briefs start in `draft` status
 2. Sharing brief with first recipient changes status to `sent` (database trigger)
 3. Clients can change status: `sent` → `accepted` | `rejected` | `needs_modification`
@@ -1282,16 +1400,19 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 6. Status `needs_modification` requires a comment
 
 **Comment Count:**
+
 - Denormalized `comment_count` field on briefs table
 - Automatically incremented/decremented by database triggers
 - Used for efficient pagination and display
 
 **Cascading Deletes:**
+
 - Deleting brief → deletes all comments and recipient relationships
 - Deleting user → deletes all owned briefs, comments, and recipient relationships
 - All deletions are hard deletes with audit trail (logged to `audit_log` table)
 
 **Access Control:**
+
 - Brief owner can: view, edit, delete, share, revoke access
 - Brief recipient can: view, comment, change status
 - Only creators can create briefs
@@ -1300,6 +1421,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### 9.3 Error Handling Strategy
 
 **Validation Errors (400 Bad Request):**
+
 ```json
 {
   "error": "Validation failed",
@@ -1317,6 +1439,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Authentication Errors (401 Unauthorized):**
+
 ```json
 {
   "error": "Invalid or expired token"
@@ -1324,6 +1447,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Authorization Errors (403 Forbidden):**
+
 ```json
 {
   "error": "You do not have permission to perform this action"
@@ -1331,6 +1455,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Resource Not Found (404 Not Found):**
+
 ```json
 {
   "error": "Resource not found"
@@ -1340,11 +1465,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 **Conflict Errors (409 Conflict):**
 
 **Use Cases:**
+
 - Attempting to share brief with user who already has access
 - Attempting to create duplicate resource
 - Race condition conflicts (e.g., concurrent status updates)
 
 **Standard Format:**
+
 ```json
 {
   "error": "Resource conflict description",
@@ -1353,6 +1480,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Examples:**
+
 ```json
 {
   "error": "User already has access to this brief",
@@ -1361,6 +1489,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Server Errors (500 Internal Server Error):**
+
 ```json
 {
   "error": "An unexpected error occurred"
@@ -1374,6 +1503,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ### 10.1 Pagination
 
 All list endpoints support pagination:
+
 - Default page size: 10 items
 - Max page size: 50 items
 - Query parameters: `page` (1-based), `limit`
@@ -1427,12 +1557,14 @@ All list endpoints support pagination:
 **Rate limiting is OUT OF SCOPE for MVP.**
 
 **Rationale:**
+
 - Vercel provides basic DDoS protection out of the box
 - Small user base in MVP phase (limited risk)
 - Adds complexity to development and testing
 - Can be added in Phase 2 after launch with real usage data
 
 **Basic Protection:**
+
 - Vercel Edge Network provides automatic rate limiting for extreme abuse
 - Database RLS policies prevent unauthorized access
 - Brief creation limited to 20 per user (enforced at database level)
@@ -1442,17 +1574,20 @@ All list endpoints support pagination:
 **Recommended for Production (Phase 2):**
 
 **Implementation Options:**
+
 - Vercel Edge Config with rate limiting middleware
 - Upstash Redis for distributed rate limiting
 - `@upstash/ratelimit` library for Next.js integration
 
 **Recommended Limits:**
+
 - Authentication endpoints: 5 requests/minute per IP
 - Brief creation: 10 requests/minute per user
 - Comment creation: 20 requests/minute per user
 - General API: 100 requests/minute per user
 
 **Response Headers:**
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -1460,6 +1595,7 @@ X-RateLimit-Reset: 1642248600
 ```
 
 **Rate Limit Exceeded (429 Too Many Requests):**
+
 ```json
 {
   "error": "Rate limit exceeded",
@@ -1489,7 +1625,9 @@ X-RateLimit-Reset: 1642248600
 ## 14. Summary of Endpoints
 
 ### Authentication (Handled by Supabase)
+
 Authentication is **entirely managed by Supabase Auth** using the client-side SDK. No custom API endpoints needed for:
+
 - Registration: `supabase.auth.signUp()`
 - Login: `supabase.auth.signInWithPassword()`
 - Logout: `supabase.auth.signOut()`
@@ -1498,26 +1636,27 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 
 ### Custom API Endpoints
 
-| Method | Endpoint | Description | Auth Required | Role |
-|--------|----------|-------------|---------------|------|
-| GET | `/api/users/me` | Get current user profile | Yes | Any |
-| DELETE | `/api/users/me` | Delete account | Yes | Any |
-| GET | `/api/briefs` | List briefs (paginated) | Yes | Any |
-| GET | `/api/briefs/:id` | Get brief details | Yes | Any* |
-| POST | `/api/briefs` | Create brief | Yes | Creator |
-| PATCH | `/api/briefs/:id` | Update brief content | Yes | Creator** |
-| PATCH | `/api/briefs/:id/status` | Update brief status | Yes | Client* |
-| DELETE | `/api/briefs/:id` | Delete brief | Yes | Creator** |
-| GET | `/api/briefs/:id/recipients` | List recipients | Yes | Creator** |
-| POST | `/api/briefs/:id/recipients` | Share brief | Yes | Creator** |
-| DELETE | `/api/briefs/:id/recipients/:recipientId` | Revoke access | Yes | Creator** |
-| GET | `/api/briefs/:id/comments` | List comments | Yes | Any* |
-| POST | `/api/briefs/:id/comments` | Create comment | Yes | Any* |
-| DELETE | `/api/comments/:id` | Delete comment | Yes | Any*** |
+| Method | Endpoint                                  | Description              | Auth Required | Role        |
+| ------ | ----------------------------------------- | ------------------------ | ------------- | ----------- |
+| GET    | `/api/users/me`                           | Get current user profile | Yes           | Any         |
+| DELETE | `/api/users/me`                           | Delete account           | Yes           | Any         |
+| GET    | `/api/briefs`                             | List briefs (paginated)  | Yes           | Any         |
+| GET    | `/api/briefs/:id`                         | Get brief details        | Yes           | Any\*       |
+| POST   | `/api/briefs`                             | Create brief             | Yes           | Creator     |
+| PATCH  | `/api/briefs/:id`                         | Update brief content     | Yes           | Creator\*\* |
+| PATCH  | `/api/briefs/:id/status`                  | Update brief status      | Yes           | Client\*    |
+| DELETE | `/api/briefs/:id`                         | Delete brief             | Yes           | Creator\*\* |
+| GET    | `/api/briefs/:id/recipients`              | List recipients          | Yes           | Creator\*\* |
+| POST   | `/api/briefs/:id/recipients`              | Share brief              | Yes           | Creator\*\* |
+| DELETE | `/api/briefs/:id/recipients/:recipientId` | Revoke access            | Yes           | Creator\*\* |
+| GET    | `/api/briefs/:id/comments`                | List comments            | Yes           | Any\*       |
+| POST   | `/api/briefs/:id/comments`                | Create comment           | Yes           | Any\*       |
+| DELETE | `/api/comments/:id`                       | Delete comment           | Yes           | Any\*\*\*   |
 
 **Total: 15 custom API endpoints** (authentication + profile creation handled by Supabase)
 
 **Legend:**
+
 - `*` = Must have access to the brief (owner or recipient)
 - `**` = Must be the brief owner
 - `***` = Must be the comment author
@@ -1527,6 +1666,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
 ## 15. Next Steps for Implementation
 
 ### Phase 1: Setup & Configuration
+
 1. **Configure Supabase project**
    - Set up authentication providers in Supabase dashboard
    - Configure email templates for auth flows
@@ -1544,6 +1684,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - Configure triggers and functions
 
 ### Phase 2: Authentication Integration
+
 4. **Set up profile creation trigger** ✅ DONE IN DB-PLAN.MD
    - ✅ Database trigger `create_profile_for_new_user` automatically creates profile
    - ✅ Extracts role from `raw_user_meta_data->>'role'`
@@ -1556,6 +1697,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - Handle unauthorized access
 
 ### Phase 3: API Development
+
 6. **Implement Zod validation schemas** ✅ IN PROGRESS
    - ✅ Brief validation schemas created in [src/lib/schemas/brief.schema.ts](../src/lib/schemas/brief.schema.ts)
      - `BriefQuerySchema` - Validates GET /api/briefs query parameters (page, limit, filter, status)
@@ -1605,6 +1747,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
    - ✅ Comment delete endpoint: `comments/[id]/route.ts` (DELETE implemented)
 
 ### Phase 4: Error Handling & Testing
+
 9. **Add consistent error handling**
    - Create error response utilities
    - Implement proper HTTP status codes
@@ -1616,6 +1759,7 @@ Authentication is **entirely managed by Supabase Auth** using the client-side SD
     - Test RLS policies
 
 ### Phase 5: Production Readiness
+
 11. **Set up rate limiting** (optional for MVP)
     - Use Vercel rate limiting or upstash/redis
     - Configure limits per endpoint

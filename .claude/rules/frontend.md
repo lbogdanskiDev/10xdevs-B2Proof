@@ -3,6 +3,7 @@ description:
 globs: *.tsx
 alwaysApply: false
 ---
+
 ## Frontend
 
 ### General Guidelines

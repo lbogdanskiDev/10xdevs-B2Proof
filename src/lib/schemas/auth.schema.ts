@@ -11,7 +11,9 @@ export const loginSchema = z.object({
     .string({ required_error: AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED })
     .nullable()
     .transform((val) => val ?? "")
-    .pipe(z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT)),
+    .pipe(
+      z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT)
+    ),
   password: z
     .string({ required_error: AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRED })
     .nullable()
@@ -34,7 +36,9 @@ export const registerSchema = z.object({
     .string({ required_error: AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED })
     .nullable()
     .transform((val) => val ?? "")
-    .pipe(z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT)),
+    .pipe(
+      z.string().min(1, AUTH_CONSTANTS.MESSAGES.EMAIL_REQUIRED).email(AUTH_CONSTANTS.MESSAGES.INVALID_EMAIL_FORMAT)
+    ),
   password: z
     .string({ required_error: AUTH_CONSTANTS.MESSAGES.PASSWORD_REQUIRED })
     .nullable()

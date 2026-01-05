@@ -204,38 +204,45 @@ sequenceDiagram
 ## Flow Descriptions
 
 ### 1. Registration Flow
+
 - User fills registration form with email, password, and role selection
 - Client-side validation checks password requirements (min 8 chars, 1 digit)
 - API validates input and creates user via Supabase Auth
 - On success, session is established and user is redirected to dashboard
 
 ### 2. Login Flow
+
 - User submits email and password credentials
 - API validates and authenticates via Supabase
 - On success, JWT tokens are stored in cookies
 - Previous sessions are automatically terminated
 
 ### 3. Protected Route Access
+
 - Middleware intercepts all requests to protected routes
 - Session is validated using `getUser()` which verifies JWT with Supabase
 - Valid sessions allow access; expired sessions redirect to login
 
 ### 4. Token Refresh
+
 - Middleware automatically refreshes tokens on every request
 - Access tokens are short-lived; refresh tokens extend session
 - When both tokens expire, user must re-authenticate
 
 ### 5. Logout Flow
+
 - User triggers logout action
 - Supabase terminates the session
 - Cookies are cleared and user is redirected to login
 
 ### 6. Password Change
+
 - Requires current password verification
 - User remains logged in after successful change
 - New password must meet security requirements
 
 ### 7. Account Deletion
+
 - Requires explicit confirmation
 - Cascades deletion to all user briefs and comments
 - Email becomes available for re-registration

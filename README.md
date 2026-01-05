@@ -1,4 +1,4 @@
-# B2Proof
+# B2Proof Application
 
 ## Project Description
 
@@ -25,6 +25,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 ## Tech Stack
 
 ### Frontend
+
 - **Next.js 15** (v15.1.0) - React framework with App Router and Server Components
 - **React 19** (v19.0.0) - UI library for building components
 - **TypeScript 5** (v5.8.0) - Static typing with auto-generated types from Supabase
@@ -33,6 +34,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 - **TipTap 3** - Headless WYSIWYG editor for brief content
 
 ### Backend
+
 - **Supabase** - Comprehensive backend-as-a-service
   - **PostgreSQL** - Relational database with ACID compliance
   - **Authentication** - Built-in Email/Password + OAuth (Google/GitHub)
@@ -41,6 +43,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
   - **Storage API** - For images and attachments
 
 ### CI/CD & Hosting
+
 - **GitHub Actions** - Automated pipeline (Lint → Type Check → Build → Deploy)
 - **Vercel** - Global Edge Network CDN with instant deployments
 
@@ -55,12 +58,14 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/lbogdanskiDev/b2proof.git
    cd b2proof
    ```
 
 2. **Install Node.js version**
+
    ```bash
    # Using nvm (recommended)
    nvm install
@@ -68,6 +73,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
    ```
 
 3. **Install dependencies**
+
    ```bash
    npm install
    ```
@@ -75,6 +81,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 4. **Set up environment variables**
 
    Create a `.env.local` file in the root directory:
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -86,12 +93,14 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 5. **Set up Supabase database**
 
    Run the database migrations (instructions to be added based on your migration setup):
+
    ```bash
    # Example using Supabase CLI
    npx supabase db push
    ```
 
 6. **Run the development server**
+
    ```bash
    npm run dev
    ```
@@ -100,19 +109,20 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 
 ## Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Next.js development server on port 3000 |
-| `npm run build` | Create production build with sitemap generation |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint to check code quality |
-| `npm run lint:fix` | Auto-fix ESLint issues |
-| `npm run format` | Format code with Prettier |
+| Command              | Description                                         |
+| -------------------- | --------------------------------------------------- |
+| `npm run dev`        | Start Next.js development server on port 3000       |
+| `npm run build`      | Create production build with sitemap generation     |
+| `npm run start`      | Start production server                             |
+| `npm run lint`       | Run ESLint to check code quality                    |
+| `npm run lint:fix`   | Auto-fix ESLint issues                              |
+| `npm run format`     | Format code with Prettier                           |
 | `npm run type-check` | Run TypeScript type checking without emitting files |
 
 ### Code Quality Tools
 
 The project uses:
+
 - **ESLint** with TypeScript, React, and Next.js rules
 - **Prettier** for consistent code formatting
 - **Husky + lint-staged** for pre-commit checks
@@ -170,27 +180,29 @@ npm run test:all            # Run both unit and E2E
 
 #### Coverage Targets
 
-| Type | Target |
-|------|--------|
-| Unit Tests | ≥80% for services and utilities |
-| Integration Tests | 100% of API endpoints |
-| E2E Tests | 100% of user stories |
+| Type              | Target                          |
+| ----------------- | ------------------------------- |
+| Unit Tests        | ≥80% for services and utilities |
+| Integration Tests | 100% of API endpoints           |
+| E2E Tests         | 100% of user stories            |
 
 #### Example Tests
 
 **Unit Test:**
-```typescript
-import { describe, it, expect } from 'vitest';
-import { myFunction } from './utils';
 
-describe('myFunction', () => {
-  it('should return expected result', () => {
+```typescript
+import { describe, it, expect } from "vitest";
+import { myFunction } from "./utils";
+
+describe("myFunction", () => {
+  it("should return expected result", () => {
     expect(myFunction(input)).toBe(expected);
   });
 });
 ```
 
 **Component Test:**
+
 ```typescript
 import { render, screen } from '@/test/utils/test-utils';
 import { MyComponent } from './MyComponent';
@@ -207,15 +219,16 @@ describe('MyComponent', () => {
 ```
 
 **E2E Test:**
+
 ```typescript
-import { test, expect } from './fixtures/base';
+import { test, expect } from "./fixtures/base";
 
-test('should complete user flow', async ({ page }) => {
-  await page.goto('/');
+test("should complete user flow", async ({ page }) => {
+  await page.goto("/");
 
-  await page.getByRole('button', { name: 'Start' }).click();
+  await page.getByRole("button", { name: "Start" }).click();
 
-  await expect(page).toHaveURL('/success');
+  await expect(page).toHaveURL("/success");
 });
 ```
 
@@ -240,6 +253,7 @@ test: {
 For comprehensive testing guidelines, see [.docs/testing-guide.md](.docs/testing-guide.md)
 
 Pre-commit hooks automatically run on staged files:
+
 - `*.{ts,tsx,js,jsx}`: ESLint fix + Prettier
 - `*.{json,css,md,mdx}`: Prettier
 
@@ -248,12 +262,14 @@ Pre-commit hooks automatically run on staged files:
 ### Included in MVP
 
 #### User Management
+
 - Registration with email/password (min 8 characters, 1 digit required)
 - Login with session management
 - User profile with password change and account deletion
 - Two user roles: Creator and Client
 
 #### Brief Management
+
 - Create briefs with header (200 chars), content (10,000 chars), footer (200 chars)
 - Simple WYSIWYG text formatting with TipTap
 - Edit briefs (resets status to Draft)
@@ -262,11 +278,13 @@ Pre-commit hooks automatically run on staged files:
 - Limit of 20 briefs per user
 
 #### Status System
+
 - Workflow: Draft → Sent → Accepted/Rejected/Needs Modification
 - Three CTA buttons for recipients: Accept, Reject, Needs Modification
 - Status visible to all users with access
 
 #### Sharing & Collaboration
+
 - Share briefs with up to 10 recipients via email
 - Revoke access to specific recipients
 - Public comment system (max 1000 characters per comment)
@@ -274,6 +292,7 @@ Pre-commit hooks automatically run on staged files:
 - Chronological comment display
 
 #### User Interface
+
 - Responsive web application (mobile-first)
 - English language interface
 - Brief list, detail view, and user profile pages
@@ -281,6 +300,7 @@ Pre-commit hooks automatically run on staged files:
 ### Explicitly Out of Scope
 
 The following features are NOT included in the MVP:
+
 - File imports (PDF, DOCX)
 - External integrations (Slack, Trello, etc.)
 - Native mobile application

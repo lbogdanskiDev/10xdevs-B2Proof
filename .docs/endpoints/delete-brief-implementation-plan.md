@@ -5,10 +5,12 @@
 This endpoint allows creator users to permanently delete their briefs. The operation is restricted to brief owners only and includes comprehensive audit trail logging before deletion. All related records (recipients, comments) are automatically deleted via database cascade rules.
 
 **Purpose:**
+
 - Enable creators to permanently delete briefs they own
 - Maintain audit trail for compliance and recovery purposes
 
 **Key Features:**
+
 - Owner-only authorization (strict ownership check)
 - Audit trail logging before deletion (captures full brief state)
 - Automatic cascade deletion of related records (recipients, comments)
@@ -24,14 +26,17 @@ This endpoint allows creator users to permanently delete their briefs. The opera
 **URL Structure:** `/api/briefs/:id`
 
 **Headers:**
+
 - `Authorization: Bearer {token}` (Required)
 
 **Parameters:**
 
 **Path Parameters:**
+
 - `id`: UUID string - Brief identifier
 
 **Validation Rules:**
+
 - `id`: Must be valid UUID format (validated via Zod)
 
 **Request Body:** None (DELETE request)
@@ -41,9 +46,11 @@ This endpoint allows creator users to permanently delete their briefs. The opera
 ## 3. Types Used
 
 **Response DTOs:**
+
 - None (204 No Content response has no body)
 
 **Supporting Types:**
+
 - `ErrorResponse` ([src/types.ts:301-305](src/types.ts#L301-L305)) - Error response structure
 - `BriefEntity` ([src/types.ts:44](src/types.ts#L44)) - Internal use for audit logging
 - `AuditAction` ([src/types.ts:66](src/types.ts#L66)) - Audit action enum
@@ -73,13 +80,13 @@ No response body. HTTP status 204 indicates successful deletion.
 
 **Error Responses:**
 
-| Status | Error                           | When                                              |
-| ------ | ------------------------------- | ------------------------------------------------- |
-| 400    | Invalid brief ID format         | Brief ID is not a valid UUID                      |
-| 401    | Unauthorized                    | Missing, invalid, or expired Bearer token         |
-| 403    | You are not the owner           | User authenticated but is not the brief owner     |
-| 404    | Brief not found                 | Valid UUID but brief doesn't exist in database    |
-| 500    | Internal server error           | Database failure or unexpected exception          |
+| Status | Error                   | When                                           |
+| ------ | ----------------------- | ---------------------------------------------- |
+| 400    | Invalid brief ID format | Brief ID is not a valid UUID                   |
+| 401    | Unauthorized            | Missing, invalid, or expired Bearer token      |
+| 403    | You are not the owner   | User authenticated but is not the brief owner  |
+| 404    | Brief not found         | Valid UUID but brief doesn't exist in database |
+| 500    | Internal server error   | Database failure or unexpected exception       |
 
 ---
 
@@ -88,11 +95,13 @@ No response body. HTTP status 204 indicates successful deletion.
 ### Authentication & Authorization
 
 **User Identification:**
+
 - Extract user ID from authenticated Supabase session using `supabase.auth.getUser()`
 - **NEVER** accept user ID from request parameters, headers, or body
 - Validate JWT token automatically through Supabase SDK
 
 **Authorization Checks:**
+
 - Query `briefs` table to verify `owner_id` matches authenticated user ID
 - Perform authorization check in service layer before deletion
 - Return 403 if user is not the owner
@@ -100,23 +109,25 @@ No response body. HTTP status 204 indicates successful deletion.
 
 ### Threat Mitigation
 
-| Threat                       | Mitigation                                                      |
-| ---------------------------- | --------------------------------------------------------------- |
-| Token theft                  | HTTPS only, validate token server-side via Supabase SDK         |
-| SQL injection                | Use Supabase SDK parameterized queries (no raw SQL)             |
-| Privilege escalation         | Always verify ownership from database, never trust client input |
-| Authorization bypass         | Extract user ID from authenticated session only                 |
-| Accidental deletion          | Audit log captures full state before deletion for recovery      |
-| Resource enumeration         | Return 403 for unauthorized access (not 404)                    |
+| Threat               | Mitigation                                                      |
+| -------------------- | --------------------------------------------------------------- |
+| Token theft          | HTTPS only, validate token server-side via Supabase SDK         |
+| SQL injection        | Use Supabase SDK parameterized queries (no raw SQL)             |
+| Privilege escalation | Always verify ownership from database, never trust client input |
+| Authorization bypass | Extract user ID from authenticated session only                 |
+| Accidental deletion  | Audit log captures full state before deletion for recovery      |
+| Resource enumeration | Return 403 for unauthorized access (not 404)                    |
 
 ### Input Validation
 
 **Strategy:**
+
 - Validate UUID format using Zod schema before database operations
 - Use strict UUID validation (rejects malformed IDs early)
 - Validate before authorization check (fail fast on invalid input)
 
 **Validation Timing:**
+
 - Route Handler: Validate path parameter UUID format
 - Service Layer: Verify brief existence and ownership
 - Database Layer: Handle cascade deletions automatically
@@ -161,16 +172,19 @@ Use guard clause pattern to handle errors early. All error conditions are checke
 ### Optimization Opportunities
 
 **Transaction Safety:**
+
 - Wrap audit log + deletion in a single transaction to ensure atomicity
 - If audit log fails, deletion should not proceed
 - Database cascade rules handle related records efficiently
 
 **Query Optimization:**
+
 - Single query to fetch brief and verify ownership (`SELECT * FROM briefs WHERE id = $1`)
 - Check `owner_id` in application layer (avoid extra query)
 - Cascade deletions handled automatically by PostgreSQL (no manual cleanup needed)
 
 **Audit Log Strategy:**
+
 - Capture full brief state (including content) in `old_data` for recovery
 - Consider async audit log insertion only if performance becomes critical (trade-off: potential audit loss)
 - Current synchronous approach preferred for compliance
@@ -184,6 +198,7 @@ Use guard clause pattern to handle errors early. All error conditions are checke
 **File:** `src/lib/schemas/brief.schema.ts`
 
 **Tasks:**
+
 - Verify `BriefIdSchema` exists (created for GET /api/briefs/:id)
 - If not exists, create it with UUID validation
 
@@ -206,6 +221,7 @@ export type BriefIdInput = z.infer<typeof BriefIdSchema>;
 **File:** `src/lib/services/briefs.service.ts`
 
 **Tasks:**
+
 - Add `deleteBrief` function to existing briefs service
 - Implement ownership verification
 - Create audit log entry with full brief state
@@ -226,17 +242,9 @@ import { ApiError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/li
  * @throws {NotFoundError} If brief doesn't exist
  * @throws {ApiError} If database operation fails
  */
-export async function deleteBrief(
-  supabase: SupabaseClient,
-  briefId: string,
-  userId: string
-): Promise<void> {
+export async function deleteBrief(supabase: SupabaseClient, briefId: string, userId: string): Promise<void> {
   // 1. Fetch brief and verify existence
-  const { data: brief, error: fetchError } = await supabase
-    .from("briefs")
-    .select("*")
-    .eq("id", briefId)
-    .single();
+  const { data: brief, error: fetchError } = await supabase.from("briefs").select("*").eq("id", briefId).single();
 
   if (fetchError || !brief) {
     throw new NotFoundError("Brief not found");
@@ -273,10 +281,7 @@ export async function deleteBrief(
   }
 
   // 4. Delete brief (cascade will handle brief_recipients and comments)
-  const { error: deleteError } = await supabase
-    .from("briefs")
-    .delete()
-    .eq("id", briefId);
+  const { error: deleteError } = await supabase.from("briefs").delete().eq("id", briefId);
 
   if (deleteError) {
     console.error("Failed to delete brief:", deleteError);
@@ -294,6 +299,7 @@ export async function deleteBrief(
 **File:** `src/app/api/briefs/[id]/route.ts`
 
 **Tasks:**
+
 - Add DELETE handler to existing route file (if GET exists) or create new file
 - Validate UUID format with Zod
 - Authenticate user via Supabase
@@ -309,10 +315,7 @@ import { deleteBrief } from "@/lib/services/briefs.service";
 import { BriefIdSchema } from "@/lib/schemas/brief.schema";
 import { ApiError, NotFoundError, ForbiddenError } from "@/lib/errors/api-errors";
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     // 1. Validate UUID format
     const validationResult = BriefIdSchema.safeParse({ id: params.id });
@@ -321,10 +324,7 @@ export async function DELETE(
         field: err.path.join("."),
         message: err.message,
       }));
-      return NextResponse.json(
-        { error: "Invalid brief ID format", details },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid brief ID format", details }, { status: 400 });
     }
 
     // 2. Authenticate user
@@ -335,10 +335,7 @@ export async function DELETE(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // 3. Delete brief
@@ -346,36 +343,23 @@ export async function DELETE(
 
     // 4. Return 204 No Content (no response body)
     return new NextResponse(null, { status: 204 });
-
   } catch (error) {
     // Handle known API errors
     if (error instanceof NotFoundError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 404 });
     }
 
     if (error instanceof ForbiddenError) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 403 });
     }
 
     if (error instanceof ApiError) {
-      return NextResponse.json(
-        { error: error.message, details: error.details },
-        { status: error.statusCode }
-      );
+      return NextResponse.json({ error: error.message, details: error.details }, { status: error.statusCode });
     }
 
     // Handle unexpected errors
     console.error("[DELETE /api/briefs/:id] Unexpected error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 

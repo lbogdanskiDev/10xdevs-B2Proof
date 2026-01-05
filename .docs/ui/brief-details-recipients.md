@@ -489,6 +489,7 @@ export function ShareBriefDialog({
 **Kiedy:** Initial load + refresh
 
 **Response (200 OK):**
+
 ```typescript
 {
   data: BriefRecipientDto[]
@@ -500,16 +501,21 @@ export function ShareBriefDialog({
 **Kiedy:** Owner adds new recipient
 
 **Request:**
+
 ```typescript
-{ email: string }
+{
+  email: string;
+}
 ```
 
 **Response (201 Created):**
+
 ```typescript
-ShareBriefResponseDto
+ShareBriefResponseDto;
 ```
 
 **Błędy:**
+
 - `400` - User with email not found
 - `403` - Maximum of 10 recipients per brief exceeded
 - `409` - User already has access to this brief
@@ -521,17 +527,18 @@ ShareBriefResponseDto
 **Response (204 No Content):** Empty body
 
 **Side effects:**
+
 - Usunięcie ostatniego odbiorcy resetuje status briefu do 'draft'
 
 ---
 
 ## Warunki renderowania
 
-| Komponent | Warunek |
-|-----------|---------|
-| `BriefRecipientsSection` | `isOwned === true` |
-| `ShareBriefDialog` | `isOwned === true` (jako część OwnerActions) |
-| `RecipientAddForm` | `recipients.length < 10` (przycisk Add disabled gdy limit) |
+| Komponent                | Warunek                                                    |
+| ------------------------ | ---------------------------------------------------------- |
+| `BriefRecipientsSection` | `isOwned === true`                                         |
+| `ShareBriefDialog`       | `isOwned === true` (jako część OwnerActions)               |
+| `RecipientAddForm`       | `recipients.length < 10` (przycisk Add disabled gdy limit) |
 
 ---
 
@@ -539,18 +546,18 @@ ShareBriefResponseDto
 
 ### RecipientAddForm
 
-| Pole | Walidacja |
-|------|-----------|
+| Pole  | Walidacja                                          |
+| ----- | -------------------------------------------------- |
 | Email | Wymagany, poprawny format (HTML5 email validation) |
-| Limit | `currentCount < maxCount` (10) |
+| Limit | `currentCount < maxCount` (10)                     |
 
 ### API Response Errors
 
-| Kod | Komunikat | Obsługa |
-|-----|-----------|---------|
-| 400 | "User with email 'X' not found" | Toast notification |
+| Kod | Komunikat                                     | Obsługa                 |
+| --- | --------------------------------------------- | ----------------------- |
+| 400 | "User with email 'X' not found"               | Toast notification      |
 | 403 | "Maximum of 10 recipients per brief exceeded" | Toast + disabled button |
-| 409 | "User already has access to this brief" | Toast notification |
+| 409 | "User already has access to this brief"       | Toast notification      |
 
 ---
 
@@ -610,9 +617,9 @@ try {
   await addRecipient(email);
 } catch (error) {
   toast({
-    title: 'Error',
-    description: error instanceof Error ? error.message : 'Failed to add recipient.',
-    variant: 'destructive',
+    title: "Error",
+    description: error instanceof Error ? error.message : "Failed to add recipient.",
+    variant: "destructive",
   });
 }
 ```
@@ -624,31 +631,31 @@ const handleAdd = async (email: string) => {
   try {
     await addRecipient(email);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message = error instanceof Error ? error.message : "Unknown error";
 
-    if (message.includes('not found')) {
+    if (message.includes("not found")) {
       toast({
-        title: 'User not found',
+        title: "User not found",
         description: `No user with email "${email}" exists in the system.`,
-        variant: 'destructive',
+        variant: "destructive",
       });
-    } else if (message.includes('already has access')) {
+    } else if (message.includes("already has access")) {
       toast({
-        title: 'Already shared',
+        title: "Already shared",
         description: `${email} already has access to this brief.`,
-        variant: 'destructive',
+        variant: "destructive",
       });
-    } else if (message.includes('Maximum')) {
+    } else if (message.includes("Maximum")) {
       toast({
-        title: 'Limit reached',
-        description: 'You cannot add more than 10 recipients.',
-        variant: 'destructive',
+        title: "Limit reached",
+        description: "You cannot add more than 10 recipients.",
+        variant: "destructive",
       });
     } else {
       toast({
-        title: 'Error',
-        description: 'Failed to add recipient. Please try again.',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to add recipient. Please try again.",
+        variant: "destructive",
       });
     }
   }
@@ -682,4 +689,5 @@ const handleAdd = async (email: string) => {
 ## Następne kroki
 
 Po zakończeniu tej części, przejdź do:
+
 - [Part 5: Comments Section](./brief-details-comments.md)

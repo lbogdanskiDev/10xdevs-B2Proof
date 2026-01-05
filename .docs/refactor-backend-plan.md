@@ -1007,16 +1007,17 @@ async function getOwnershipSet(supabase: SupabaseClient, userId: string, briefId
 
 ## Refactoring Status
 
-| Phase | Description | Status | Notes |
-|-------|-------------|--------|-------|
-| Phase 1 | API Handler Utilities | ✅ Completed | Created `api-handler.utils.ts`, refactored 8 route handlers |
-| Phase 2 | DTO Mappers | ✅ Completed | Created `mappers.ts` with 5 mapper functions, integrated into services |
-| Phase 3 | Authorization Helpers | ✅ Completed | Created `authorization.utils.ts`, refactored `brief.service.ts` and `comments.service.ts` |
-| Phase 4 | Audit Logging Abstraction | ✅ Completed | Created `audit.utils.ts` with 10 specialized audit functions, refactored services |
-| Phase 5 | Query Optimization | ✅ Completed | Created `user-lookup.utils.ts` with batch author lookup, `query.utils.ts` with pagination helpers. Refactored `comments.service.ts` to reduce N+1 queries from 21 to ~11 for 10 comments |
-| Phase 6 | Service Layer Refactoring | ✅ Completed | Refactored `getBriefs` from ~270 lines with 3 helper functions to ~130 lines with 1 helper. Used `getBriefIdsForUser` for unified approach |
+| Phase   | Description               | Status       | Notes                                                                                                                                                                                    |
+| ------- | ------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 1 | API Handler Utilities     | ✅ Completed | Created `api-handler.utils.ts`, refactored 8 route handlers                                                                                                                              |
+| Phase 2 | DTO Mappers               | ✅ Completed | Created `mappers.ts` with 5 mapper functions, integrated into services                                                                                                                   |
+| Phase 3 | Authorization Helpers     | ✅ Completed | Created `authorization.utils.ts`, refactored `brief.service.ts` and `comments.service.ts`                                                                                                |
+| Phase 4 | Audit Logging Abstraction | ✅ Completed | Created `audit.utils.ts` with 10 specialized audit functions, refactored services                                                                                                        |
+| Phase 5 | Query Optimization        | ✅ Completed | Created `user-lookup.utils.ts` with batch author lookup, `query.utils.ts` with pagination helpers. Refactored `comments.service.ts` to reduce N+1 queries from 21 to ~11 for 10 comments |
+| Phase 6 | Service Layer Refactoring | ✅ Completed | Refactored `getBriefs` from ~270 lines with 3 helper functions to ~130 lines with 1 helper. Used `getBriefIdsForUser` for unified approach                                               |
 
 ### Status Legend
+
 - ✅ Completed
 - ⏳ In Progress
 - ⏸️ Pending

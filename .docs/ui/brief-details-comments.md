@@ -486,10 +486,12 @@ function generatePageNumbers(current: number, total: number): (number | '...')[]
 **Kiedy:** Initial load + polling co 30s + manual refresh + pagination
 
 **Query params:**
+
 - `page?: number` (default: 1)
 - `limit?: number` (default: 50)
 
 **Response (200 OK):**
+
 ```typescript
 {
   data: CommentDto[];
@@ -507,13 +509,17 @@ function generatePageNumbers(current: number, total: number): (number | '...')[]
 **Kiedy:** User submits CommentForm
 
 **Request:**
+
 ```typescript
-{ content: string } // 1-1000 characters
+{
+  content: string;
+} // 1-1000 characters
 ```
 
 **Response (201 Created):**
+
 ```typescript
-CommentDto
+CommentDto;
 ```
 
 ### DELETE /api/comments/:id
@@ -555,29 +561,29 @@ useEffect(() => {
 
 ### CommentForm
 
-| Pole | Walidacja |
-|------|-----------|
-| Content | Wymagany, 1-1000 znaków (trimmed) |
-| Button | Disabled gdy pusty, przekroczony limit, lub loading |
+| Pole    | Walidacja                                           |
+| ------- | --------------------------------------------------- |
+| Content | Wymagany, 1-1000 znaków (trimmed)                   |
+| Button  | Disabled gdy pusty, przekroczony limit, lub loading |
 
 ### API Validation
 
-| Błąd | Komunikat |
-|------|-----------|
+| Błąd          | Komunikat                                       |
+| ------------- | ----------------------------------------------- |
 | Empty content | "Comment must be between 1 and 1000 characters" |
-| Too long | "Comment must be between 1 and 1000 characters" |
-| No access | "You do not have access to this brief" |
+| Too long      | "Comment must be between 1 and 1000 characters" |
+| No access     | "You do not have access to this brief"          |
 
 ---
 
 ## Warunki renderowania
 
-| Element | Warunek |
-|---------|---------|
+| Element       | Warunek                                   |
+| ------------- | ----------------------------------------- |
 | `CommentList` | Zawsze (pusta lista pokazuje empty state) |
-| `Pagination` | `pagination.totalPages > 1` |
-| `CommentForm` | Zawsze |
-| Delete button | `comment.isOwn === true` |
+| `Pagination`  | `pagination.totalPages > 1`               |
+| `CommentForm` | Zawsze                                    |
+| Delete button | `comment.isOwn === true`                  |
 
 ---
 
@@ -681,7 +687,7 @@ Opcjonalnie można dodać `aria-live` dla dynamicznych aktualizacji:
 ### Memoization
 
 ```typescript
-import { memo, useCallback } from 'react';
+import { memo, useCallback } from "react";
 
 // Memoizacja CommentItem
 export const CommentItem = memo(function CommentItem({ comment, onDelete }: CommentItemProps) {
@@ -689,9 +695,12 @@ export const CommentItem = memo(function CommentItem({ comment, onDelete }: Comm
 });
 
 // useCallback dla event handlers
-const handleDeleteComment = useCallback(async (commentId: string) => {
-  await deleteComment(commentId);
-}, [deleteComment]);
+const handleDeleteComment = useCallback(
+  async (commentId: string) => {
+    await deleteComment(commentId);
+  },
+  [deleteComment]
+);
 ```
 
 ### Debounce dla CharacterCounter
@@ -732,4 +741,5 @@ const debouncedLength = useDebouncedValue(content.length, 100);
 ## Następne kroki
 
 Po zakończeniu tej części, przejdź do:
+
 - [Part 6: Main Page & Error Handling](./brief-details-page.md)

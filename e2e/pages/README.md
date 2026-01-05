@@ -88,6 +88,7 @@ test("should validate form fields", async ({ page }) => {
 Represents the `/briefs` route where users view and manage their briefs.
 
 **Key Methods:**
+
 - `goto()` - Navigate to briefs list
 - `clickCreateBrief()` - Click create brief button
 - `clickBriefCard(index)` - Click on a specific brief card
@@ -96,6 +97,7 @@ Represents the `/briefs` route where users view and manage their briefs.
 - `getBriefCount()` - Get number of briefs displayed
 
 **Locators:**
+
 - `createBriefButton` - Create brief button
 - `briefCards` - All brief cards
 - `emptyState` - Empty state message
@@ -109,6 +111,7 @@ Represents the `/briefs` route where users view and manage their briefs.
 Represents the `/briefs/new` route where users create new briefs.
 
 **Key Methods:**
+
 - `goto()` - Navigate to create brief page
 - `fillHeader(header)` - Fill header field
 - `fillContent(content)` - Fill content editor
@@ -123,6 +126,7 @@ Represents the `/briefs/new` route where users create new briefs.
 - `hasErrorMessage()` - Check for validation errors
 
 **Locators:**
+
 - `headerInput` - Header input field
 - `contentEditor` - TipTap content editor
 - `footerInput` - Footer textarea
@@ -296,6 +300,7 @@ const header = generateUniqueBriefHeader("Test Brief");
 ```
 
 **Key Features:**
+
 - Timestamp-based unique IDs (format: `YYYYMMDD_HHmmss_randomHash`)
 - Customizable prefixes for different test scenarios
 - Optional footer generation
@@ -330,6 +335,7 @@ test.describe("My Tests", () => {
 ```
 
 **Benefits:**
+
 - Prevents test data pollution
 - Ensures clean state between test runs
 - Automatic ID extraction from URLs

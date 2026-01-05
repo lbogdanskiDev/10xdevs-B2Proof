@@ -29,7 +29,7 @@ export function BriefListHeader({ userRole, briefCount = 0 }: BriefListHeaderPro
       </div>
 
       {isCreator && (
-        <Button asChild disabled={isLimitReached}>
+        <Button asChild disabled={isLimitReached} data-test-id="create-brief-button">
           {isLimitReached ? (
             <span className="opacity-50">
               <Plus className="mr-2 h-4 w-4" />

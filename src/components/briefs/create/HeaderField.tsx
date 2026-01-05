@@ -34,6 +34,7 @@ export function HeaderField({ value, onChange, error, disabled }: HeaderFieldPro
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
         className={cn(error && "border-destructive focus-visible:ring-destructive")}
+        data-test-id="brief-header-input"
       />
       {error && (
         <p id={errorId} className="text-sm text-destructive" role="alert">

@@ -76,7 +76,7 @@ export function BriefContentRenderer({
           "prose dark:prose-invert max-w-none focus:outline-none",
           editable && `prose-sm min-h-[${minHeight}] p-4`
         ),
-        ...(editable && { "aria-label": "Brief content editor" }),
+        ...(editable && { "aria-label": "Brief content editor", "data-test-id": "brief-content-editor" }),
       },
     },
   });

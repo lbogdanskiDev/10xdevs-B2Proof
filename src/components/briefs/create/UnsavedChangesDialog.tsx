@@ -27,6 +27,7 @@ export function UnsavedChangesDialog({ open, onOpenChange, onConfirm }: UnsavedC
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            data-test-id="leave-brief-creation-button"
           >
             Leave
           </AlertDialogAction>

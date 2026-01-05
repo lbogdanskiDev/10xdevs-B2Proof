@@ -33,6 +33,7 @@ export function FooterField({ value, onChange, error, disabled }: FooterFieldPro
         aria-invalid={!!error}
         aria-describedby={error ? errorId : undefined}
         className={cn(error && "border-destructive focus-visible:ring-destructive")}
+        data-test-id="brief-footer-input"
       />
       {error && (
         <p id={errorId} className="text-sm text-destructive" role="alert">

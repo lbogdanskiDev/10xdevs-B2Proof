@@ -58,8 +58,12 @@ export function BriefFilters({ userRole }: BriefFiltersProps) {
       {isCreator && (
         <Tabs value={currentFilter} onValueChange={handleFilterChange}>
           <TabsList>
-            <TabsTrigger value="owned">My Briefs</TabsTrigger>
-            <TabsTrigger value="shared">Shared with me</TabsTrigger>
+            <TabsTrigger value="owned" aria-controls={undefined}>
+              My Briefs
+            </TabsTrigger>
+            <TabsTrigger value="shared" aria-controls={undefined}>
+              Shared with me
+            </TabsTrigger>
           </TabsList>
         </Tabs>
       )}

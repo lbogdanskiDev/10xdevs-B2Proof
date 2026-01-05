@@ -1,12 +1,70 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough, List, ListOrdered } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bold, Italic, Underline, Strikethrough, List, ListOrdered } from "lucide-react";
 import type { EditorMenuBarProps } from "@/lib/types/create-brief.types";
 
+// ============================================================================
+// Types
+// ============================================================================
+
+type TextFormat = "bold" | "italic" | "underline" | "strike";
+type ListFormat = "bulletList" | "orderedList";
 type HeadingLevel = "paragraph" | "1" | "2" | "3";
+
+interface FormatConfig {
+  format: TextFormat | ListFormat;
+  icon: LucideIcon;
+  label: string;
+}
+
+interface HeadingOption {
+  value: HeadingLevel;
+  label: string;
+}
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+const TEXT_FORMATS: FormatConfig[] = [
+  { format: "bold", icon: Bold, label: "Bold" },
+  { format: "italic", icon: Italic, label: "Italic" },
+  { format: "underline", icon: Underline, label: "Underline" },
+  { format: "strike", icon: Strikethrough, label: "Strikethrough" },
+];
+
+const LIST_FORMATS: FormatConfig[] = [
+  { format: "bulletList", icon: List, label: "Bullet list" },
+  { format: "orderedList", icon: ListOrdered, label: "Numbered list" },
+];
+
+const HEADING_OPTIONS: HeadingOption[] = [
+  { value: "paragraph", label: "Paragraph" },
+  { value: "1", label: "Heading 1" },
+  { value: "2", label: "Heading 2" },
+  { value: "3", label: "Heading 3" },
+];
+
+// ============================================================================
+// Format Toggle Mapping
+// ============================================================================
+
+const FORMAT_TOGGLE_MAP: Record<TextFormat | ListFormat, string> = {
+  bold: "toggleBold",
+  italic: "toggleItalic",
+  underline: "toggleUnderline",
+  strike: "toggleStrike",
+  bulletList: "toggleBulletList",
+  orderedList: "toggleOrderedList",
+};
+
+// ============================================================================
+// Component
+// ============================================================================
 
 export function EditorMenuBar({ editor }: EditorMenuBarProps) {
   if (!editor) {
@@ -32,6 +90,24 @@ export function EditorMenuBar({ editor }: EditorMenuBarProps) {
     }
   };
 
+  const handleFormatToggle = (format: TextFormat | ListFormat) => {
+    const method = FORMAT_TOGGLE_MAP[format];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (editor.chain().focus() as any)[method]().run();
+  };
+
+  const renderFormatToggle = ({ format, icon: Icon, label }: FormatConfig) => (
+    <Toggle
+      key={format}
+      size="sm"
+      pressed={editor.isActive(format)}
+      onPressedChange={() => handleFormatToggle(format)}
+      aria-label={label}
+    >
+      <Icon className="h-4 w-4" />
+    </Toggle>
+  );
+
   return (
     <div
       className="sticky top-0 z-10 flex flex-wrap items-center gap-1 rounded-t-md border border-b-0 bg-muted/50 p-2"
@@ -39,40 +115,7 @@ export function EditorMenuBar({ editor }: EditorMenuBarProps) {
       aria-label="Text formatting options"
     >
       {/* Text style toggles */}
-      <div className="flex gap-1">
-        <Toggle
-          size="sm"
-          pressed={editor.isActive("bold")}
-          onPressedChange={() => editor.chain().focus().toggleBold().run()}
-          aria-label="Bold"
-        >
-          <Bold className="h-4 w-4" />
-        </Toggle>
-        <Toggle
-          size="sm"
-          pressed={editor.isActive("italic")}
-          onPressedChange={() => editor.chain().focus().toggleItalic().run()}
-          aria-label="Italic"
-        >
-          <Italic className="h-4 w-4" />
-        </Toggle>
-        <Toggle
-          size="sm"
-          pressed={editor.isActive("underline")}
-          onPressedChange={() => editor.chain().focus().toggleUnderline().run()}
-          aria-label="Underline"
-        >
-          <Underline className="h-4 w-4" />
-        </Toggle>
-        <Toggle
-          size="sm"
-          pressed={editor.isActive("strike")}
-          onPressedChange={() => editor.chain().focus().toggleStrike().run()}
-          aria-label="Strikethrough"
-        >
-          <Strikethrough className="h-4 w-4" />
-        </Toggle>
-      </div>
+      <div className="flex gap-1">{TEXT_FORMATS.map(renderFormatToggle)}</div>
 
       <Separator orientation="vertical" className="mx-2 h-6" />
 
@@ -82,34 +125,18 @@ export function EditorMenuBar({ editor }: EditorMenuBarProps) {
           <SelectValue placeholder="Paragraph" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="paragraph">Paragraph</SelectItem>
-          <SelectItem value="1">Heading 1</SelectItem>
-          <SelectItem value="2">Heading 2</SelectItem>
-          <SelectItem value="3">Heading 3</SelectItem>
+          {HEADING_OPTIONS.map(({ value, label }) => (
+            <SelectItem key={value} value={value}>
+              {label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
       <Separator orientation="vertical" className="mx-2 h-6" />
 
       {/* List toggles */}
-      <div className="flex gap-1">
-        <Toggle
-          size="sm"
-          pressed={editor.isActive("bulletList")}
-          onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
-          aria-label="Bullet list"
-        >
-          <List className="h-4 w-4" />
-        </Toggle>
-        <Toggle
-          size="sm"
-          pressed={editor.isActive("orderedList")}
-          onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
-          aria-label="Numbered list"
-        >
-          <ListOrdered className="h-4 w-4" />
-        </Toggle>
-      </div>
+      <div className="flex gap-1">{LIST_FORMATS.map(renderFormatToggle)}</div>
     </div>
   );
 }

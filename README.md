@@ -44,7 +44,7 @@ Research indicates that on average 30% of a freelancer's work time is dedicated 
 
 ### CI/CD & Hosting
 
-- **GitHub Actions** - Automated pipeline (Lint → Type Check → Build → Deploy)
+- **GitHub Actions** - Automated CI/CD pipeline with parallel testing
 - **Vercel** - Global Edge Network CDN with instant deployments
 
 ## Getting Started Locally
@@ -256,6 +256,215 @@ Pre-commit hooks automatically run on staged files:
 
 - `*.{ts,tsx,js,jsx}`: ESLint fix + Prettier
 - `*.{json,css,md,mdx}`: Prettier
+
+## CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment with an automated multi-stage pipeline.
+
+### Pipeline Overview
+
+The CI/CD pipeline runs automatically on all pull requests to the `master` branch and consists of the following stages:
+
+```
+┌─────────────────────────────────────────────┐
+│          1. Lint & Format Check             │
+│   (ESLint, TypeScript, Prettier)            │
+└─────────────────┬───────────────────────────┘
+                  │
+         ┌────────┴────────┐
+         │                 │
+┌────────▼──────┐   ┌──────▼────────┐
+│ 2. Unit Tests │   │ 3. E2E Tests  │
+│  (with coverage)  │   (Playwright)    │
+└────────┬──────┘   └──────┬────────┘
+         │                 │
+         └────────┬────────┘
+                  │
+         ┌────────▼──────────┐
+         │ 4. Status Comment │
+         │   (PR feedback)   │
+         └───────────────────┘
+```
+
+### Workflow Jobs
+
+#### 1. Lint & Format (`lint-and-format`)
+
+Validates code quality and formatting standards:
+
+- **ESLint**: Checks TypeScript/React code against project rules
+- **TypeScript**: Type checking without compilation (`tsc --noEmit`)
+- **Prettier**: Validates code formatting consistency
+
+**Commands:**
+
+```bash
+npm run lint         # ESLint check
+npm run type-check   # TypeScript validation
+npm run format -- --check  # Prettier validation
+```
+
+#### 2. Unit Tests (`unit-test`)
+
+Runs Vitest unit tests with coverage reporting:
+
+- Executes all unit tests in `src/**/*.test.ts(x)`
+- Generates coverage reports (HTML + lcov)
+- Uploads coverage artifacts (retained for 7 days)
+- Requires `lint-and-format` to pass first
+
+**Commands:**
+
+```bash
+npm run test:coverage  # Run tests with coverage
+```
+
+**Coverage artifacts:** `unit-coverage/`
+
+#### 3. E2E Tests (`e2e-test`)
+
+Runs Playwright end-to-end tests against integration environment:
+
+- Installs Chromium browser with system dependencies
+- Runs tests in `e2e/**/*.spec.ts`
+- Uploads test reports and failure videos
+- Requires `lint-and-format` to pass first
+
+**Environment Variables Required:**
+
+```env
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_API_URL
+E2E_CREATOR_EMAIL
+E2E_CREATOR_PASSWORD
+E2E_CLIENT_EMAIL
+E2E_CLIENT_PASSWORD
+```
+
+**Commands:**
+
+```bash
+npx playwright install chromium --with-deps
+npm run test:e2e
+```
+
+**Artifacts:**
+
+- `playwright-report/` - Test execution report (always)
+- `playwright-videos/` - Video recordings (on failure only)
+
+#### 4. Status Comment (`status-comment`)
+
+Automatically posts a success comment on PRs when all checks pass:
+
+```markdown
+## ✅ CI Pipeline Passed
+
+All checks have passed successfully!
+
+- ✅ Lint & Format
+- ✅ Unit Tests
+- ✅ E2E Tests
+
+Your pull request is ready for review.
+```
+
+### GitHub Actions Configuration
+
+**Workflow file:** [.github/workflows/pull-request.yml](.github/workflows/pull-request.yml)
+
+**Node.js version:** Automatically read from [.nvmrc](.nvmrc) (v22.14.0)
+
+**Dependencies:** Installed via `npm ci` for reproducible builds
+
+**Caching:** npm cache enabled for faster installation
+
+### Required GitHub Secrets
+
+Configure the following secrets in your GitHub repository settings (Settings → Secrets and variables → Actions):
+
+| Secret Name                      | Description                          | Environment   |
+| -------------------------------- | ------------------------------------ | ------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`       | Supabase project URL                 | `integration` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | Supabase anonymous/public key        | `integration` |
+| `SUPABASE_SERVICE_ROLE_KEY`      | Supabase service role key (admin)    | `integration` |
+| `NEXT_PUBLIC_API_URL`            | API base URL for E2E tests           | `integration` |
+| `E2E_CREATOR_EMAIL`              | Test user email (creator role)       | `integration` |
+| `E2E_CREATOR_PASSWORD`           | Test user password (creator role)    | `integration` |
+| `E2E_CLIENT_EMAIL`               | Test user email (client role)        | `integration` |
+| `E2E_CLIENT_PASSWORD`            | Test user password (client role)     | `integration` |
+
+**Note:** E2E tests use the `integration` environment, which requires proper setup in GitHub repository settings.
+
+### Pipeline Features
+
+- **Parallel Execution**: Unit and E2E tests run in parallel after lint check
+- **Dependency Management**: Uses `npm ci` for deterministic installs
+- **Node Version Control**: Automatically uses version from `.nvmrc`
+- **Artifact Retention**: Test reports and videos kept for 7 days
+- **Smart Caching**: npm cache speeds up subsequent runs
+- **Automatic Comments**: Success feedback posted directly on PRs
+
+### Local Testing
+
+Run the same checks locally before pushing:
+
+```bash
+# Run all quality checks
+npm run lint
+npm run type-check
+npm run format -- --check
+
+# Run tests
+npm run test:coverage
+npm run test:e2e
+
+# Or run everything
+npm run test:all && npm run lint && npm run type-check
+```
+
+### Troubleshooting CI/CD
+
+#### Pipeline Fails at Lint Stage
+
+- Run `npm run lint:fix` to auto-fix ESLint issues
+- Run `npm run format` to fix formatting
+- Check `npm run type-check` output for type errors
+
+#### Unit Tests Fail in CI
+
+- Ensure tests pass locally: `npm run test:coverage`
+- Check coverage artifacts in GitHub Actions for detailed reports
+- Verify all dependencies are in `package.json` (not just `devDependencies`)
+
+#### E2E Tests Fail in CI
+
+- Verify all required secrets are configured in GitHub
+- Check Playwright report artifacts for detailed failure info
+- Review video recordings (uploaded on failure)
+- Ensure integration environment (Supabase) is accessible
+
+#### Status Comment Not Posted
+
+- Verify workflow has `pull-requests: write` permission
+- Check that all three jobs (lint, unit, e2e) succeeded
+- Review GitHub Actions logs for `status-comment` job
+
+### Continuous Deployment
+
+**Vercel Integration:**
+
+- Automatic deployments triggered on PR merge to `master`
+- Preview deployments created for all PRs
+- Environment variables configured in Vercel dashboard
+- Build command: `npm run build`
+- Output directory: `.next`
+
+**Production URL:** [To be configured]
+
+**Preview URLs:** Generated automatically for each PR
 
 ## Project Scope
 

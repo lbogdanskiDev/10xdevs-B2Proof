@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:test": "dotenv -e .env.test -- next dev",
     "build": "next build && next-sitemap",
     "start": "next start",
     "lint": "eslint .",
@@ -74,6 +75,8 @@
     "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "axe-core": "^4.11.0",
+    "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9.23.0",
     "eslint-config-next": "^15.1.0",
     "eslint-config-prettier": "^10.1.1",

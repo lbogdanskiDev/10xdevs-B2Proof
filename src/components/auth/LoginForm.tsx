@@ -258,7 +258,7 @@ export function LoginForm({ error, redirectTo }: LoginFormProps) {
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-primary underline-offset-4 hover:underline">
+          <Link href="/register" className="text-primary underline underline-offset-4">
             Sign up
           </Link>
         </p>

@@ -24,15 +24,15 @@ export class BriefListPage {
 
     // Brief list elements
     this.briefCards = page.locator('[data-test-id^="brief-card-"]');
-    this.emptyState = page.locator('text=No briefs');
+    this.emptyState = page.locator("text=No briefs");
 
     // Alert elements
-    this.limitAlert = page.locator('text=Approaching brief limit');
+    this.limitAlert = page.locator("text=Approaching brief limit");
 
     // Filter elements
     this.filterOwnedTab = page.locator('button[role="tab"]:has-text("My Briefs")');
     this.filterSharedTab = page.locator('button[role="tab"]:has-text("Shared with me")');
-    this.statusFilter = page.locator('#status-filter');
+    this.statusFilter = page.locator("#status-filter");
 
     // Pagination elements
     this.paginationPrevious = page.locator('a:has-text("Previous")');

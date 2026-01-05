@@ -185,7 +185,7 @@ test.describe("Create Brief Flow", () => {
 
     // Check for loading state (this might be too fast in local environment)
     // In a real scenario with network delays, this would be more reliable
-    const isLoading = await createBriefPage.isSaving();
+    // const isLoading = await createBriefPage.isSaving();
 
     // Complete the save
     await savePromise;
@@ -197,6 +197,7 @@ test.describe("Create Brief Flow", () => {
     briefTracker.trackFromUrl(page.url());
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   test("should have no accessibility violations on create brief page", async ({ page, makeAxeBuilder }) => {
     await createBriefPage.goto();
 

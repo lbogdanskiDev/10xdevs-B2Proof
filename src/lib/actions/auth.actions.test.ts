@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import type { SupabaseClient } from "@/types";
-import { createMockFromChain, suppressConsole } from "@/lib/helpers/test-helpers";
 
 // Mock dependencies BEFORE importing the service
 vi.mock("@/db/supabase.server", () => ({
